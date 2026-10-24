@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-mode="slime">
+<html lang="en" data-mode="home">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -92,6 +92,66 @@ button{font:inherit;color:inherit}
 .drawer .modes::-webkit-scrollbar{display:none}
 .pill{border:0;border-radius:999px;padding:10px 18px;background:var(--line);cursor:pointer;font-weight:500;align-self:flex-start;margin-left:6px}
 .drawer .note{font-size:.85rem;color:var(--muted);margin:10px 6px 0;line-height:1.4}
+
+/* ---------- home, settings, wellbeing ---------- */
+html[data-mode="home"]{background:var(--surface)}
+.home{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 28px)}
+.home::-webkit-scrollbar{display:none}
+.home-top{display:flex;align-items:center;justify-content:space-between;padding-left:62px;min-height:48px}
+.home-top h1{margin:0;font-size:1.6rem;font-weight:600}
+.home-gear{width:46px;height:46px;border:0;border-radius:16px;background:var(--line);display:grid;place-items:center;cursor:pointer}
+.home-gear svg{width:24px;height:24px}
+.home-continue{display:flex;align-items:center;gap:14px;width:100%;margin:16px 0 6px;padding:12px 14px;border:0;border-radius:22px;cursor:pointer;text-align:left;font-size:1.05rem;font-weight:500;
+  background:linear-gradient(135deg,rgba(124,92,255,.16),rgba(255,111,165,.14))}
+.home-continue small{display:block;font-size:.8rem;color:var(--muted);font-weight:500}
+.home-continue[hidden]{display:none}
+.home-well{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px}
+.home-well .pill{margin:0}
+.pill[aria-pressed="true"]{background:#2A2438;color:#fff}
+.home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hcard{position:relative}
+.hgo{width:100%;height:100%;min-height:132px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;border:0;border-radius:22px;cursor:pointer;text-align:left;background:var(--line)}
+.hgo .ico{width:48px;height:48px}
+.hname{font-size:1.05rem;font-weight:600}
+.hdesc{font-size:.8rem;color:var(--muted);line-height:1.3}
+.hstar{position:absolute;top:8px;right:8px;width:36px;height:36px;border:0;border-radius:50%;background:transparent;cursor:pointer;font-size:1.25rem;color:var(--muted)}
+.hstar[aria-pressed="true"]{color:#F5A623}
+.ico.home{background:var(--line);display:grid;place-items:center}
+.ico.home svg{width:30px;height:30px}
+.sheet-wrap{position:fixed;inset:0;z-index:60;background:rgba(20,14,30,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet-wrap[hidden]{display:none}
+.sheet-card{width:min(520px,100%);max-height:88vh;overflow-y:auto;background:var(--surface);color:var(--ink);border-radius:26px 26px 0 0;
+  padding:16px 20px calc(env(safe-area-inset-bottom,0px) + 22px);box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+.sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet-head h2{margin:4px 0;font-size:1.4rem;font-weight:600}
+.sheet-x{width:40px;height:40px;border:0;border-radius:50%;background:var(--line);cursor:pointer;font-size:1rem}
+.sheet-card h3{margin:18px 0 6px;font-size:.85rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.sheet-card .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;font-size:1rem}
+.sheet-card .row small{display:block;font-size:.78rem;color:var(--muted)}
+.sheet-card input[type="range"]{flex:1;max-width:220px;accent-color:#7C5CFF}
+.sheet-card .pill{margin:0}
+.tgl{appearance:none;-webkit-appearance:none;width:50px;height:30px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.tgl::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.tgl:checked{background:#7C5CFF}.tgl:checked::after{transform:translateX(20px)}
+.seg{display:flex;gap:3px;padding:3px;border-radius:999px;background:var(--line)}
+.seg button{border:0;border-radius:999px;padding:7px 14px;background:transparent;cursor:pointer;font-weight:500}
+.seg button[aria-pressed="true"]{background:#2A2438;color:#fff}
+.breathe{position:fixed;z-index:15;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.breathe[hidden]{display:none}
+.b-ring{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle,rgba(160,200,255,.55),rgba(124,92,255,.25) 60%,rgba(124,92,255,0) 72%);border:2px solid rgba(255,255,255,.75);box-shadow:0 0 18px rgba(124,92,255,.35);will-change:transform}
+.b-txt{font-size:.85rem;font-weight:500;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.45);padding:2px 10px;border-radius:999px;background:rgba(30,24,50,.35)}
+.focus-pill{position:fixed;z-index:16;left:50%;top:calc(env(safe-area-inset-top,0px) + 16px);transform:translateX(-50%);border:0;border-radius:999px;padding:9px 16px;cursor:pointer;
+  font-weight:600;font-variant-numeric:tabular-nums;color:#2A2438;background:rgba(255,255,255,.85);box-shadow:0 3px 12px rgba(0,0,0,.2)}
+.focus-pill.done{background:#FFE27A}
+html.dark .fab{background:rgba(40,36,56,.78)}
+html.dark .fab svg{stroke:#F1EDF8}
+html.dark .pill[aria-pressed="true"],html.dark .seg button[aria-pressed="true"]{background:#F1EDF8;color:#231F30}
+html.dark[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.08) 0 3px,transparent 3.5px) 0 0/28px 28px,#3A2232}
+html.dark #mode-pop .hint{color:#F3C9DD}
+html.dark[data-mode="zen"]:not(.zen-night){background:radial-gradient(ellipse at 50% 45%,#3A3A42,#1A1A20 80%)}
+html.dark[data-mode="cradle"]{background:linear-gradient(180deg,#2C2824,#141210)}
+html.dark[data-mode="cube"]:not(.dodec-night){background:radial-gradient(ellipse at 50% 40%,#3A3150,#1A1626 80%)}
+html.dark #mode-zen .hint,html.dark #mode-cradle .hint,html.dark #mode-cube .hint{color:rgba(235,230,245,.7);text-shadow:none}
 
 /* ---------- slime ---------- */
 #slime,#dicecv,#grasscv,#popcv,.gl3d{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
@@ -396,7 +456,20 @@ button{font:inherit;color:inherit}
 </head>
 <body>
 <div id="app">
-  <section class="mode active" id="mode-slime" aria-label="Slime">
+  <section class="mode active" id="mode-home" aria-label="Home">
+    <div class="home">
+      <header class="home-top"><h1>DigiFidget</h1><button class="home-gear" id="homeGear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></header>
+      <button class="home-continue" id="homeContinue" hidden></button>
+      <div class="home-well" role="group" aria-label="Wellbeing">
+        <button class="pill" id="homeBreathe" aria-pressed="false">Breathe</button>
+        <button class="pill" id="homeFocus">Focus timer</button>
+        <button class="pill" id="homeCalm" aria-pressed="false">Calm mode</button>
+      </div>
+      <div class="home-grid" id="homeGrid"></div>
+    </div>
+  </section>
+
+  <section class="mode" id="mode-slime" aria-label="Slime">
     <canvas id="slime" aria-label="Slime filling the screen. Tap, drag or swirl it."></canvas>
     <p class="hint" id="hint">Tap, drag or swirl</p>
     <div class="slime-colors swatches" id="swatches" role="group" aria-label="Slime color"></div>
@@ -565,7 +638,8 @@ button{font:inherit;color:inherit}
 <nav class="drawer" id="drawer" aria-label="Modes">
   <h2>DigiFidget</h2>
   <div class="modes">
-  <button class="mode-btn" data-mode="slime" aria-current="true"><span class="ico slime"></span>Slime</button>
+  <button class="mode-btn" data-mode="home" aria-current="true"><span class="ico home"><svg viewBox="0 0 44 44" fill="none" stroke="#6E6680" stroke-width="2.4" stroke-linejoin="round"><path d="M10 21l12-10 12 10v12a2 2 0 0 1-2 2h-6v-8h-8v8h-6a2 2 0 0 1-2-2z"/></svg></span>Home</button>
+  <button class="mode-btn" data-mode="slime" aria-current="false"><span class="ico slime"></span>Slime</button>
   <button class="mode-btn" data-mode="board" aria-current="false"><span class="ico board"></span>Board</button>
   <button class="mode-btn" data-mode="bubbles" aria-current="false"><span class="ico bubbles"></span>Bubble wrap</button>
   <button class="mode-btn" data-mode="dice" aria-current="false"><span class="ico dice"></span>Dice</button>
@@ -577,9 +651,30 @@ button{font:inherit;color:inherit}
   <button class="mode-btn" data-mode="cube" aria-current="false"><span class="ico cube"><svg viewBox="0 0 36 36"><path d="M18 3l13 9.5-5 15.5H10L5 12.5z" fill="#8B4FD8" stroke="#5E2FA8" stroke-width="1.2" stroke-linejoin="round"/><path d="M18 9l7.6 5.5-2.9 9H13.3l-2.9-9z" fill="#A574E6"/><path d="M14 15l4 3.5M22 15l-4 3.5" stroke="#2B2B30" stroke-width="2" stroke-linecap="round"/><path d="M18 18.5V22" stroke="#F9C74F" stroke-width="2.4" stroke-linecap="round"/><circle cx="29" cy="8" r="3.2" fill="#F5A623"/></svg></span>Dodec</button>
   <button class="mode-btn" data-mode="rocks" aria-current="false"><span class="ico rocks"><svg viewBox="0 0 36 36"><ellipse cx="18" cy="30" rx="11" ry="4" fill="#7D776E"/><ellipse cx="18" cy="23.5" rx="8" ry="3.6" fill="#A49C90"/><ellipse cx="17" cy="17.5" rx="6.5" ry="3" fill="#8E8A84"/><ellipse cx="18.5" cy="12" rx="5" ry="2.8" fill="#B3A99B"/><ellipse cx="18" cy="7" rx="3.4" ry="2.4" fill="#6F6B66"/></svg></span>Rock piling</button>
   </div>
-  <div class="pills"><button class="pill" id="soundBtn" aria-pressed="true">Sound on</button><button class="pill" id="hapticBtn">Haptics: strong</button></div>
-  <p class="note" id="hapticNote" hidden>iPhone browsers block vibration. The installed app has full haptics.</p>
+  <div class="pills"><button class="pill" id="drawerSettings">Settings</button><button class="pill" id="drawerBreathe" aria-pressed="false">Breathe</button></div>
 </nav>
+
+<div class="breathe" id="breathe" hidden aria-hidden="true"><span class="b-ring" id="breatheRing"></span><span class="b-txt" id="breatheTxt">Breathe in</span></div>
+<button class="focus-pill" id="focusPill" hidden></button>
+
+<div class="sheet-wrap" id="settings" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="sheet-head"><h2 id="setTitle">Settings</h2><button class="sheet-x" id="setClose" aria-label="Close settings">✕</button></div>
+    <h3>Sound</h3>
+    <label class="row"><span>Volume</span><input type="range" id="setVol" min="0" max="100" aria-label="Volume"></label>
+    <label class="row"><span>Sound effects</span><input type="checkbox" class="tgl" id="setSfx"></label>
+    <label class="row"><span>Music &amp; ambience</span><input type="checkbox" class="tgl" id="setAmb"></label>
+    <h3>Haptics</h3>
+    <div class="row"><span>Strength</span><input type="range" id="setHap" min="0" max="26" aria-label="Haptic strength"><button class="pill" id="setHapTest">Test</button></div>
+    <p class="note" id="hapticNote" hidden>iPhone browsers block vibration. The installed app has full haptics.</p>
+    <h3>Theme</h3>
+    <div class="seg" id="setTheme" role="group" aria-label="Theme"><button data-th="auto">Auto</button><button data-th="light">Light</button><button data-th="dark">Dark</button></div>
+    <h3 id="setWell">Wellbeing</h3>
+    <label class="row"><span>Calm mode<small>Quieter sound, softer haptics, fewer particles</small></span><input type="checkbox" class="tgl" id="setCalm"></label>
+    <label class="row"><span>Breathing guide<small>4 seconds in, 6 seconds out</small></span><input type="checkbox" class="tgl" id="setBreathe"></label>
+    <div class="row"><span>Focus timer</span><div class="seg" id="setFocus" role="group" aria-label="Focus timer minutes"><button data-min="5">5</button><button data-min="10">10</button><button data-min="20">20</button><button data-min="0">Off</button></div></div>
+  </div>
+</div>
 
 <script defer src="vendor/three.min.js"></script>
 <script defer src="vendor/cannon.min.js"></script>
@@ -594,8 +689,13 @@ const canVibrate = typeof navigator.vibrate === "function";
 const Cap = window.Capacitor;
 const HP = Cap && Cap.isNativePlatform && Cap.isNativePlatform() && Cap.Plugins && Cap.Plugins.Haptics ? Cap.Plugins.Haptics : null;
 if (!canVibrate && !HP) $("#hapticNote").hidden = false;
-const HLEVELS = [{ name: "strong", k: 1.7 }, { name: "max", k: 2.6 }, { name: "light", k: 1 }, { name: "off", k: 0 }];
-let hl = 0;
+// preferences (Settings sheet): volume, ambience, haptic strength, theme, calm mode, breathing guide
+const pref = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
+const savePref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+let volume = +pref("fidget-volume", .8), ambienceOn = pref("fidget-ambience", "1") === "1", hapK = +pref("fidget-haptics", 1.7), calmOn = pref("fidget-calm", "0") === "1";
+soundOn = pref("fidget-sfx", "1") === "1";
+let master = null;
+function applyVolume() { if (master) master.gain.setTargetAtTime(volume * (calmOn ? .5 : 1), actx.currentTime, .05); }
 function ac() {
   if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
   if (actx.state === "suspended") actx.resume();
@@ -609,7 +709,7 @@ function noise(a) {
   return nbuf;
 }
 function buzz(ms) {
-  const k = HLEVELS[hl].k; if (!k) return;
+  const k = hapK * (calmOn ? .5 : 1); if (k < .05) return;
   const e = ms * k;
   if (HP) {
     const style = e >= 26 ? "HEAVY" : e >= 12 ? "MEDIUM" : "LIGHT";
@@ -618,7 +718,8 @@ function buzz(ms) {
   }
   if (canVibrate) { try { navigator.vibrate(Math.round(Math.min(130, 16 + e * 1.6))); } catch (_) {} }
 }
-function out(a) { return a.destination; }
+// every sound goes through one master gain so the volume slider and calm mode apply everywhere
+function out(a) { if (!master) { master = a.createGain(); master.connect(a.destination); master.gain.value = volume * (calmOn ? .5 : 1); } return master; }
 function nz(a, type, f0, f1, q, vol, len, t0 = 0, atk = 0.006) {
   const t = a.currentTime + t0, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
   s.buffer = noise(a); s.playbackRate.value = 0.8 + Math.random() * 0.4;
@@ -688,19 +789,9 @@ function ensureBed() {
   s.connect(f).connect(f2).connect(g).connect(out(a)); s.start();
   bed = { f, g };
 }
-$("#soundBtn").addEventListener("click", e => {
-  soundOn = !soundOn; e.currentTarget.textContent = soundOn ? "Sound on" : "Sound off";
-  zMusic(mode === "zen");
-  e.currentTarget.setAttribute("aria-pressed", soundOn); if (soundOn) S.tick(1800);
-});
-$("#hapticBtn").addEventListener("click", e => {
-  hl = (hl + 1) % HLEVELS.length;
-  e.currentTarget.textContent = "Haptics: " + HLEVELS[hl].name;
-  buzz(20);
-});
 
 /* ================= menu + modes ================= */
-let mode = "slime";
+let mode = "home";
 const drawer = $("#drawer"), scrim = $("#scrim"), menuBtn = $("#menuBtn");
 function openDrawer() { drawer.classList.add("open"); scrim.classList.add("open"); menuBtn.setAttribute("aria-expanded", "true"); S.tick(1200, 0.12); setTimeout(() => drawer.querySelector('[aria-current="true"]').focus(), 50); }
 function closeDrawer() { drawer.classList.remove("open"); scrim.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }
@@ -729,7 +820,7 @@ function setMode(m) {
   if (m === "cradle") cradleSetup();
   if (m === "cube") cubeSetup();
   if (m === "rocks") rocksSetup();
-  try { localStorage.setItem("fidget-mode", m); } catch (e) {}
+  if (m === "home") renderHome(); else try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
 }
 document.querySelectorAll(".mode-btn").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
@@ -3097,10 +3188,10 @@ function zNote() {
       o.connect(g).connect(bus); o.start(t); o.stop(t + 5.1);
     }
   }
-  ZM.timer = setTimeout(zNote, rnd(1600, 3400));
+  ZM.timer = setTimeout(zNote, rnd(1600, 3400) * (calmOn ? 1.5 : 1));
 }
 function zMusic(play) {
-  play = play && ZM.on && soundOn;
+  play = play && ZM.on && soundOn && ambienceOn;
   if (play === ZM.playing) return;
   const a = ac(); if (!a) return;
   const bus = zMusicBus(a); ZM.playing = play;
@@ -4328,6 +4419,126 @@ $("#rkPhoto").addEventListener("click", async () => {
   } catch (e) { /* the share sheet was dismissed */ }
 });
 
+/* ================= home, settings, wellbeing ================= */
+const MODE_INFO = {
+  slime: "Squish, swirl and stretch", board: "Buttons, switches, knobs and a joystick", bubbles: "Endless bubble wrap",
+  dice: "Roll real 3D dice", grass: "Brush the grass through the seasons", pop: "Press the bubbles, flip it over",
+  spin: "Flick a fidget spinner", zen: "Rake a tabletop sand garden", cradle: "Swing Newton's cradle",
+  cube: "A twelve-sided fidget toy", rocks: "Stack rocks into cairns",
+};
+const MODE_NAME = {};
+document.querySelectorAll(".mode-btn").forEach(b => { if (b.dataset.mode !== "home") MODE_NAME[b.dataset.mode] = b.textContent.trim(); });
+let favs = []; try { favs = JSON.parse(pref("fidget-favs", "[]")) || []; } catch (e) {}
+function icoFor(m) { const src = document.querySelector(`.mode-btn[data-mode="${m}"] .ico`); return src ? src.cloneNode(true) : document.createElement("span"); }
+function renderHome() {
+  const grid = $("#homeGrid"); grid.innerHTML = "";
+  const order = Object.keys(MODE_INFO).sort((a, b) => (favs.includes(b) - favs.includes(a)) || (favs.indexOf(a) - favs.indexOf(b)));
+  for (const m of order) {
+    const card = document.createElement("div"); card.className = "hcard";
+    const go = document.createElement("button"); go.className = "hgo"; go.dataset.mode = m;
+    go.append(icoFor(m)); const n = document.createElement("span"); n.className = "hname"; n.textContent = MODE_NAME[m]; const d = document.createElement("span"); d.className = "hdesc"; d.textContent = MODE_INFO[m]; go.append(n, d);
+    go.addEventListener("click", () => setMode(m));
+    const st = document.createElement("button"); st.className = "hstar"; const on = favs.includes(m);
+    st.setAttribute("aria-pressed", on); st.setAttribute("aria-label", (on ? "Unpin " : "Pin ") + MODE_NAME[m]); st.textContent = on ? "★" : "☆";
+    st.addEventListener("click", () => { favs = on ? favs.filter(x => x !== m) : [...favs, m]; savePref("fidget-favs", JSON.stringify(favs)); S.tick(1800, .08, .02, "sine"); buzz(4); renderHome(); });
+    card.append(go, st); grid.append(card);
+  }
+  const last = pref("fidget-mode", ""), cont = $("#homeContinue");
+  cont.hidden = !MODE_INFO[last];
+  if (MODE_INFO[last]) { cont.innerHTML = ""; cont.append(icoFor(last)); const t = document.createElement("span"); t.innerHTML = "<small>Continue</small>"; t.append(MODE_NAME[last]); cont.append(t); cont.onclick = () => setMode(last); }
+}
+
+// settings sheet
+const setSheet = $("#settings");
+function openSettings(focusWell) {
+  syncSettings(); setSheet.hidden = false; closeDrawer();
+  if (focusWell) setTimeout(() => $("#setWell").scrollIntoView({ block: "start", behavior: "smooth" }), 50);
+  setTimeout(() => $("#setClose").focus(), 60);
+}
+function closeSettings() { setSheet.hidden = true; }
+$("#homeGear").addEventListener("click", () => openSettings());
+$("#drawerSettings").addEventListener("click", () => openSettings());
+$("#setClose").addEventListener("click", closeSettings);
+setSheet.addEventListener("click", e => { if (e.target === setSheet) closeSettings(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !setSheet.hidden) closeSettings(); });
+function syncSettings() {
+  $("#setVol").value = Math.round(volume * 100); $("#setSfx").checked = soundOn; $("#setAmb").checked = ambienceOn;
+  $("#setHap").value = Math.round(hapK * 10); $("#setCalm").checked = calmOn; $("#setBreathe").checked = breatheOn;
+  document.querySelectorAll("#setTheme button").forEach(b => b.setAttribute("aria-pressed", b.dataset.th === themePref));
+  document.querySelectorAll("#setFocus button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.min === focusMin && (focusMin === 0 || focusEnd > 0)));
+}
+$("#setVol").addEventListener("input", e => { volume = e.target.value / 100; savePref("fidget-volume", volume); applyVolume(); });
+$("#setVol").addEventListener("change", () => S.tick(1800, .2, .03, "sine"));
+$("#setSfx").addEventListener("change", e => { soundOn = e.target.checked; savePref("fidget-sfx", soundOn ? "1" : "0"); zMusic(mode === "zen"); if (soundOn) S.tick(1800); });
+$("#setAmb").addEventListener("change", e => { ambienceOn = e.target.checked; savePref("fidget-ambience", ambienceOn ? "1" : "0"); zMusic(mode === "zen"); });
+$("#setHap").addEventListener("input", e => { hapK = e.target.value / 10; savePref("fidget-haptics", hapK); });
+$("#setHap").addEventListener("change", () => buzz(20));
+$("#setHapTest").addEventListener("click", () => { buzz(20); setTimeout(() => buzz(8), 180); });
+$("#setCalm").addEventListener("change", e => setCalm(e.target.checked));
+$("#setBreathe").addEventListener("change", e => setBreathe(e.target.checked));
+document.querySelectorAll("#setFocus button").forEach(b => b.addEventListener("click", () => { startFocus(+b.dataset.min); syncSettings(); }));
+
+// theme: auto follows the phone; light and dark are fixed
+let themePref = pref("fidget-theme", "auto");
+const darkQ = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme() {
+  const root = document.documentElement;
+  if (themePref === "auto") root.removeAttribute("data-theme"); else root.dataset.theme = themePref;
+  root.classList.toggle("dark", themePref === "dark" || (themePref === "auto" && darkQ.matches));
+}
+document.querySelectorAll("#setTheme button").forEach(b => b.addEventListener("click", () => { themePref = b.dataset.th; savePref("fidget-theme", themePref); applyTheme(); syncSettings(); S.tick(1500, .08, .03, "sine"); }));
+(darkQ.addEventListener ? darkQ.addEventListener("change", applyTheme) : darkQ.addListener(applyTheme));
+applyTheme();
+
+// calm mode: quieter, softer, fewer particles
+function setCalm(v) {
+  calmOn = v; savePref("fidget-calm", v ? "1" : "0"); applyVolume();
+  $("#homeCalm").setAttribute("aria-pressed", v); $("#setCalm").checked = v;
+}
+$("#homeCalm").addEventListener("click", () => { setCalm(!calmOn); buzz(6); });
+setCalm(calmOn);
+
+// breathing guide: a soft ring at the top, 4 s in and 6 s out, with a light pulse at each turn
+let breatheOn = false, breatheT0 = 0, breathePhase = "";
+const bWrap = $("#breathe"), bRing = $("#breatheRing"), bTxt = $("#breatheTxt");
+function setBreathe(v) {
+  breatheOn = v; savePref("fidget-breathe", v ? "1" : "0"); bWrap.hidden = !v; breatheT0 = performance.now(); breathePhase = "";
+  for (const id of ["#homeBreathe", "#drawerBreathe"]) $(id).setAttribute("aria-pressed", v);
+  $("#setBreathe").checked = v;
+}
+function breatheStep(now) {
+  if (!breatheOn) return;
+  const t = ((now - breatheT0) / 1000) % 10, inhale = t < 4, p = inhale ? t / 4 : (t - 4) / 6;
+  const e = .5 - .5 * Math.cos(Math.PI * p), s = inhale ? e : 1 - e;
+  bRing.style.transform = `scale(${(.55 + .45 * s).toFixed(3)})`;
+  const ph = inhale ? "in" : "out";
+  if (ph !== breathePhase) { breathePhase = ph; bTxt.textContent = inhale ? "Breathe in" : "Breathe out"; buzz(4); }
+}
+for (const id of ["#homeBreathe", "#drawerBreathe"]) $(id).addEventListener("click", () => setBreathe(!breatheOn));
+setBreathe(pref("fidget-breathe", "0") === "1");
+
+// focus timer: a quiet countdown, then a gentle chime
+let focusEnd = 0, focusMin = 0, focusTimer = null;
+const fPill = $("#focusPill");
+function startFocus(min) {
+  focusMin = min; clearInterval(focusTimer); fPill.classList.remove("done");
+  if (!min) { focusEnd = 0; fPill.hidden = true; return; }
+  focusEnd = Date.now() + min * 60000; fPill.hidden = false; focusTick(); focusTimer = setInterval(focusTick, 1000);
+  S.tick(1400, .08, .04, "sine"); buzz(6);
+}
+function focusTick() {
+  const left = Math.max(0, focusEnd - Date.now()), m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60;
+  if (left > 0) { fPill.textContent = `Focus ${m}:${String(s).padStart(2, "0")}`; return; }
+  clearInterval(focusTimer); focusEnd = 0; fPill.classList.add("done"); fPill.textContent = "Time's up · +5 min";
+  const a = ac(); if (a && soundOn) [523, 659, 784].forEach((f, i) => setTimeout(() => tone(a, "sine", f, f, .14, .9), i * 220));
+  buzz(16); setTimeout(() => buzz(10), 400);
+}
+fPill.addEventListener("click", () => {
+  if (fPill.classList.contains("done")) startFocus(5);
+  else if (confirm("Stop the focus timer?")) startFocus(0);
+});
+$("#homeFocus").addEventListener("click", () => openSettings(true));
+
 /* ================= loop + resize ================= */
 window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); });
 // silence everything (including the slime squish bed) while the app is in the background
@@ -4336,10 +4547,11 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) actx.suspend(); else actx.resume();
 });
 slimeSetup(true);
-let savedMode = null; try { savedMode = localStorage.getItem("fidget-mode"); } catch (e) {}
-if (location.hash.length > 1) savedMode = location.hash.slice(1); // index.html#dice opens a mode directly when previewing in a browser
-// wait for the deferred 3D engine scripts in case the last mode was Dice
-if (savedMode && savedMode !== "slime" && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
+// the app opens on Home; index.html#dice opens a mode directly when previewing in a browser
+const savedMode = location.hash.length > 1 ? location.hash.slice(1) : null;
+renderHome();
+// wait for the deferred 3D engine scripts in case the mode needs them
+if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, popFrame, spinFrame, cradleFrame }; // state handle for browser previews and tests
 (function loop(now) {
   if (mode === "slime" && N) { slimeStep(now || 0); slimeRender(now || 0); }
@@ -4356,9 +4568,10 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, popFrame, spi
   if (mode === "cube" && CB.W) cubeFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
-  else if (CB.ballBed) CB.ballBed.gn.gain.setTargetAtTime(0, actx.currentTime, .05);
+  if (mode !== "cube" && CB.ballBed) CB.ballBed.gn.gain.setTargetAtTime(0, actx.currentTime, .05);
   if (mode === "spin" && SP.W) spinFrame(now || 0);
   else if (SP.bed) { SP.bed.g.gain.setTargetAtTime(0, actx.currentTime, .05); SP.bed.og.gain.setTargetAtTime(0, actx.currentTime, .05); }
+  breatheStep(now || 0);
   requestAnimationFrame(loop);
 })();
 })();
