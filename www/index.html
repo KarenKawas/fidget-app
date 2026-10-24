@@ -36,7 +36,7 @@ html[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.55) 0 
 html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15122A 75%)}
 html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE8E1 80%)}
 html[data-mode="cradle"]{background:linear-gradient(180deg,#F1ECE4,#D6CCBE)}
-html[data-mode="cube"]{background:radial-gradient(ellipse at 50% 40%,#FBF8FF,#E2DAEE 80%)}
+html[data-mode="cube"]{background:radial-gradient(ellipse at 50% 40%,#F6F3FA,#D9D0E8 80%)}
 *,*::before,*::after{box-sizing:inherit}
 body{
   height:100%; margin:0; overflow:hidden; overscroll-behavior:none; color:var(--ink); background:transparent;
@@ -509,11 +509,11 @@ button{font:inherit;color:inherit}
   <section class="mode" id="mode-cradle" aria-label="Newton's cradle. Pull a ball to the side and let go; drag the background to look around.">
     <p class="hint" id="cHint">Pull a ball out and let go</p>
   </section>
-  <section class="mode" id="mode-cube" aria-label="Fidget cube. Drag to turn it, then press, roll, flick and spin the controls on each side.">
+  <section class="mode" id="mode-cube" aria-label="Dodec, a twelve-sided fidget toy. Drag to turn it, then press, roll, flick and spin the controls on each side.">
     <p class="hint" id="cubeHint">Drag to turn it · play with every side</p>
-    <div class="themes" role="group" aria-label="Fidget cube color">
-      <button class="opt" data-color="lilac" aria-pressed="true"><i style="background:linear-gradient(135deg,#D4B3EA 50%,#F9C74F 50%)"></i>Lilac</button>
-      <button class="opt" data-color="mint" aria-pressed="false"><i style="background:linear-gradient(135deg,#A8E6CF 50%,#FF8FB8 50%)"></i>Mint</button>
+    <div class="themes" role="group" aria-label="Dodec color">
+      <button class="opt" data-color="violet" aria-pressed="true"><i style="background:linear-gradient(135deg,#8B4FD8 50%,#FFB400 50%)"></i>Violet</button>
+      <button class="opt" data-color="mint" aria-pressed="false"><i style="background:linear-gradient(135deg,#14A889 50%,#FF4F93 50%)"></i>Mint</button>
       <button class="opt" data-color="midnight" aria-pressed="false"><i style="background:linear-gradient(135deg,#2E3240 50%,#00E5D4 50%)"></i>Midnight</button>
     </div>
   </section>
@@ -536,7 +536,7 @@ button{font:inherit;color:inherit}
   <button class="mode-btn" data-mode="spin" aria-current="false"><span class="ico spin"><svg viewBox="0 0 34 34"><g fill="#8C6CFF"><circle cx="17" cy="17" r="6.5"/><circle cx="17" cy="6.5" r="6"/><circle cx="7.9" cy="22.3" r="6"/><circle cx="26.1" cy="22.3" r="6"/><path d="M17 17L17 6.5M17 17L7.9 22.3M17 17L26.1 22.3" stroke="#8C6CFF" stroke-width="7"/></g><g fill="#DDE1E8"><circle cx="17" cy="6.5" r="3.6"/><circle cx="7.9" cy="22.3" r="3.6"/><circle cx="26.1" cy="22.3" r="3.6"/></g><circle cx="17" cy="17" r="3.8" fill="#FFD23F"/></svg></span>Fidget spinner</button>
   <button class="mode-btn" data-mode="zen" aria-current="false"><span class="ico zen"></span>Zen garden</button>
   <button class="mode-btn" data-mode="cradle" aria-current="false"><span class="ico cradle"><svg viewBox="0 0 36 36" fill="none" stroke-linecap="round"><path d="M5 7h26" stroke="#8C939E" stroke-width="2.5"/><path d="M6 24V7M12 24V7M18 24V7M24 24V7M30 24V7" stroke="#9AA0A8" stroke-width=".9"/><g fill="#B9BEC6" stroke="#6E7580" stroke-width=".8"><circle cx="6" cy="26" r="3.2"/><circle cx="12" cy="26" r="3.2"/><circle cx="18" cy="26" r="3.2"/><circle cx="24" cy="26" r="3.2"/><circle cx="30" cy="26" r="3.2"/></g></svg></span>Newton's cradle</button>
-  <button class="mode-btn" data-mode="cube" aria-current="false"><span class="ico cube"><svg viewBox="0 0 36 36"><path d="M18 3l13 9.5-5 15.5H10L5 12.5z" fill="#D4B3EA" stroke="#A47BC6" stroke-width="1.2" stroke-linejoin="round"/><path d="M18 9l7.6 5.5-2.9 9H13.3l-2.9-9z" fill="#E6CCF5"/><path d="M14 15l4 3.5M22 15l-4 3.5" stroke="#2B2B30" stroke-width="2" stroke-linecap="round"/><path d="M18 18.5V22" stroke="#F9C74F" stroke-width="2.4" stroke-linecap="round"/><circle cx="29" cy="8" r="3.2" fill="#F5A623"/></svg></span>Fidget cube</button>
+  <button class="mode-btn" data-mode="cube" aria-current="false"><span class="ico cube"><svg viewBox="0 0 36 36"><path d="M18 3l13 9.5-5 15.5H10L5 12.5z" fill="#8B4FD8" stroke="#5E2FA8" stroke-width="1.2" stroke-linejoin="round"/><path d="M18 9l7.6 5.5-2.9 9H13.3l-2.9-9z" fill="#A574E6"/><path d="M14 15l4 3.5M22 15l-4 3.5" stroke="#2B2B30" stroke-width="2" stroke-linecap="round"/><path d="M18 18.5V22" stroke="#F9C74F" stroke-width="2.4" stroke-linecap="round"/><circle cx="29" cy="8" r="3.2" fill="#F5A623"/></svg></span>Dodec</button>
   </div>
   <div class="pills"><button class="pill" id="soundBtn" aria-pressed="true">Sound on</button><button class="pill" id="hapticBtn">Haptics: strong</button></div>
   <p class="note" id="hapticNote" hidden>iPhone browsers block vibration. The installed app has full haptics.</p>
@@ -3023,14 +3023,14 @@ Object.entries(ZITEMS).forEach(([k, v]) => {
   zItemsBar.appendChild(b);
 });
 
-/* ================= fidget cube (3D) ================= */
-// A 12-sided fidget toy. Each face carries one control; dragging anywhere else turns the whole toy.
+/* ================= dodec (3D) ================= */
+// Dodec: a 12-sided fidget toy. Each face carries one control; dragging anywhere else turns the whole toy.
 const secCube = $("#mode-cube"), cHint3 = $("#cubeHint");
 const CB = { W: 0, scene: null, cam: null, toy: null, mats: null, ctrls: [], ptrs: new Map(), act: null, rot: null, spin: null, pinch: null, zoom: 1, dist: 8, last: 0 };
 const CUBE_THEMES = {
-  lilac: { body: 0xD4B3EA, a: 0xF9C74F, b: 0x2B2B30, c: 0xF5A623, d: 0x4CC74A, e: 0xC199DE },
-  mint: { body: 0xA8E6CF, a: 0xFF8FB8, b: 0x2B2B30, c: 0xFFD23F, d: 0x5B8DEF, e: 0x8AD6B8 },
-  midnight: { body: 0x2E3240, a: 0x00E5D4, b: 0x15171E, c: 0xFF3DCB, d: 0xA6FF3D, e: 0x464C5E },
+  violet: { body: 0x8B4FD8, a: 0xFFB400, b: 0x1E1A26, c: 0xFF7A1A, d: 0x2DBE4E, e: 0x5E2FA8 },
+  mint: { body: 0x14A889, a: 0xFF4F93, b: 0x1E1A26, c: 0xFFC300, d: 0x2F6FE0, e: 0x0B7A63 },
+  midnight: { body: 0x1B1E33, a: 0x00E5D4, b: 0x0D0E16, c: 0xFF2E9A, d: 0xA6FF3D, e: 0x33395A },
 };
 const CUBE_IN = .7947; // distance from the centre to each face of a unit dodecahedron
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -3050,7 +3050,7 @@ function toLocal(ax, dx, dy) {
 }
 
 /* ---- controls ---- (each returns { g, down(p), move(p), up(p), step(dt) }; p has sx, sy, dx, dy from the touch point) */
-function cmat(key, rough = .45) { const m = new THREE.MeshStandardMaterial({ color: CUBE_THEMES.lilac[key], roughness: rough, envMap: GL.env, envMapIntensity: .7 }); CB.mats[key] = CB.mats[key] || []; CB.mats[key].push(m); return m; }
+function cmat(key, rough = .45) { const m = new THREE.MeshStandardMaterial({ color: CUBE_THEMES.violet[key], roughness: rough, envMap: GL.env, envMapIntensity: .7 }); CB.mats[key] = CB.mats[key] || []; CB.mats[key].push(m); return m; }
 function part(g, geo, mat, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; }
 function stripeTex(n, light, dark) {
   const c = document.createElement("canvas"); c.width = 128; c.height = 8; const x = c.getContext("2d");
@@ -3196,14 +3196,70 @@ const CTRL = {
       step(dt) { if (held) return; vx *= Math.pow(.92, dt); vy *= Math.pow(.92, dt); if (Math.hypot(vx, vy) > 1e-4) roll(vx * dt, vy * dt); },
     };
   },
-  minis(g) {
-    const bs = [["a", 0], ["b", 2.09], ["e", 4.19]].map(([k, a], i) => { const m = part(g, zcyl(.1, .07, 32), cmat(k, .4), Math.cos(a + .5) * .2, Math.sin(a + .5) * .2, .03); m.userData.mini = i; return { m, z: 0, t: 0 }; });
-    let held = null;
-    return {
-      down(p) { held = bs[p.hit.object.userData.mini]; if (!held) return; held.t = -.035; S.tick(2600 + bs.indexOf(held) * 260, .22, .02, "square"); buzz(12); },
-      up() { if (held) { held.t = 0; S.tick(3400, .1, .015); held = null; } },
-      step(dt) { for (const b of bs) { b.z += (b.t - b.z) * Math.min(1, .5 * dt); b.m.position.z = .03 + b.z; } },
+  // a tiny kawaii face that reacts to everything you do with the toy
+  face(g) {
+    const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+    const x = cv.getContext("2d"), tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
+    const mesh = part(g, new THREE.CircleGeometry(.44, 48), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), 0, 0, .004);
+    mesh.castShadow = false;
+    const F = { state: "", until: 0, held: null, touch: performance.now(), blinkAt: performance.now() + 3000, spinT: 0, snd: 0, ink: "#1E1A26" };
+    const arc = (cx, cy, r, a0, a1, w) => { x.lineWidth = w; x.beginPath(); x.arc(cx, cy, r, a0, a1); x.stroke(); };
+    const eyeRound = cx => {
+      x.fillStyle = F.ink; x.beginPath(); x.arc(cx, 108, 25, 0, 6.3); x.fill();
+      x.fillStyle = "#FFFFFF"; x.beginPath(); x.arc(cx - 8, 99, 8, 0, 6.3); x.fill(); x.beginPath(); x.arc(cx + 9, 117, 4, 0, 6.3); x.fill();
     };
+    const omega = () => { arc(117, 150, 11, 0, Math.PI, 7); arc(139, 150, 11, 0, Math.PI, 7); };
+    function draw(s) {
+      x.clearRect(0, 0, 256, 256); x.strokeStyle = x.fillStyle = F.ink; x.lineCap = x.lineJoin = "round";
+      const blush = s === "content" || s === "giggle" ? 1 : .75, br = s === "content" ? 15 : 12;
+      x.fillStyle = `rgba(255,120,165,${blush})`; for (const bx of [50, 206]) { x.beginPath(); x.arc(bx, 150, br, 0, 6.3); x.fill(); }
+      x.strokeStyle = x.fillStyle = F.ink;
+      if (s === "idle" || s === "happy" || s === "grumpy") { eyeRound(78); eyeRound(178); }
+      if (s === "blink") { arc(78, 96, 22, Math.PI * .2, Math.PI * .8, 8); arc(178, 96, 22, Math.PI * .2, Math.PI * .8, 8); }
+      if (s === "content" || s === "sleepy") { arc(78, 122, 22, Math.PI * 1.18, Math.PI * 1.82, 8); arc(178, 122, 22, Math.PI * 1.18, Math.PI * 1.82, 8); }
+      if (s === "giggle") { x.lineWidth = 9; x.beginPath(); x.moveTo(58, 90); x.lineTo(94, 108); x.lineTo(58, 126); x.moveTo(198, 90); x.lineTo(162, 108); x.lineTo(198, 126); x.stroke(); }
+      if (s === "dizzy") for (const cx of [78, 178]) { x.lineWidth = 6; x.beginPath(); for (let t = 0; t < 15; t += .2) { const r = 2 + t * 1.6; x.lineTo(cx + Math.cos(t * (cx < 128 ? 1 : -1)) * r, 108 + Math.sin(t) * r); } x.stroke(); }
+      if (s === "grumpy") { x.lineWidth = 9; x.beginPath(); x.moveTo(48, 64); x.lineTo(100, 82); x.moveTo(208, 64); x.lineTo(156, 82); x.stroke(); }
+      if (s === "idle" || s === "blink" || s === "giggle") omega();
+      if (s === "happy") {
+        x.beginPath(); x.moveTo(102, 140); x.lineTo(154, 140); x.quadraticCurveTo(154, 192, 128, 192); x.quadraticCurveTo(102, 192, 102, 140); x.fill();
+        x.fillStyle = "#FF7FA8"; x.beginPath(); x.ellipse(128, 178, 15, 9, 0, 0, 6.3); x.fill();
+      }
+      if (s === "content") arc(128, 140, 16, Math.PI * .15, Math.PI * .85, 7);
+      if (s === "dizzy") { x.lineWidth = 7; x.beginPath(); for (let px = 100; px <= 156; px += 2) x.lineTo(px, 160 + Math.sin((px - 100) / 56 * Math.PI * 3) * 6); x.stroke(); }
+      if (s === "grumpy") { x.beginPath(); x.moveTo(98, 150); x.quadraticCurveTo(128, 136, 158, 150); x.quadraticCurveTo(164, 168, 150, 170); x.quadraticCurveTo(128, 160, 106, 170); x.quadraticCurveTo(92, 168, 98, 150); x.fill(); }
+      if (s === "sleepy") { x.beginPath(); x.ellipse(128, 156, 9, 11, 0, 0, 6.3); x.fill(); x.font = "600 30px Fredoka, sans-serif"; x.fillText("z", 196, 62); x.font = "600 22px Fredoka, sans-serif"; x.fillText("z", 220, 40); }
+      tex.needsUpdate = true;
+    }
+    // the canvas is only redrawn when the expression actually changes
+    const show = (s, ms) => { F.until = ms ? performance.now() + ms : 0; if (F.state !== s) { F.state = s; draw(s); } };
+    let moved = 0, last = null;
+    const ctrl = {
+      isFace: true,
+      // other controls (and turning the toy) report here
+      poke(kind) { F.touch = performance.now(); if (kind === "control" && F.until < F.touch + 300) show("happy", 800); },
+      setInk(c) { F.ink = c; const s = F.state; F.state = ""; show(s || "idle", Math.max(0, F.until - performance.now())); },
+      down(p) { moved = 0; last = [p.sx, p.sy]; },
+      move(p) {
+        moved += Math.hypot(p.sx - last[0], p.sy - last[1]); last = [p.sx, p.sy];
+        if (moved > 12) { show("content", 1200); const now = performance.now(); if (now - F.snd > 160) { F.snd = now; S.rustle(.2); buzz(2); } }
+      },
+      up() { if (moved <= 12) { show("giggle", 900); S.blip(1320); setTimeout(() => S.blip(1568), 90); buzz(10); } },
+      step() {
+        const now = performance.now();
+        // spun hard: dizzy, then grumpy if it keeps going
+        const sp = CB.spin ? CB.spin.angle : 0;
+        F.spinT = sp > .06 ? F.spinT + 1 : Math.max(0, F.spinT - 2);
+        if (F.until > now) return;
+        if (F.spinT > 120) return show("grumpy");
+        if (F.spinT > 8) return show("dizzy");
+        if (now - F.touch > 12000) return show("sleepy");
+        if (now > F.blinkAt) { if (now > F.blinkAt + 140) F.blinkAt = now + rnd(3000, 6000); else return show("blink"); }
+        show("idle");
+      },
+    };
+    draw("idle"); F.state = "idle";
+    return ctrl;
   },
   stone(g) {
     const geo = new THREE.SphereGeometry(.34, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2); geo.rotateX(-Math.PI / 2); geo.scale(1, 1, -.12);
@@ -3224,8 +3280,8 @@ const CTRL = {
     };
   },
 };
-// which control sits on which face, most visible first (the X-pad faces you, the joystick sits on top)
-const CUBE_ORDER = ["xpad", "joystick", "rollers", "dial", "button", "spikes", "lever", "rocker", "ball", "minis", "stone", "beads"];
+// which control sits on which face, most visible first (the X-pad faces you, the joystick sits on top, the face peeks out beside them)
+const CUBE_ORDER = ["xpad", "joystick", "face", "rollers", "dial", "button", "spikes", "lever", "rocker", "ball", "stone", "beads"];
 
 function cubeSetup() {
   if (!mount3D(secCube)) return;
@@ -3245,7 +3301,7 @@ function cubeBuild() {
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: .18 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = -1.7; floor.receiveShadow = true; sc.add(floor);
   const toy = new THREE.Group(); CB.toy = toy; sc.add(toy);
-  const bodyMat = new THREE.MeshPhysicalMaterial({ color: CUBE_THEMES.lilac.body, roughness: .55, clearcoat: .35, clearcoatRoughness: .4, flatShading: true, envMap: GL.env, envMapIntensity: .6 });
+  const bodyMat = new THREE.MeshPhysicalMaterial({ color: CUBE_THEMES.violet.body, roughness: .45, clearcoat: .35, clearcoatRoughness: .4, flatShading: true, envMap: GL.env, envMapIntensity: .45 });
   CB.mats.body = [bodyMat];
   const body = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 0), bodyMat); body.castShadow = true; toy.add(body);
   // face normals of a dodecahedron: (±1, 0, ±φ), (0, ±φ, ±1), (±φ, ±1, 0)
@@ -3264,8 +3320,9 @@ function cubeBuild() {
     return c;
   });
   toy.quaternion.copy(q0);
-  let th = "lilac"; try { th = localStorage.getItem("fidget-cube-color") || "lilac"; } catch (e) {}
-  setCubeTheme(CUBE_THEMES[th] ? th : "lilac");
+  CB.face = CB.ctrls.find(c => c.isFace);
+  let th = "violet"; try { th = localStorage.getItem("fidget-cube-color") || "violet"; } catch (e) {}
+  setCubeTheme(CUBE_THEMES[th] ? th : "violet");
 }
 function setCubeTheme(name) {
   document.querySelectorAll("#mode-cube .opt").forEach(b => b.setAttribute("aria-pressed", b.dataset.color === name ? "true" : "false"));
@@ -3273,6 +3330,7 @@ function setCubeTheme(name) {
   if (!CB.mats) return;
   const T = CUBE_THEMES[name];
   for (const [k, list] of Object.entries(CB.mats)) for (const m of list) m.color.setHex(T[k]);
+  if (CB.face) CB.face.setInk(name === "midnight" ? "#F4F1FA" : "#1E1A26");
 }
 function cubeFrame(now) {
   const dt = clamp((now - (CB.last || now - 16.7)) / 16.67, .25, 2.5); CB.last = now;
@@ -3296,6 +3354,7 @@ on3D(secCube, "pointerdown", e => {
   }
   if (CB.ptrs.size > 2) return;
   const hit = cubeHit(e), c = hit && hit.object.userData.ctrl;
+  if (CB.face) CB.face.poke(c && c !== CB.face ? "control" : null);
   if (c) { CB.act = { c, id: e.pointerId, x0: e.clientX, y0: e.clientY }; c.down({ hit, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0 }); return; }
   CB.rot = { id: e.pointerId, x: e.clientX, y: e.clientY }; CB.spin = null;
 });
