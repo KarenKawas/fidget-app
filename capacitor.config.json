@@ -1,0 +1,12 @@
+{
+  "appId": "com.yourname.fidget",
+  "appName": "Fidget",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

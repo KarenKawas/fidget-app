@@ -1,0 +1,23 @@
+{
+  "name": "fidget-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fidget: slime, board, bubble wrap and dice",
+  "scripts": {
+    "vendor": "node scripts/copy-vendor.js",
+    "sync": "npm run vendor && npx cap sync",
+    "ios": "npm run sync && npx cap open ios",
+    "android": "npm run sync && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "cannon": "0.6.2",
+    "three": "0.128.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}
