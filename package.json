@@ -2,7 +2,7 @@
   "name": "fidget-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Fidget: slime, board, bubble wrap and dice",
+  "description": "Fidget: slime, board, bubble wrap, dice and touch grass",
   "scripts": {
     "vendor": "node scripts/copy-vendor.js",
     "sync": "npm run vendor && npx cap sync",
