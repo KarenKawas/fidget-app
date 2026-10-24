@@ -33,6 +33,8 @@ html[data-mode="dice"]{background:#3A2212}
 html[data-mode="grass"]{background:var(--grassbg,#3F8226)}
 html[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.55) 0 3px,transparent 3.5px) 0 0/28px 28px,#FBE3EE}
 html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15122A 75%)}
+html[data-mode="zen"]{background:#E6D5B0}
+html[data-mode="cradle"]{background:linear-gradient(180deg,#F1ECE4,#D6CCBE)}
 *,*::before,*::after{box-sizing:inherit}
 body{
   height:100%; margin:0; overflow:hidden; overscroll-behavior:none; color:var(--ink); background:transparent;
@@ -85,7 +87,7 @@ button{font:inherit;color:inherit}
 .drawer .note{font-size:.85rem;color:var(--muted);margin:10px 6px 0;line-height:1.4}
 
 /* ---------- slime ---------- */
-#slime,#dicecv,#grasscv,#popcv,#spincv{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
+#slime,#dicecv,#grasscv,#popcv,#spincv,#zencv,#cradlecv{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
 .hint{
   position:absolute; left:0; right:0; bottom:152px; text-align:center; margin:0; pointer-events:none;
   font-size:1.05rem; font-weight:500; color:rgba(255,255,255,.92); text-shadow:0 1px 6px rgba(0,0,0,.25);
@@ -336,6 +338,13 @@ button{font:inherit;color:inherit}
 .spin-hud .lbl{display:block;font-size:.8rem;opacity:.75}
 .spin-hud .total{display:block;font-size:2rem;font-weight:600;line-height:1.05}
 .spin-hud .best{font-size:.78rem;opacity:.75}
+
+/* ---------- zen garden + cradle ---------- */
+.ico.zen{background:radial-gradient(circle at 34% 40%,#7D776E 0 6px,transparent 6.5px),repeating-radial-gradient(circle at 34% 40%,#E9DABA 0 3px,#CDB98F 3px 4.5px)}
+.ico.cradle{background:linear-gradient(180deg,#F4EFE8,#D9CFC2);display:grid;place-items:center}
+.ico.cradle svg{width:36px;height:36px}
+#mode-zen .hint{color:rgba(90,70,40,.75);text-shadow:none;bottom:84px}
+#mode-cradle .hint{color:rgba(60,50,40,.7);text-shadow:none;bottom:40px}
 #mode-grass .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
 #mode-grass .newsheet{bottom:70px}
 #mode-grass .hint{bottom:132px}
@@ -455,6 +464,17 @@ button{font:inherit;color:inherit}
       <button class="opt" data-design="neon" aria-pressed="false"><i style="background:linear-gradient(135deg,#15122A 50%,#00FFE0 50%)"></i>Neon</button>
     </div>
   </section>
+
+  <section class="mode" id="mode-zen" aria-label="Zen sand garden">
+    <canvas id="zencv" aria-label="A zen sand garden. Drag to rake the sand, drag a stone to move it."></canvas>
+    <p class="hint" id="zHint">Drag to rake the sand</p>
+    <button class="newsheet" id="zenSmooth">Smooth the sand</button>
+  </section>
+
+  <section class="mode" id="mode-cradle" aria-label="Newton's cradle">
+    <canvas id="cradlecv" aria-label="Newton's cradle. Pull a ball to the side and let go."></canvas>
+    <p class="hint" id="cHint">Pull a ball out and let go</p>
+  </section>
 </div>
 
 <button class="fab" id="menuBtn" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
@@ -471,6 +491,8 @@ button{font:inherit;color:inherit}
   <button class="mode-btn" data-mode="grass" aria-current="false"><span class="ico grass"><svg viewBox="0 0 44 44"><path d="M4 44Q8 30 6 16Q12 30 11 44Z" fill="#3F9A2A"/><path d="M11 44Q15 26 18 10Q19 28 18 44Z" fill="#2E7A1E"/><path d="M18 44Q22 30 26 18Q25 32 25 44Z" fill="#4CAF33"/><path d="M25 44Q29 24 34 12Q33 30 32 44Z" fill="#2E7A1E"/><path d="M32 44Q36 30 40 20Q40 34 40 44Z" fill="#3F9A2A"/><circle cx="29" cy="15" r="3.4" fill="#fff"/><circle cx="29" cy="15" r="1.4" fill="#FFD23F"/></svg></span>Touch grass</button>
   <button class="mode-btn" data-mode="pop" aria-current="false"><span class="ico pop"></span>Pop-it</button>
   <button class="mode-btn" data-mode="spin" aria-current="false"><span class="ico spin"><svg viewBox="0 0 34 34"><g fill="#8C6CFF"><circle cx="17" cy="17" r="6.5"/><circle cx="17" cy="6.5" r="6"/><circle cx="7.9" cy="22.3" r="6"/><circle cx="26.1" cy="22.3" r="6"/><path d="M17 17L17 6.5M17 17L7.9 22.3M17 17L26.1 22.3" stroke="#8C6CFF" stroke-width="7"/></g><g fill="#DDE1E8"><circle cx="17" cy="6.5" r="3.6"/><circle cx="7.9" cy="22.3" r="3.6"/><circle cx="26.1" cy="22.3" r="3.6"/></g><circle cx="17" cy="17" r="3.8" fill="#FFD23F"/></svg></span>Fidget spinner</button>
+  <button class="mode-btn" data-mode="zen" aria-current="false"><span class="ico zen"></span>Zen garden</button>
+  <button class="mode-btn" data-mode="cradle" aria-current="false"><span class="ico cradle"><svg viewBox="0 0 36 36" fill="none" stroke-linecap="round"><path d="M5 7h26" stroke="#8C939E" stroke-width="2.5"/><path d="M6 24V7M12 24V7M18 24V7M24 24V7M30 24V7" stroke="#9AA0A8" stroke-width=".9"/><g fill="#B9BEC6" stroke="#6E7580" stroke-width=".8"><circle cx="6" cy="26" r="3.2"/><circle cx="12" cy="26" r="3.2"/><circle cx="18" cy="26" r="3.2"/><circle cx="24" cy="26" r="3.2"/><circle cx="30" cy="26" r="3.2"/></g></svg></span>Newton's cradle</button>
   </div>
   <div class="pills"><button class="pill" id="soundBtn" aria-pressed="true">Sound on</button><button class="pill" id="hapticBtn">Haptics: strong</button></div>
   <p class="note" id="hapticNote" hidden>iPhone browsers block vibration. The installed app has full haptics.</p>
@@ -558,6 +580,9 @@ const S = {
   whoosh() { const a = ac(); if (!a || !soundOn) return; nz(a, "bandpass", 400, 2400, 1.4, .3, .35, 0, .08); },
   // soft, muffled silicone pop
   thup() { const a = ac(); if (!a || !soundOn) return; const f = 230 + Math.random() * 70; tone(a, "sine", f, f * .45, .5, .07); nz(a, "lowpass", 1100, 220, 3, .45, .055); },
+  sand(v) { const a = ac(); if (!a || !soundOn) return; const f = 2200 + Math.random() * 1800; nz(a, "bandpass", f, f * .7, .9, .1 * v, .12, 0, .03); nz(a, "lowpass", 700, 300, 1, .05 * v, .1); },
+  // a steel ball: hard click plus a short bell-like ring
+  ting(v) { const a = ac(); if (!a || !soundOn) return; const f = 2900 + Math.random() * 300; tone(a, "sine", f, f * .995, .09 * v, .35); tone(a, "sine", f * 1.52, f * 1.51, .05 * v, .22); },
 };
 // continuous squish bed for dragging slime
 let bed = null;
@@ -603,6 +628,8 @@ function setMode(m) {
   if (m === "grass") grassSetup(false);
   if (m === "pop") popSetup(false);
   if (m === "spin") spinSetup(false);
+  if (m === "zen") zenSetup(false);
+  if (m === "cradle") cradleSetup(false);
   try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
 }
@@ -2207,8 +2234,194 @@ document.querySelectorAll("#mode-spin .opt").forEach(b => b.addEventListener("cl
 let savedDesign = "classic"; try { savedDesign = localStorage.getItem("fidget-spin-design") || "classic"; } catch (e) {}
 setSpinDesign(SPIN_LOBES[savedDesign] ? savedDesign : "classic");
 
+/* ================= zen garden ================= */
+const zcv = $("#zencv"), zctx = zcv.getContext("2d"), zHint = $("#zHint");
+const Z = { W: 0, H: 0, dpr: 1, sand: null, sx: null, stones: [], ptrs: new Map(), dirty: true, snd: 0, bz: 0 };
+const TINES = [-2, -1, 0, 1, 2], TINE_GAP = 9;
+function zenSetup(force) {
+  const w = zcv.clientWidth, hh = zcv.clientHeight;
+  if (!w || !hh) return;
+  if (!force && w === Z.W && hh === Z.H) return;
+  const first = !Z.W; Z.W = w; Z.H = hh; Z.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  zcv.width = Math.round(w * Z.dpr); zcv.height = Math.round(hh * Z.dpr); zctx.setTransform(Z.dpr, 0, 0, Z.dpr, 0, 0);
+  Z.sand = document.createElement("canvas"); Z.sand.width = zcv.width; Z.sand.height = zcv.height;
+  Z.sx = Z.sand.getContext("2d"); Z.sx.setTransform(Z.dpr, 0, 0, Z.dpr, 0, 0);
+  if (first) [[.3, .3, 36], [.7, .5, 26], [.38, .68, 19]].forEach(([x, y, r]) => Z.stones.push(makeZenStone(w * x, hh * y, r)));
+  else Z.stones.forEach(s => { s.x = clamp(s.x, s.r, w - s.r); s.y = clamp(s.y, s.r + 60, hh - s.r - 90); });
+  smoothSand();
+}
+function makeZenStone(x, y, r) {
+  const c = document.createElement("canvas"), d = Z.dpr, S2 = r * 2.8;
+  c.width = c.height = Math.ceil(S2 * d);
+  const g = c.getContext("2d"); g.scale(d, d); g.translate(S2 / 2, S2 / 2);
+  const pts = []; for (let i = 0; i < 14; i++) { const a = i / 14 * 6.2832, rr = r * rnd(.86, 1.04); pts.push([Math.cos(a) * rr, Math.sin(a) * rr * .9]); }
+  const outline = () => { g.beginPath(); pts.forEach(([px, py], i) => { const [qx, qy] = pts[(i + 1) % 14]; i ? 0 : g.moveTo((px + qx) / 2, (py + qy) / 2); g.quadraticCurveTo(qx, qy, (qx + pts[(i + 2) % 14][0]) / 2, (qy + pts[(i + 2) % 14][1]) / 2); }); g.closePath(); };
+  g.save(); g.shadowColor = "rgba(70,50,20,.45)"; g.shadowBlur = r * .35; g.shadowOffsetX = r * .12; g.shadowOffsetY = r * .2;
+  outline(); g.fillStyle = "#6E6A64"; g.fill(); g.restore();
+  const l = 38 + Math.random() * 14, gr = g.createRadialGradient(-r * .35, -r * .4, r * .1, 0, 0, r * 1.05);
+  gr.addColorStop(0, `hsl(30,6%,${l + 22}%)`); gr.addColorStop(.6, `hsl(30,5%,${l}%)`); gr.addColorStop(1, `hsl(30,6%,${l - 14}%)`);
+  outline(); g.fillStyle = gr; g.fill();
+  g.save(); g.clip(); g.fillStyle = "rgba(0,0,0,.12)"; for (let i = 0; i < r * 3; i++) g.fillRect(rnd(-r, r), rnd(-r, r), 1.3, 1.3);
+  g.fillStyle = "rgba(255,255,255,.1)"; for (let i = 0; i < r * 2; i++) g.fillRect(rnd(-r, r), rnd(-r, r), 1, 1); g.restore();
+  return { x, y, r, spr: c, size: S2 };
+}
+function smoothSand() {
+  const x = Z.sx, W = Z.W, H = Z.H;
+  const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#EDDDBA"); g.addColorStop(1, "#E0CDA4"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < W * H / 60; i++) { x.fillStyle = Math.random() < .5 ? "rgba(255,250,235,.35)" : "rgba(140,110,60,.18)"; x.fillRect(rnd(0, W), rnd(0, H), 1.2, 1.2); }
+  Z.stones.forEach(stoneRings); Z.dirty = true;
+}
+// one raked line: a shadowed trough with a lit ridge on the side facing the light (top-left)
+function groove(x, pts, w) {
+  if (pts.length < 2) return;
+  const path = () => { x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); };
+  x.lineCap = x.lineJoin = "round";
+  x.save(); x.translate(-.9, -1.1); path(); x.strokeStyle = "rgba(255,250,232,.75)"; x.lineWidth = w; x.stroke(); x.restore();
+  x.save(); x.translate(.7, .9); path(); x.strokeStyle = "rgba(120,92,50,.32)"; x.lineWidth = w; x.stroke(); x.restore();
+  path(); x.strokeStyle = "rgba(196,170,120,.9)"; x.lineWidth = w * .55; x.stroke();
+}
+function stoneRings(s) {
+  for (let k = 1; k <= 3; k++) {
+    const pts = [], rr = s.r + 6 + k * TINE_GAP;
+    for (let i = 0; i <= 48; i++) { const a = i / 48 * 6.2832; pts.push([s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr * .92]); }
+    groove(Z.sx, pts, 3.2);
+  }
+}
+const inStone = (x, y) => Z.stones.some(s => (x - s.x) ** 2 + ((y - s.y) / .92) ** 2 < (s.r + 4) ** 2);
+function rake(p, x1, y1) {
+  const dx = x1 - p.x, dy = y1 - p.y, l = Math.hypot(dx, dy);
+  if (l < 3) return 0;
+  // smoothed heading keeps the five tines parallel through wobbly finger paths
+  p.hx = p.hx * .6 + dx / l * .4; p.hy = p.hy * .6 + dy / l * .4;
+  const hl = Math.hypot(p.hx, p.hy) || 1, nx = -p.hy / hl, ny = p.hx / hl;
+  for (const k of TINES) {
+    const o = k * TINE_GAP, a = [p.x + (p.nx ?? nx) * o, p.y + (p.ny ?? ny) * o], b = [x1 + nx * o, y1 + ny * o];
+    if (!inStone(...a) && !inStone(...b)) groove(Z.sx, [a, b], 3.2);
+  }
+  p.nx = nx; p.ny = ny; p.x = x1; p.y = y1; Z.dirty = true;
+  return l;
+}
+function zenFrame() {
+  if (!Z.dirty) return; Z.dirty = false;
+  const c = zctx; c.drawImage(Z.sand, 0, 0, Z.W, Z.H);
+  for (const s of Z.stones) c.drawImage(s.spr, s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
+}
+const zenStoneAt = (x, y) => { for (let i = Z.stones.length - 1; i >= 0; i--) { const s = Z.stones[i]; if (Math.hypot(x - s.x, y - s.y) < s.r + 8) return s; } return null; };
+zcv.addEventListener("pointerdown", e => {
+  zcv.setPointerCapture(e.pointerId); ac(); zHint.classList.add("gone");
+  const st = zenStoneAt(e.offsetX, e.offsetY);
+  if (st) { Z.stones.splice(Z.stones.indexOf(st), 1); Z.stones.push(st); S.knock(.5); buzz(12); }
+  Z.ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY, hx: 0, hy: 0, nx: null, ny: null, st, ox: st ? st.x - e.offsetX : 0, oy: st ? st.y - e.offsetY : 0 });
+});
+zcv.addEventListener("pointermove", e => {
+  const p = Z.ptrs.get(e.pointerId); if (!p) return;
+  if (p.st) { p.st.x = clamp(e.offsetX + p.ox, p.st.r, Z.W - p.st.r); p.st.y = clamp(e.offsetY + p.oy, p.st.r + 60, Z.H - p.st.r - 90); Z.dirty = true; return; }
+  const l = rake(p, e.offsetX, e.offsetY), now = performance.now();
+  if (l && now - Z.snd > 70) { Z.snd = now; S.sand(Math.min(1, .3 + l * .06)); }
+  if (l && now - Z.bz > 120) { Z.bz = now; buzz(2); }
+});
+const zEnd = e => {
+  const p = Z.ptrs.get(e.pointerId); if (!p) return; Z.ptrs.delete(e.pointerId);
+  if (p.st) { stoneRings(p.st); Z.dirty = true; S.thud(.45); buzz(16); }
+};
+zcv.addEventListener("pointerup", zEnd); zcv.addEventListener("pointercancel", zEnd);
+$("#zenSmooth").addEventListener("click", () => { smoothSand(); S.whoosh(); setTimeout(() => S.sand(1), 120); buzz(10); });
+
+/* ================= newton's cradle ================= */
+const ccv = $("#cradlecv"), cctx = ccv.getContext("2d"), cHint = $("#cHint");
+const NC = { W: 0, H: 0, dpr: 1, n: 5, r: 0, L: 0, top: 0, cx: 0, th: [0, 0, 0, 0, 0], om: [0, 0, 0, 0, 0], grab: null, last: 0, hit: 0, bz: 0 };
+function cradleSetup(force) {
+  const w = ccv.clientWidth, hh = ccv.clientHeight;
+  if (!w || !hh) return;
+  if (!force && w === NC.W && hh === NC.H) return;
+  NC.W = w; NC.H = hh; NC.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  ccv.width = Math.round(w * NC.dpr); ccv.height = Math.round(hh * NC.dpr); cctx.setTransform(NC.dpr, 0, 0, NC.dpr, 0, 0);
+  NC.r = Math.min(w * .075, 30); NC.L = Math.min(hh * .38, 280); NC.top = Math.max(110, hh * .2); NC.cx = w / 2;
+}
+const pivotX = i => NC.cx + (i - (NC.n - 1) / 2) * (NC.r * 2 + .6);
+const ballXY = i => [pivotX(i) + NC.L * Math.sin(NC.th[i]), NC.top + NC.L * Math.cos(NC.th[i])];
+function cradleStep(dt) {
+  const n = NC.n, g = 5000 / NC.L; // gravity scaled to the string length so the swing period looks real
+  let hitV = 0;
+  for (let i = 0; i < n; i++) if (!NC.grab || !NC.grab.set.includes(i)) {
+    NC.om[i] += -g * Math.sin(NC.th[i]) * dt; NC.om[i] *= 1 - .07 * dt; NC.th[i] += NC.om[i] * dt;
+  }
+  // equal steel balls: when two touch and close in, they swap velocities (repeat so a hit travels down the row)
+  for (let pass = 0; pass < n; pass++) {
+    let swapped = false;
+    for (let i = 0; i < n - 1; i++) {
+      const gap = (pivotX(i + 1) + NC.L * Math.sin(NC.th[i + 1])) - (pivotX(i) + NC.L * Math.sin(NC.th[i]));
+      const vi = NC.om[i] * Math.cos(NC.th[i]), vj = NC.om[i + 1] * Math.cos(NC.th[i + 1]);
+      if (gap <= NC.r * 2 && vi > vj) {
+        if (NC.grab && (NC.grab.set.includes(i) || NC.grab.set.includes(i + 1))) continue;
+        hitV = Math.max(hitV, (vi - vj) * NC.L);
+        const e = .985, a = NC.om[i], b = NC.om[i + 1];
+        NC.om[i] = b * e; NC.om[i + 1] = a * e; swapped = true;
+      }
+    }
+    if (!swapped) break;
+  }
+  return hitV;
+}
+function cradleFrame(now) {
+  const dts = clamp((now - (NC.last || now - 16.7)) / 1000, .004, .04); NC.last = now;
+  let hitV = 0; const sub = 12;
+  for (let k = 0; k < sub; k++) hitV = Math.max(hitV, cradleStep(dts / sub));
+  if (hitV > 25 && now - NC.hit > 35) {
+    NC.hit = now; const v = Math.min(1, hitV / 900);
+    S.clack(.35 + v * .65); S.ting(.4 + v * .6);
+    if (now - NC.bz > 60) { NC.bz = now; buzz(Math.round(6 + v * 20)); }
+  }
+  const c = cctx, W = NC.W, r = NC.r, top = NC.top, L = NC.L, n = NC.n;
+  c.clearRect(0, 0, W, NC.H);
+  const half = (n - 1) / 2 * (2 * r) + r + 40, left = NC.cx - half, right = NC.cx + half, base = top + L + r + 46;
+  // base plate and shadows
+  const bg = c.createLinearGradient(0, base, 0, base + 26); bg.addColorStop(0, "#3A3430"); bg.addColorStop(1, "#1F1B18");
+  c.fillStyle = "rgba(40,30,20,.18)"; c.beginPath(); c.ellipse(NC.cx, base + 30, half + 20, 12, 0, 0, 6.2832); c.fill();
+  c.fillStyle = bg; rrect(c, left - 12, base, right - left + 24, 24, 8); c.fill();
+  c.fillStyle = "rgba(255,255,255,.12)"; c.fillRect(left - 4, base + 2, right - left + 8, 2);
+  for (let i = 0; i < n; i++) {
+    const [x] = ballXY(i), lift = Math.max(0, (L - L * Math.cos(NC.th[i])) / 120);
+    c.fillStyle = `rgba(0,0,0,${(.28 - lift * .12).toFixed(2)})`; c.beginPath(); c.ellipse(x, base - 3, r * (1 + lift * .3), 4, 0, 0, 6.2832); c.fill();
+  }
+  // frame: two uprights and the top bar, brushed steel
+  const steel = (x0, y0, x1, y1) => { const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, "#F4F6F8"); g.addColorStop(.5, "#9CA3AC"); g.addColorStop(1, "#D9DDE2"); return g; };
+  c.fillStyle = steel(left - 6, 0, left + 6, 0); c.fillRect(left - 6, top - 8, 10, base - top + 8);
+  c.fillStyle = steel(right - 4, 0, right + 8, 0); c.fillRect(right - 4, top - 8, 10, base - top + 8);
+  c.fillStyle = steel(0, top - 12, 0, top + 2); rrect(c, left - 10, top - 14, right - left + 20, 12, 6); c.fill();
+  // strings in a V from the front and back of the bar, then the balls
+  c.strokeStyle = "rgba(70,70,80,.55)"; c.lineWidth = 1;
+  for (let i = 0; i < n; i++) {
+    const [x, y] = ballXY(i), px = pivotX(i);
+    c.beginPath(); c.moveTo(px - 18, top - 4); c.lineTo(x, y - r * .7); c.moveTo(px + 18, top - 4); c.lineTo(x, y - r * .7); c.stroke();
+  }
+  for (let i = 0; i < n; i++) {
+    const [x, y] = ballXY(i), g = c.createRadialGradient(x - r * .35, y - r * .4, r * .05, x, y, r);
+    g.addColorStop(0, "#FFFFFF"); g.addColorStop(.25, "#E4E7EB"); g.addColorStop(.7, "#8E959F"); g.addColorStop(1, "#4F555D");
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+    c.fillStyle = "rgba(255,255,255,.35)"; c.beginPath(); c.ellipse(x + r * .25, y + r * .5, r * .35, r * .12, -.3, 0, 6.2832); c.fill();
+  }
+}
+const cradleBallAt = (x, y) => { for (let i = 0; i < NC.n; i++) { const [bx, by] = ballXY(i); if (Math.hypot(x - bx, y - by) < NC.r * 1.4) return i; } return -1; };
+ccv.addEventListener("pointerdown", e => {
+  ccv.setPointerCapture(e.pointerId); ac(); cHint.classList.add("gone");
+  if (NC.grab) return;
+  const i = cradleBallAt(e.offsetX, e.offsetY); if (i < 0) return;
+  NC.grab = { id: e.pointerId, i, set: [i] }; S.tick(2400, .12, .02); buzz(8);
+});
+ccv.addEventListener("pointermove", e => {
+  const g = NC.grab; if (!g || g.id !== e.pointerId) return;
+  const a = clamp(Math.atan2(e.offsetX - pivotX(g.i), e.offsetY - NC.top), -1.15, 1.15);
+  // pulling one ball sideways drags along every ball between it and that end of the row
+  g.set = [];
+  if (a < 0) for (let k = 0; k <= g.i; k++) g.set.push(k); else for (let k = g.i; k < NC.n; k++) g.set.push(k);
+  g.set.forEach(k => { NC.th[k] = a; NC.om[k] = 0; });
+});
+const cEnd = e => { const g = NC.grab; if (!g || g.id !== e.pointerId) return; NC.grab = null; };
+ccv.addEventListener("pointerup", cEnd); ccv.addEventListener("pointercancel", cEnd);
+
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(false); });
+window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(false); if (mode === "zen") zenSetup(false); if (mode === "cradle") cradleSetup(false); });
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
@@ -2219,13 +2432,15 @@ let savedMode = null; try { savedMode = localStorage.getItem("fidget-mode"); } c
 if (location.hash.length > 1) savedMode = location.hash.slice(1); // index.html#dice opens a mode directly when previewing in a browser
 // wait for the deferred 3D engine scripts in case the last mode was Dice
 if (savedMode && savedMode !== "slime" && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
-if (location.hash) window.__fidget = { G, D, P, SP, popFrame, spinFrame }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, popFrame, spinFrame, cradleFrame }; // state handle for browser previews and tests
 (function loop(now) {
   if (mode === "slime" && N) { slimeStep(now || 0); slimeRender(now || 0); }
   else if (bed) bed.g.gain.setTargetAtTime(0, actx.currentTime, .05);
   if (mode === "dice" && D.ready && !D.failed) { try { diceFrame(now || 0); } catch (e) { diceError(e); } }
   if (mode === "grass" && G.W) grassFrame(now || 0);
   if (mode === "pop" && P.W) popFrame(now || 0);
+  if (mode === "zen" && Z.W) zenFrame();
+  if (mode === "cradle" && NC.W) cradleFrame(now || 0);
   if (mode === "spin" && SP.W) spinFrame(now || 0);
   else if (SP.bed) { SP.bed.g.gain.setTargetAtTime(0, actx.currentTime, .05); SP.bed.og.gain.setTargetAtTime(0, actx.currentTime, .05); }
   requestAnimationFrame(loop);
