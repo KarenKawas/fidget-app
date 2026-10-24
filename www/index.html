@@ -2,7 +2,7 @@
 <html lang="en" data-mode="slime">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>DigiFidget</title>
 <style>
 /* bundled by scripts/copy-vendor.js so the app works offline */
@@ -26,6 +26,7 @@
   --surface:#231F30; --ink:#F1EDF8; --muted:#A79FBB; --line:rgba(255,255,255,.1);
   --sheet:#17222E; --sheet-line:rgba(150,200,240,.07); color-scheme:dark;
 }
+html,button{touch-action:manipulation}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--slimebg);transition:background .3s}
 html[data-mode="board"]{background:var(--boardbg,#A86A36)}
 html[data-mode="bubbles"]{background:var(--sheetbg,var(--sheet))}
@@ -293,8 +294,10 @@ button{font:inherit;color:inherit}
   font-weight:500;background:rgba(255,255,255,.8);color:#2A2438;box-shadow:0 3px 12px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .bub-bar{position:absolute;z-index:3;left:8px;right:8px;bottom:22px;display:flex;justify-content:center;align-items:center;gap:8px;pointer-events:none}
 .bub-bar>*{pointer-events:auto}
-.bub-bar .newsheet{position:static;transform:none}
-.bub-bar .newsheet.cheer{animation:cheer .5s ease-in-out 2}
+.bub-track{position:absolute;left:0;top:0;right:0;height:0;will-change:transform}
+.bub-legend{position:absolute;z-index:3;left:0;right:0;bottom:74px;margin:0 auto;width:max-content;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+  font-size:.85rem;font-weight:500;color:#2A2438;background:rgba(255,255,255,.62);pointer-events:none}
+.bub-legend svg{width:18px;height:18px}
 @keyframes cheer{50%{transform:scale(1.15);background:#fff}}
 .bub-count{border-radius:999px;padding:8px 12px;font-size:.85rem;font-weight:500;color:#2A2438;background:rgba(255,255,255,.62);white-space:nowrap;font-variant-numeric:tabular-nums}
 .bub-size{display:flex;padding:3px;gap:2px;border-radius:999px;background:rgba(255,255,255,.62)}
@@ -403,10 +406,10 @@ button{font:inherit;color:inherit}
   </section>
 
   <section class="mode" id="mode-bubbles" aria-label="Bubble wrap">
-    <div id="sheet" data-theme="wood" tabindex="0" aria-label="Bubble wrap. Press space to pop a bubble."></div>
+    <div id="sheet" data-theme="wood" tabindex="0" aria-label="Bubble wrap. Press space to pop a bubble, arrow keys to scroll."><div class="bub-track" id="bubTrack"></div></div>
+    <p class="bub-legend"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 013 0V11m0-1.5V4.5a1.5 1.5 0 013 0V11m0-4a1.5 1.5 0 013 0v7c0 3.5-2.5 6-6 6s-5-2-6.5-4.5L5 13.5a1.5 1.5 0 012.5-1.6L8 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 1.5v-1M9 2l-.5-.8M15 2l.5-.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Scroll with two fingers</p>
     <div class="bub-bar">
       <span class="bub-count" id="bubCount" aria-live="off">0 popped</span>
-      <button class="newsheet" id="newsheet">New sheet</button>
       <div class="bub-size" role="group" aria-label="Bubble size">
         <button data-size="S" aria-pressed="false" aria-label="Small bubbles">S</button><button data-size="M" aria-pressed="true" aria-label="Medium bubbles">M</button><button data-size="L" aria-pressed="false" aria-label="Large bubbles">L</button>
       </div>
@@ -612,6 +615,8 @@ function closeDrawer() { drawer.classList.remove("open"); scrim.classList.remove
 menuBtn.addEventListener("click", openDrawer);
 scrim.addEventListener("click", closeDrawer);
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+// never zoom: block iOS pinch gestures and double-tap zoom on top of the viewport settings
+["gesturestart", "gesturechange", "dblclick"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
 // swipe drawer closed
 let dsx = null;
 drawer.addEventListener("pointerdown", e => dsx = e.clientX);
@@ -1067,7 +1072,9 @@ document.querySelectorAll(".key").forEach((key, i) => {
 });
 
 /* ================= bubble wrap ================= */
-const sheet = $("#sheet"); let bubs = [], bW = 0, bH = 0, refillT = null;
+// an endless sheet: rows are made as they scroll into view and dropped once far away; popped state is kept per row
+const sheet = $("#sheet"), track = $("#bubTrack");
+const BW = { W: 0, H: 0, s: 0, gx: 0, gy: 0, cols: 0, left0: 0, top0: 74, y: 0, vy: 0, rows: new Map(), state: new Map(), ptrs: new Map(), scrolling: false, mid: 0, lastT: 0 };
 const BSIZE = { S: [8.6, 38, 52], M: [6.6, 48, 66], L: [4.9, 64, 88] }; // [screen widths per bubble, min px, max px]
 let bSize = "M", bPops = 0;
 try { bSize = BSIZE[localStorage.getItem("fidget-bubble-size")] ? localStorage.getItem("fidget-bubble-size") : "M"; bPops = +localStorage.getItem("fidget-bubble-pops") || 0; } catch (e) {}
@@ -1086,66 +1093,106 @@ document.querySelectorAll(".bub-size button").forEach(b => b.addEventListener("c
 }));
 function layoutBubbles(force) {
   const Wd = sheet.clientWidth, Hd = sheet.clientHeight;
-  if (!Wd || (!force && Wd === bW && Hd === bH)) return;
-  bW = Wd; bH = Hd; bubs.forEach(b => b.remove()); bubs = [];
-  const [per, smin, smax] = BSIZE[bSize];
-  const s = Math.max(smin, Math.min(smax, Wd / per)), gx = s * 1.1, gy = s * .97;
-  const cols = Math.floor((Wd - 20 - s - gx / 2) / gx) + 1;
-  const top = 74, bottom = 84, rows = Math.floor((Hd - top - bottom - s) / gy) + 1;
-  const left0 = (Wd - ((cols - 1) * gx + s + gx / 2)) / 2;
-  const top0 = top + ((Hd - top - bottom) - ((rows - 1) * gy + s)) / 2;
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    const b = document.createElement("div");
-    b.className = "bub";
-    b.style.cssText = `left:${left0 + c * gx + (r % 2 ? gx / 2 : 0)}px;top:${top0 + r * gy}px;width:${s}px;height:${s}px;--rot:${(Math.random() * 40 - 20).toFixed(0)}deg`;
-    sheet.appendChild(b); bubs.push(b);
+  if (!Wd || (!force && Wd === BW.W && Hd === BW.H)) return;
+  const widthChanged = Wd !== BW.W;
+  BW.W = Wd; BW.H = Hd;
+  if (widthChanged || force) {
+    const [per, smin, smax] = BSIZE[bSize];
+    BW.s = Math.max(smin, Math.min(smax, Wd / per)); BW.gx = BW.s * 1.1; BW.gy = BW.s * .97;
+    BW.cols = Math.floor((Wd - 20 - BW.s - BW.gx / 2) / BW.gx) + 1;
+    BW.left0 = (Wd - ((BW.cols - 1) * BW.gx + BW.s + BW.gx / 2)) / 2;
+    BW.rows.forEach(els => els.forEach(el => el.remove())); BW.rows.clear(); BW.state.clear(); BW.y = BW.vy = 0;
   }
+  renderRows();
+}
+function makeRow(r) {
+  const st = BW.state.get(r) || new Array(BW.cols).fill(false), els = [];
+  BW.state.set(r, st);
+  for (let c = 0; c < BW.cols; c++) {
+    const b = document.createElement("div");
+    b.className = st[c] ? "bub popped" : "bub"; b.dataset.r = r; b.dataset.c = c;
+    b.style.cssText = `left:${BW.left0 + c * BW.gx + (r % 2 ? BW.gx / 2 : 0)}px;top:${BW.top0 + r * BW.gy}px;width:${BW.s}px;height:${BW.s}px;--rot:${(Math.random() * 40 - 20).toFixed(0)}deg`;
+    track.appendChild(b); els.push(b);
+  }
+  return els;
+}
+function renderRows() {
+  if (!BW.gy) return;
+  track.style.transform = `translateY(${-BW.y}px)`;
+  const r0 = Math.max(0, Math.floor((BW.y - BW.top0 - BW.s) / BW.gy) - 2), r1 = Math.ceil((BW.y + BW.H - BW.top0) / BW.gy) + 2;
+  for (const [r, els] of BW.rows) if (r < r0 || r > r1) { els.forEach(el => el.remove()); BW.rows.delete(r); }
+  for (let r = r0; r <= r1; r++) if (!BW.rows.has(r)) BW.rows.set(r, makeRow(r));
+  for (const r of BW.state.keys()) if (r < r0 - 150) BW.state.delete(r);
 }
 function popB(el) {
   if (!el || !el.classList || !el.classList.contains("bub") || el.classList.contains("popped")) return;
   el.classList.remove("squeeze"); el.classList.add("popped"); S.pop(); buzz(20);
+  const st = BW.state.get(+el.dataset.r); if (st) st[+el.dataset.c] = true;
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
     const b = document.createElement("div"); b.className = "burst";
     b.style.cssText = `left:${el.style.left};top:${el.style.top};width:${el.style.width};height:${el.style.height}`;
-    sheet.appendChild(b); setTimeout(() => b.remove(), 380);
+    track.appendChild(b); setTimeout(() => b.remove(), 380);
   }
   bPops++; showPops();
   if (bPops % 10 === 0) try { localStorage.setItem("fidget-bubble-pops", bPops); } catch (e) {}
-  if (bubs.every(b => b.classList.contains("popped"))) {
-    // whole sheet popped: a little fanfare, then a fresh sheet
-    [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => S.blip(f), 140 + i * 90));
-    setTimeout(() => buzz(30), 140);
-    const ns = $("#newsheet"); ns.classList.remove("cheer"); void ns.offsetWidth; ns.classList.add("cheer");
-    try { localStorage.setItem("fidget-bubble-pops", bPops); } catch (e) {}
-    clearTimeout(refillT); refillT = setTimeout(newSheet, 1300);
-  }
 }
-function newSheet() {
-  clearTimeout(refillT);
-  bubs.forEach((b, i) => setTimeout(() => b.classList.remove("popped", "squeeze"), (i % 40) * 12));
-  const a = ac(); if (a && soundOn) nz(a, "highpass", 2500, 600, 1, .18, .5);
+function scrollBubbles(dy) { BW.y = Math.max(0, BW.y + dy); renderRows(); }
+// glide after a two-finger fling (called from the main loop)
+function bubblesFrame() {
+  if (BW.scrolling || Math.abs(BW.vy) < .2) return;
+  scrollBubbles(BW.vy); BW.vy *= .95;
+  if (BW.y === 0) BW.vy = 0;
 }
-$("#newsheet").addEventListener("click", newSheet);
-let bDown = false, squeezed = null, squeezeT = null;
+let squeezed = null, squeezeT = null;
 const isLive = el => el && el.classList && el.classList.contains("bub") && !el.classList.contains("popped");
-// press = squeeze with a little plastic creak, then POP; swiping pops straight through
+const midY = () => { let s = 0; for (const p of BW.ptrs.values()) s += p.y; return s / BW.ptrs.size; };
+function unsqueeze() { clearTimeout(squeezeT); if (squeezed) { squeezed.classList.remove("squeeze"); squeezed = null; } }
+// one finger: press = squeeze with a little plastic creak, then POP; swiping pops straight through.
+// two fingers: scroll the sheet.
 sheet.addEventListener("pointerdown", e => {
-  bDown = true; const el = document.elementFromPoint(e.clientX, e.clientY);
+  sheet.setPointerCapture(e.pointerId);
+  BW.ptrs.set(e.pointerId, { y: e.clientY });
+  if (BW.ptrs.size >= 2) { unsqueeze(); BW.scrolling = true; BW.vy = 0; BW.mid = midY(); BW.lastT = performance.now(); return; }
+  BW.vy = 0;
+  if (BW.scrolling) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
   if (!isLive(el)) return;
   squeezed = el; el.classList.add("squeeze"); S.creak(); buzz(5);
   clearTimeout(squeezeT); squeezeT = setTimeout(() => { if (squeezed === el) { popB(el); squeezed = null; } }, 120);
 });
 sheet.addEventListener("pointermove", e => {
-  if (!bDown) return;
+  const p = BW.ptrs.get(e.pointerId); if (!p) return;
+  p.y = e.clientY;
+  if (BW.scrolling) {
+    if (BW.ptrs.size < 2) return;
+    const m = midY(), now = performance.now(), dy = BW.mid - m;
+    BW.vy = BW.vy * .5 + dy / Math.max(1, (now - BW.lastT) / 16.7) * .5; BW.mid = m; BW.lastT = now;
+    scrollBubbles(dy); return;
+  }
   let evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
   if (!evs.length) evs = [e];
   for (const ev of evs) { const el = document.elementFromPoint(ev.clientX, ev.clientY); if (el !== squeezed) popB(el); }
 });
-["pointerup", "pointercancel"].forEach(ev => sheet.addEventListener(ev, () => {
-  bDown = false; clearTimeout(squeezeT);
+["pointerup", "pointercancel"].forEach(ev => sheet.addEventListener(ev, e => {
+  if (!BW.ptrs.delete(e.pointerId)) return;
+  if (BW.scrolling) {
+    if (BW.ptrs.size === 1) BW.mid = midY();
+    if (!BW.ptrs.size) { BW.scrolling = false; if (performance.now() - BW.lastT > 80) BW.vy = 0; }
+    return;
+  }
+  clearTimeout(squeezeT);
   if (squeezed) { popB(squeezed); squeezed = null; }
 }));
-sheet.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); popB(bubs.find(b => !b.classList.contains("popped"))); } });
+sheet.addEventListener("wheel", e => { e.preventDefault(); BW.vy = 0; scrollBubbles(e.deltaY); }, { passive: false });
+sheet.addEventListener("keydown", e => {
+  if (e.key === " " || e.key === "Enter") {
+    e.preventDefault();
+    const live = [...track.querySelectorAll(".bub:not(.popped)")].find(b => b.getBoundingClientRect().top > 60);
+    popB(live);
+  }
+  if (e.key === "ArrowDown") { e.preventDefault(); scrollBubbles(BW.gy); }
+  if (e.key === "ArrowUp") { e.preventDefault(); scrollBubbles(-BW.gy); }
+});
 
 /* ================= dice ================= */
 const D = { ready: false, loading: false, dice: [], grab: null, tap: null, rolling: false, settle: 0, last: 0 };
@@ -1531,18 +1578,32 @@ function saveDiceSet() { try { localStorage.setItem("fidget-dice-set", JSON.stri
 
 // shake the phone to roll. iOS asks for motion permission, which must come from a tap.
 const shakeBtn = $("#shakeBtn"), askMotion = typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function";
-let shakeOn = false, motionOK = !askMotion, lastMag = null, lastShake = 0;
+let shakeOn = false, motionOK = !askMotion, lastG = null, lastShake = 0;
+// the dice slide against the phone's movement, like dice in a box: shake sideways and they rattle sideways.
+// Phone x = screen right = table +x; phone y = screen up = table -z.
 function onMotion(e) {
   if (mode !== "dice" || !D.ready) return;
   const a = e.acceleration, g = e.accelerationIncludingGravity;
-  let jolt;
-  if (a && a.x != null) jolt = Math.hypot(a.x, a.y, a.z);
-  else if (g && g.x != null) { const m = Math.hypot(g.x, g.y, g.z); jolt = lastMag === null ? 0 : Math.abs(m - lastMag); lastMag = m; }
-  else return;
-  const now = performance.now();
-  if (jolt < 15 || now - lastShake < 900) return;
+  let ax, ay, az;
+  if (a && a.x != null) { ax = a.x; ay = a.y; az = a.z || 0; }
+  else if (g && g.x != null) {
+    if (!lastG) { lastG = { x: g.x, y: g.y, z: g.z }; return; }
+    ax = g.x - lastG.x; ay = g.y - lastG.y; az = g.z - lastG.z; lastG = { x: g.x, y: g.y, z: g.z };
+  } else return;
+  const mag = Math.hypot(ax, ay, az), now = performance.now();
+  if (!D.dice.length) { if (mag > 15 && now - lastShake > 900) { lastShake = now; addDie("d6"); } return; }
+  if (mag < 4 || now - lastShake < 50) return;
   lastShake = now;
-  if (D.dice.length) rollAll(); else addDie("d6");
+  const k = .35, cap = 18;
+  D.dice.forEach(d => {
+    const b = d.body; b.wakeUp();
+    b.velocity.x = clamp(b.velocity.x - ax * k, -cap, cap);
+    b.velocity.z = clamp(b.velocity.z + ay * k, -cap, cap);
+    if (b.position.y < 1.6) b.velocity.y += Math.min(3, mag * .08);
+    const s = mag * .25;
+    b.angularVelocity.x += rnd(-s, s); b.angularVelocity.y += rnd(-s, s); b.angularVelocity.z += rnd(-s, s);
+  });
+  if (!D.rolling) startRoll(); else { D.settle = 0; D.rollStart = now; }
 }
 async function askMotionPermission() {
   if (motionOK) return true;
@@ -1573,7 +1634,7 @@ const gcv = $("#grasscv"), gctx = gcv.getContext("2d"), gHint = $("#gHint"), gAc
 const G = { W: 0, H: 0, dpr: 1, season: "summer", blades: [], bugs: [], bands: [], parts: [], flakes: [], ptrs: new Map(), t: 0, last: 0, spawn: 0, snd: 0, bz: 0 };
 const SEASONS = {
   spring: { bg: "#4F9A30", ground: ["#3D7F22", "#2C6418"], blades: ["#63C13C", "#82D84B", "#4CA830", "#A2E35E"], dark: "#1E4A10", hmul: 1.2, wmul: 1.05, hint: "Brush the grass, kick up the petals", act: "" },
-  summer: { bg: "#3F8226", ground: ["#33701D", "#245414"], blades: ["#4FA62F", "#3C9127", "#6AC03E", "#2F7C20"], dark: "#163A0C", hmul: 1, wmul: 1, hint: "Drag to brush the grass", act: "" },
+  summer: { bg: "#3F8226", ground: ["#33701D", "#245414"], blades: ["#4FA62F", "#3C9127", "#6AC03E", "#2F7C20"], dark: "#163A0C", hmul: 1, wmul: 1, hint: "Drag the mower around", act: "Regrow" },
   autumn: { bg: "#8C6B35", ground: ["#7A5A2B", "#5A4120"], blades: ["#CDA75E", "#B58C47", "#DDC07A", "#9E783A"], dark: "#4A3415", hmul: .8, wmul: .85, hint: "Tap the leaves", act: "More leaves" },
   winter: { bg: "#E6EEF6", hint: "Draw in the snow", act: "Fresh snow" },
 };
@@ -1630,7 +1691,7 @@ function grassSetup(force) {
 }
 function buildSeason() {
   const s = G.season, P = SEASONS[s], W = G.W, H = G.H;
-  G.blades = []; G.bands = []; G.parts = []; G.flakes = []; G.bugs = []; G.branch = null; G.spawn = 0;
+  G.blades = []; G.bands = []; G.parts = []; G.flakes = []; G.bugs = []; G.mower = null; G.branch = null; G.spawn = 0;
   gSec.dataset.season = s;
   if (s === "winter") {
     makeStone(); makeSnow();
@@ -1642,7 +1703,7 @@ function buildSeason() {
   const NB = 28, n = Math.min(4200, Math.round(W * H / 115));
   for (let i = 0; i < NB; i++) {
     const dk = (1 - i / (NB - 1)) * .32;
-    G.bands.push({ buckets: [[], [], [], [], []], flowers: [], cols: [...P.blades, STEM].map(c => mixHex(c, P.dark, dk)) });
+    G.bands.push({ buckets: [[], [], [], [], [], [], []], flowers: [], cols: [...P.blades, STEM, "#86D158", "#3B8526"].map(c => mixHex(c, P.dark, dk)) });
   }
   for (let i = 0; i < n; i++) {
     const y = rnd(-20, H + 40), x = rnd(-10, W + 10), sc = .68 + clamp(y / H, 0, 1) * .45;
@@ -1650,11 +1711,13 @@ function buildSeason() {
     const b = { x, y, h: rnd(28, 66) * sc * P.hmul, w: rnd(1.8, 3.6) * sc * P.wmul, a: lean, va: 0, pr: 0, ph: rnd(0, 6.28), lean, c: (Math.random() * 4) | 0 };
     const band = G.bands[clamp(((y + 20) / (H + 60) * NB) | 0, 0, NB - 1)];
     if (s === "summer" && Math.random() < .04) { b.fl = pick(FLOWERS); b.h *= 1.25; b.w *= .55; b.c = 4; b.fs = rnd(5.5, 8) * sc; band.flowers.push(b); }
+    b.band = band; b.k = b.c; b.h0 = b.hT = b.h; b.hr = 0;
     band.buckets[b.c].push(b); G.blades.push(b);
   }
   if (s === "spring") { makeBranch(); for (let i = 0; i < 50; i++) addPart("petal", rnd(0, W), rnd(H * .2, H), 0, { life: rnd(400, 2600) }); }
   if (s === "autumn") for (let i = 0; i < 70; i++) addPart("leaf", rnd(0, W), rnd(H * .1, H), 0);
-  if (s === "spring" || s === "summer") {
+  G.mower = s === "summer" ? { x: W / 2, y: H * .62, ang: 0, v: 0, cut: 0 } : null;
+  if (s === "spring") {
     for (let i = 0; i < 3; i++) G.bugs.push({ fly: true, x: rnd(40, W - 40), y: rnd(80, H - 160), vx: 0, vy: 0, ang: 0, ph: rnd(0, 6.28), tx: rnd(40, W - 40), ty: rnd(80, H - 160), wt: 0, rest: 0, col: pick(WINGS) });
     G.bugs.push({ fly: false, x: rnd(40, W - 40), y: rnd(H * .3, H - 140), h: rnd(0, 6.28) });
   }
@@ -1840,12 +1903,13 @@ function meadowStep(ps, dt) {
     b.va = (b.va + (b.lean + wind - b.a) * .05 * dt) * damp;
     b.a = clamp(b.a + b.va * dt, -1.35, 1.35);
     b.pr *= prd;
+    if (b.h !== b.hT) { b.h += (b.hT - b.h) * Math.min(1, b.hr * dt); if (Math.abs(b.hT - b.h) < .2) b.h = b.hT; }
   }
 }
 function meadowDraw() {
   const c = gctx; c.fillStyle = G.ground; c.fillRect(0, 0, G.W, G.H);
   for (const band of G.bands) {
-    for (let k = 0; k < 5; k++) {
+    for (let k = 0; k < band.buckets.length; k++) {
       const L = band.buckets[k]; if (!L.length) continue;
       c.beginPath();
       for (const b of L) {
@@ -1856,7 +1920,7 @@ function meadowDraw() {
       }
       c.fillStyle = band.cols[k]; c.fill();
     }
-    for (const b of band.flowers) c.drawImage(b.fl, b.tx - b.fs, b.ty - b.fs, b.fs * 2, b.fs * 2);
+    for (const b of band.flowers) if (!b.mown) c.drawImage(b.fl, b.tx - b.fs, b.ty - b.fs, b.fs * 2, b.fs * 2);
   }
 }
 function partsStep(ps, dt) {
@@ -1881,11 +1945,86 @@ function partsStep(ps, dt) {
 }
 function drawPart(p) {
   const c = gctx, a = p.life !== undefined ? Math.min(1, p.life / 90) : 1;
-  if (p.kind === "spray") { c.globalAlpha = a; c.fillStyle = "#fff"; c.beginPath(); c.arc(p.x, p.y - p.z, p.sz, 0, 6.29); c.fill(); return; }
+  if (p.kind === "spray") { c.globalAlpha = a; c.fillStyle = p.col || "#fff"; c.beginPath(); c.arc(p.x, p.y - p.z, p.sz, 0, 6.29); c.fill(); return; }
   if (p.z > .5) { c.globalAlpha = a * .22 * Math.max(0, 1 - p.z / 220); c.fillStyle = "#1A2A10"; c.beginPath(); c.ellipse(p.x, p.y, p.sz * .8, p.sz * .4, 0, 0, 6.29); c.fill(); }
   c.globalAlpha = a; c.save(); c.translate(p.x, p.y - p.z); c.rotate(p.rot);
   if (p.z > .5) c.scale(1, Math.max(.2, Math.abs(Math.cos(p.ph * .7)))); // tumbling
   c.drawImage(p.spr, -p.sz, -p.sz, p.sz * 2, p.sz * 2); c.restore();
+}
+// summer lawn mower: follows the finger, cuts the blades under its deck into light/dark stripes by direction
+const CLIPS = ["#5DB534", "#78C94A", "#3E8F25", "#9BD86A"];
+function setBucket(b, k) {
+  if (b.k === k) return;
+  const L = b.band.buckets[b.k], i = L.indexOf(b); if (i >= 0) L.splice(i, 1);
+  b.band.buckets[k].push(b); b.k = k;
+}
+function mowerStep(ps, dt) {
+  const m = G.mower, p = ps[0];
+  let tx = m.x, ty = m.y;
+  if (p) { tx = p.x; ty = p.y; }
+  const dx = tx - m.x, dy = ty - m.y, d = Math.hypot(dx, dy);
+  const want = p && d > 6 ? Math.min(5.5, d * .09) : 0;
+  m.v += (want - m.v) * Math.min(1, .12 * dt);
+  if (m.v > .05 && d > 1) {
+    let da = Math.atan2(dx, -dy) - m.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
+    m.ang += da * Math.min(1, .14 * dt);
+    m.x = clamp(m.x + Math.sin(m.ang) * m.v * dt, 0, G.W); m.y = clamp(m.y - Math.cos(m.ang) * m.v * dt, 0, G.H);
+  }
+  m.cut = 0;
+  if (m.v > .3) {
+    const vx = Math.sin(m.ang), vy = -Math.cos(m.ang), light = Math.abs(vx) > Math.abs(vy) ? vx > 0 : vy < 0, R2 = 30 * 30;
+    for (const b of G.blades) {
+      if (b.hT !== b.h0) continue;
+      const bx = b.x - m.x, by = b.y - m.y;
+      if (bx * bx + by * by < R2) { b.hT = b.h0 * .22; b.hr = .35; b.mown = true; setBucket(b, light ? 5 : 6); m.cut++; }
+    }
+    // clippings fly out of the side chute
+    if (m.cut && Math.random() < .8) {
+      const sx = Math.cos(m.ang), sy = Math.sin(m.ang);
+      for (let i = 0; i < Math.min(4, 1 + m.cut / 3); i++) addPart("spray", m.x + sx * 24, m.y + sy * 24, 2, { col: pick(CLIPS), vx: sx * rnd(1.5, 3.5) + rnd(-.6, .6), vy: sy * rnd(1.5, 3.5) + rnd(-.6, .6), vz: rnd(1, 2.6), sz: rnd(1, 2.2), life: 55 });
+    }
+  }
+  // engine: idles while a finger is down, revs with speed, cuts out on release
+  if (G.engine) {
+    const t = actx.currentTime, on = !!p && soundOn;
+    G.engine.o.frequency.setTargetAtTime(48 + m.v * 9 + (m.cut ? 6 : 0), t, .08);
+    G.engine.f.frequency.setTargetAtTime(380 + m.v * 140, t, .08);
+    G.engine.g.gain.setTargetAtTime(on ? .05 + m.v * .012 : 0, t, on ? .05 : .25);
+    G.engine.og.gain.setTargetAtTime(on ? .035 + m.v * .006 : 0, t, on ? .05 : .25);
+  }
+}
+function ensureEngine() {
+  const a = ac(); if (!a || G.engine) return;
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(), o = a.createOscillator(), of = a.createBiquadFilter(), og = a.createGain();
+  s.buffer = noise(a); s.loop = true; f.type = "lowpass"; f.Q.value = 4; f.frequency.value = 380; g.gain.value = 0;
+  o.type = "sawtooth"; o.frequency.value = 48; of.type = "lowpass"; of.frequency.value = 500; og.gain.value = 0;
+  s.connect(f).connect(g).connect(out(a)); o.connect(of).connect(og).connect(out(a)); s.start(); o.start();
+  G.engine = { f, g, o, og };
+}
+function drawMower(c) {
+  const m = G.mower;
+  c.save(); c.translate(m.x, m.y);
+  c.fillStyle = "rgba(10,30,5,.3)"; c.beginPath(); c.ellipse(4, 6, 30, 34, m.ang, 0, 6.29); c.fill();
+  c.rotate(m.ang);
+  // handle trails behind (down in mower space)
+  c.strokeStyle = "#2A2A2E"; c.lineWidth = 3.5; c.lineCap = "round";
+  c.beginPath(); c.moveTo(-13, 14); c.lineTo(-15, 50); c.lineTo(15, 50); c.lineTo(13, 14); c.stroke();
+  c.strokeStyle = "#111"; c.lineWidth = 6; c.beginPath(); c.moveTo(-12, 50); c.lineTo(12, 50); c.stroke();
+  c.fillStyle = "#1C1C1E"; for (const [x, y] of [[-24, -18], [18, -18], [-24, 10], [18, 10]]) { rrect(c, x, y, 6, 13, 2.5); c.fill(); }
+  c.fillStyle = "#3A3A3E"; rrect(c, 20, -6, 12, 9, 3); c.fill(); // side chute
+  const g = c.createLinearGradient(-20, -24, 20, 20); g.addColorStop(0, "#F04A3A"); g.addColorStop(1, "#B5221A");
+  c.fillStyle = g; rrect(c, -20, -24, 40, 44, 12); c.fill();
+  c.strokeStyle = "rgba(0,0,0,.25)"; c.lineWidth = 1.5; c.stroke();
+  const e = c.createRadialGradient(-3, -6, 1, 0, -2, 12); e.addColorStop(0, "#8A8A92"); e.addColorStop(1, "#2C2C30");
+  c.fillStyle = e; c.beginPath(); c.arc(0, -2, 11, 0, 6.29); c.fill();
+  c.fillStyle = "#FFD23F"; c.beginPath(); c.arc(0, -2, 3, 0, 6.29); c.fill();
+  c.fillStyle = "rgba(255,255,255,.3)"; rrect(c, -16, -21, 32, 5, 2.5); c.fill();
+  c.restore();
+}
+function regrow() {
+  for (const b of G.blades) if (b.hT !== b.h0) { b.hT = b.h0; b.hr = rnd(.025, .045); b.mown = false; setBucket(b, b.c); }
+  S.whoosh(); for (let i = 0; i < 6; i++) setTimeout(() => S.rustle(.8), i * 160);
+  buzz(14); setTimeout(() => buzz(10), 300);
 }
 function grassFrame(now) {
   const dt = clamp((now - (G.last || now - 16.7)) / 16.67, .25, 2.5); G.last = now; G.t += dt / 60;
@@ -1895,7 +2034,12 @@ function grassFrame(now) {
   if (s === "winter") {
     for (const p of ps) if (p.sp > 2 && Math.random() < .7) addPart("spray", p.x + rnd(-10, 10), p.y + rnd(-10, 10), 1, { vx: p.vx * .25 + rnd(-1.5, 1.5), vy: p.vy * .25 + rnd(-1.5, 1.5), vz: rnd(1.5, 3.5), sz: rnd(1.2, 2.6), life: 40 });
     c.drawImage(G.stone, 0, 0, W, H); c.drawImage(G.shade, 0, 5, W, H); c.drawImage(G.snow, 0, 0, W, H);
-  } else { meadowStep(ps, dt); meadowDraw(); }
+  } else {
+    if (G.mower) mowerStep(ps, dt);
+    // in summer the grass bends around the mower instead of the finger
+    const m = G.mower, mp = m ? [{ x: m.x, y: m.y + 10, vx: Math.sin(m.ang) * m.v, vy: -Math.cos(m.ang) * m.v, sp: m.v }] : ps;
+    meadowStep(mp, dt); meadowDraw();
+  }
   if ((G.spawn -= dt) <= 0) {
     if (s === "spring") { spawnPetal(); G.spawn = rnd(10, 26); }
     else if (s === "autumn") { dropLeaves(1); G.spawn = rnd(140, 320); }
@@ -1908,6 +2052,7 @@ function grassFrame(now) {
   for (const p of G.parts) if (p.z > 0) drawPart(p);
   c.globalAlpha = 1;
   if (G.bugs.length) { bugsStep(ps, dt); drawBugs(c); }
+  if (G.mower) drawMower(c);
   if (s === "winter") {
     c.beginPath();
     for (const f of G.flakes) {
@@ -1917,6 +2062,7 @@ function grassFrame(now) {
     }
     c.fillStyle = "rgba(255,255,255,.95)"; c.fill(); c.strokeStyle = "rgba(120,150,190,.35)"; c.lineWidth = .8; c.stroke();
   }
+  if (G.mower) { if (G.mower.cut && now - G.bz > 90) { G.bz = now; buzz(3); } return; }
   if (speed > 2 && now - G.snd > Math.max(50, 140 - speed * 4)) {
     G.snd = now; const v = Math.min(1, .25 + speed * .03);
     if (s === "winter") S.snow(v * .7); else if (s === "autumn") S.crunch(v * .5); else S.rustle(v);
@@ -1926,6 +2072,7 @@ function grassFrame(now) {
 function grassTap(x, y) {
   const s = G.season;
   if (s === "winter") { carve(x, y, x, y); S.snow(.8); buzz(10); return; }
+  if (G.mower) { ensureEngine(); buzz(6); return; }
   for (const b of G.blades) {
     const dx = b.x - x, dy = b.y - b.h * .5 - y, d2 = dx * dx + dy * dy;
     if (d2 < 4900) { const f = 1 - Math.sqrt(d2) / 70; b.va += (dx > 0 ? .2 : -.2) * f; b.pr = Math.max(b.pr, .55 * f); }
@@ -1964,6 +2111,7 @@ function setSeason(s) {
 gSec.querySelectorAll(".season").forEach(b => b.addEventListener("click", () => { setSeason(b.dataset.season); S.tick(2200, .15, .03, "square"); buzz(10); }));
 gAct.addEventListener("click", () => {
   if (G.season === "winter") { paintSnow(); S.snow(1); buzz(14); }
+  else if (G.season === "summer") regrow();
   else { dropLeaves(24); S.whoosh(); buzz(10); }
 });
 let savedSeason = "summer"; try { savedSeason = localStorage.getItem("fidget-grass-season") || "summer"; } catch (e) {}
@@ -2438,6 +2586,8 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, popFrame, spinFrame, 
   else if (bed) bed.g.gain.setTargetAtTime(0, actx.currentTime, .05);
   if (mode === "dice" && D.ready && !D.failed) { try { diceFrame(now || 0); } catch (e) { diceError(e); } }
   if (mode === "grass" && G.W) grassFrame(now || 0);
+  if (G.engine && (mode !== "grass" || !G.mower)) { G.engine.g.gain.setTargetAtTime(0, actx.currentTime, .1); G.engine.og.gain.setTargetAtTime(0, actx.currentTime, .1); }
+  if (mode === "bubbles") bubblesFrame();
   if (mode === "pop" && P.W) popFrame(now || 0);
   if (mode === "zen" && Z.W) zenFrame();
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
