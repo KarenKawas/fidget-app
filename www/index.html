@@ -606,9 +606,9 @@ const S = {
   tick(f = 2000, vol = 0.25, len = 0.03, type = "triangle") { const a = ac(); if (!a || !soundOn) return; tone(a, type, f, f * 0.97, vol, len); },
   thunk() { const a = ac(); if (!a || !soundOn) return; tone(a, "sine", 180, 50, 0.7, 0.16); nz(a, "lowpass", 900, 200, 1, 0.25, 0.05); },
   // soft, low, slow-attack sounds: thick and sticky rather than poppy
-  squelch() { const a = ac(); if (!a || !soundOn) return; nz(a, "lowpass", 650, 110, 7, .6, .34, 0, .04); nz(a, "bandpass", 340, 150, 5, .22, .3, .03, .06); goo(a, 95, 60, .18, .3); },
+  squelch() { const a = ac(); if (!a || !soundOn) return; nz(a, "lowpass", 520, 90, 7, .6, .38, 0, .05); nz(a, "bandpass", 270, 120, 5, .22, .34, .03, .07); goo(a, 80, 50, .2, .34); },
   slurp() { const a = ac(); if (!a || !soundOn) return; nz(a, "bandpass", 150, 480, 6, .26, .34, 0, .1); goo(a, 70, 140, .1, .3); },
-  wet(v) { const a = ac(); if (!a || !soundOn) return; const f = 200 + Math.random() * 160; nz(a, "lowpass", f * 1.8, f * .55, 8, v, .3, 0, .07); },
+  wet(v) { const a = ac(); if (!a || !soundOn) return; const f = 160 + Math.random() * 130; nz(a, "lowpass", f * 1.8, f * .55, 8, v, .3, 0, .07); },
   boop() { const a = ac(); if (!a || !soundOn) return; tone(a, "square", 660, 650, 0.08, 0.09); tone(a, "square", 880, 870, 0.08, 0.12, 0.1); },
   blip(f) { const a = ac(); if (!a || !soundOn) return; tone(a, "sine", f, f, 0.22, 0.12); nz(a, "highpass", 3000, 2500, 1, 0.12, 0.02); },
   clack(v) { const a = ac(); if (!a || !soundOn) return; const f = 2600 + Math.random() * 1800; nz(a, "bandpass", f, f * .85, 5, .8 * v, .035); tone(a, "triangle", f * .5, f * .47, .22 * v, .03); },
@@ -784,16 +784,16 @@ function slimeStep(now) {
       const d2 = (i - gx) ** 2 + (j - gy) ** 2, w = Math.exp(-d2 / (r2 * .7));
       if (w < .01) continue;
       const k = j * gw + i;
-      u[k] += (dx - u[k]) * w * .55; v[k] += (dy - v[k]) * w * .55;
+      u[k] += (dx - u[k]) * w * .32; v[k] += (dy - v[k]) * w * .32;
       h[k] += (h0[k] - 1.9 * w - h[k]) * .24 * w;
-      h0[k] += (-.7 * w - h0[k]) * .012 * w; // leaves a soft impression
+      h0[k] += (-1.0 * w - h0[k]) * .02 * w; // leaves a deep, lasting impression
     }
   }
-  // viscosity (thick slime)
+  // viscosity (thick, putty-like slime)
   for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) {
     const k = j * gw + i;
-    nu[k] = u[k] * .5 + (u[k - 1] + u[k + 1] + u[k - gw] + u[k + gw]) * .125;
-    nv[k] = v[k] * .5 + (v[k - 1] + v[k + 1] + v[k - gw] + v[k + gw]) * .125;
+    nu[k] = u[k] * .36 + (u[k - 1] + u[k + 1] + u[k - gw] + u[k + gw]) * .16;
+    nv[k] = v[k] * .36 + (v[k - 1] + v[k + 1] + v[k - gw] + v[k + gw]) * .16;
   }
   [u, nu] = [nu, u]; [v, nv] = [nv, v];
   // advect everything along the flow
@@ -819,15 +819,15 @@ function slimeStep(now) {
     const div = (u[k + 1] - u[k - 1] + v[k + gw] - v[k - gw]) * .5;
     const e0 = h[k] - h0[k];
     const lap = (h[k - 1] - h0[k - 1]) + (h[k + 1] - h0[k + 1]) + (h[k - gw] - h0[k - gw]) + (h[k + gw] - h0[k + gw]) - 4 * e0;
-    hv[k] = (hv[k] + lap * .16 - e0 * .03 - div * .35) * .9;
+    hv[k] = (hv[k] + lap * .07 - e0 * .018 - div * .26) * .82;
   }
   for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) {
     const k = j * gw + i;
     let nhk = h[k] + hv[k]; h[k] = nhk > 3 ? 3 : nhk < -3 ? -3 : nhk;
     // the slime's shape itself folds up where it's pushed together and thins where it's pulled apart
     const dv = (u[k + 1] - u[k - 1] + v[k + gw] - v[k - gw]) * .5;
-    const a0 = h0[k] * .9999 - dv * .12; h0[k] = a0 > 2.6 ? 2.6 : a0 < -2.6 ? -2.6 : a0;
-    u[k] *= .945; v[k] *= .945;
+    const a0 = h0[k] * .99995 - dv * .12; h0[k] = a0 > 2.6 ? 2.6 : a0 < -2.6 ? -2.6 : a0;
+    u[k] *= .9; v[k] *= .9;
     cr[k] += (pal.a[0] - cr[k]) * .004; cg[k] += (pal.a[1] - cg[k]) * .004; cb[k] += (pal.a[2] - cb[k]) * .004;
   }
   // edges
