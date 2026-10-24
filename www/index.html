@@ -35,6 +35,8 @@ html[data-mode="grass"]{background:var(--grassbg,#3F8226)}
 html[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.55) 0 3px,transparent 3.5px) 0 0/28px 28px,#FBE3EE}
 html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15122A 75%)}
 html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE8E1 80%)}
+html[data-mode="zen"].zen-night{background:radial-gradient(circle at 82% 10%,#F6F2DC 0 22px,rgba(246,242,220,.22) 26px,rgba(246,242,220,0) 64px),radial-gradient(ellipse at 50% 45%,#1E2446,#0A0C1A 80%)}
+html.zen-night #mode-zen .hint{color:rgba(220,228,255,.75)}
 html[data-mode="cradle"]{background:linear-gradient(180deg,#F1ECE4,#D6CCBE)}
 html[data-mode="rocks"]{background:linear-gradient(180deg,#7FB6DE,#E9F1F3 45%,#E0BE88 46%)}
 html[data-mode="cube"]{background:radial-gradient(ellipse at 50% 40%,#F6F3FA,#D9D0E8 80%)}
@@ -502,6 +504,7 @@ button{font:inherit;color:inherit}
   <section class="mode" id="mode-zen" aria-label="Zen sand garden. Drag to rake the sand, two fingers to turn and zoom, drag an item to move it.">
     <p class="hint" id="zHint">Drag to rake · two fingers to turn</p>
     <div class="zen-view">
+      <button id="zenNight" aria-label="Night" aria-pressed="false" class="off"><svg viewBox="0 0 24 24" fill="#2A2438"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
       <button id="zenMusic" aria-label="Calm music" aria-pressed="true"><svg viewBox="0 0 24 24" fill="#2A2438"><path d="M9 17.5V5l11-2v12.5" fill="none" stroke="#2A2438" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8"/><circle cx="17.5" cy="15.5" r="2.8"/></svg></button>
       <button id="zenL" aria-label="Turn the garden left"><svg viewBox="0 0 24 24" fill="none" stroke="#2A2438" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg></button>
       <button id="zenR" aria-label="Turn the garden right"><svg viewBox="0 0 24 24" fill="none" stroke="#2A2438" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4"/></svg></button>
@@ -2682,15 +2685,44 @@ function lumpy(geo, rnd, amt) {
   for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const n = 1 + amt * (Math.sin(v.x * 3.1 + f1) * Math.sin(v.y * 2.7 + f2) * Math.sin(v.z * 3.3 + f1)); p.setXYZ(i, v.x * n, v.y * n, v.z * n); }
   geo.computeVertexNormals(); return geo;
 }
+// zen stone and wood looks: speckled granite, smooth dark basalt, mossy grey, weathered planks
+const ZTEX = {};
+function zCanvasTex(key, draw, rep = 1) {
+  if (ZTEX[key]) return ZTEX[key];
+  const c = document.createElement("canvas"); c.width = c.height = 256; draw(c.getContext("2d"));
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep);
+  return ZTEX[key] = t;
+}
+function zStoneMat(R) {
+  const k = R();
+  if (k < .4) return new THREE.MeshStandardMaterial({ map: rkGranite(), color: new THREE.Color().setHSL(.08, .05, .55 + R() * .12), roughness: .9 });
+  if (k < .75) return new THREE.MeshStandardMaterial({ roughness: .75, color: 0xFFFFFF, map: zCanvasTex("basalt", x => {
+    x.fillStyle = "#3A3C40"; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 9000; i++) { const l = 18 + Math.random() * 16; x.fillStyle = `hsla(220,5%,${l}%,.6)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.4, 1.4); }
+  }) });
+  return new THREE.MeshStandardMaterial({ roughness: .95, color: 0xFFFFFF, map: zCanvasTex("mossy", x => {
+    x.fillStyle = "#8D8E88"; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 26; i++) { const px = Math.random() * 256, py = Math.random() * 256, r = 8 + Math.random() * 30, g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, "rgba(96,130,48,.75)"); g.addColorStop(1, "rgba(96,130,48,0)"); x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2); }
+    for (let i = 0; i < 8000; i++) { const l = 40 + Math.random() * 30; x.fillStyle = `hsla(70,8%,${l}%,.5)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.3, 1.3); }
+  }) });
+}
+function zWoodTex() {
+  return zCanvasTex("wood", x => {
+    x.fillStyle = "#9C6B40"; x.fillRect(0, 0, 256, 256);
+    for (let y = 0; y < 256; y += 2) { x.fillStyle = `rgba(${90 + Math.random() * 40},${55 + Math.random() * 25},30,${(.08 + Math.random() * .14).toFixed(2)})`; x.fillRect(0, y, 256, 1 + Math.random() * 1.5); }
+    for (let i = 0; i < 40; i++) { x.strokeStyle = `rgba(70,40,20,${(.15 + Math.random() * .2).toFixed(2)})`; x.lineWidth = 1; const y = Math.random() * 256; x.beginPath(); for (let px = 0; px <= 256; px += 8) x.lineTo(px, y + Math.sin(px * .05 + i) * 3); x.stroke(); }
+    for (let i = 0; i < 4; i++) { x.fillStyle = "rgba(60,32,14,.45)"; x.beginPath(); x.ellipse(Math.random() * 256, Math.random() * 256, 7, 3, 0, 0, 6.3); x.fill(); }
+  }, 1);
+}
 function zMakeItem(kind, seed) {
   const g = new THREE.Group(), R = mulberry(seed), add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
-  const stoneMat = () => zMat(new THREE.Color().setHSL(.08, .04, .26 + R() * .14), .55);
+  const stoneMat = () => zStoneMat(R);
   if (kind === "stone") {
     const m = add(lumpy(new THREE.IcosahedronGeometry(1, 4), R, .08), stoneMat()); m.scale.set(.5, .3, .38); m.position.y = .2; m.rotation.y = R() * 6.3;
     if (R() > .4) { const m2 = add(lumpy(new THREE.IcosahedronGeometry(1, 3), R, .1), stoneMat(), .42, .13, .2); m2.scale.set(.28, .2, .24); }
   } else if (kind === "pebbles") {
     const cols = [0xC9B79C, 0x8A7E70, 0x3A3A3C, 0xD8CFC2, 0xB0835A, 0x6E6862, 0xE6DED0];
-    for (let i = 0; i < 9; i++) { const a = R() * 6.3, d = R() * .26, s = .045 + R() * .04, m = add(lumpy(new THREE.IcosahedronGeometry(1, 2), R, .12), zMat(cols[i % cols.length], .45), Math.cos(a) * d, s * .6, Math.sin(a) * d); m.scale.set(s * 1.3, s * .8, s); m.rotation.y = R() * 6; }
+    for (let i = 0; i < 9; i++) { const a = R() * 6.3, d = R() * .26, s = .045 + R() * .04, m = add(lumpy(new THREE.IcosahedronGeometry(1, 2), R, .12), (() => { const sm = zStoneMat(R); sm.color.multiply(new THREE.Color(cols[i % cols.length]).lerp(new THREE.Color(0xFFFFFF), .4)); return sm; })(), Math.cos(a) * d, s * .6, Math.sin(a) * d); m.scale.set(s * 1.3, s * .8, s); m.rotation.y = R() * 6; }
   } else if (kind === "moss") {
     // fine yellow-green fur, plus a speckle mask for the fuzzy shells around each lobe
     const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
@@ -2701,13 +2733,13 @@ function zMakeItem(kind, seed) {
       x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke();
     }
     const fur = new THREE.CanvasTexture(c); fur.encoding = THREE.sRGBEncoding; fur.wrapS = fur.wrapT = THREE.RepeatWrapping; fur.repeat.set(2, 2);
-    const bump = new THREE.CanvasTexture(c); bump.wrapS = bump.wrapT = THREE.RepeatWrapping; bump.repeat.set(2, 2);
     const n = document.createElement("canvas"); n.width = n.height = 128; const nx = n.getContext("2d"), img = nx.createImageData(128, 128);
     for (let i = 0; i < img.data.length; i += 4) { const v = R() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
     nx.putImageData(img, 0, 0);
     const speck = new THREE.CanvasTexture(n); speck.wrapS = speck.wrapT = THREE.RepeatWrapping; speck.repeat.set(7, 7);
-    const core = new THREE.MeshStandardMaterial({ map: fur, bumpMap: bump, bumpScale: .025, roughness: 1, color: 0xC8F08A });
-    const shells = [1, 2, 3, 4].map(k => new THREE.MeshStandardMaterial({ map: fur, alphaMap: speck, alphaTest: .32 + k * .13, roughness: 1, color: new THREE.Color(0xC8F08A).offsetHSL(0, 0, k * .025) }));
+    // Lambert has no specular highlight, so the moss stays soft and matte like the real thing
+    const core = new THREE.MeshLambertMaterial({ map: fur, color: 0xB4E07A });
+    const shells = [1, 2, 3, 4].map(k => new THREE.MeshLambertMaterial({ map: fur, alphaMap: speck, alphaTest: .32 + k * .13, color: new THREE.Color(0xB4E07A).offsetHSL(0, 0, k * .025) }));
     const lobes = 2 + (R() > .45 ? 1 : 0);
     for (let i = 0; i < lobes; i++) {
       const rr = .2 + R() * .12, a = R() * 6.3, d = i ? .14 + R() * .1 : 0, geo = lumpy(new THREE.SphereGeometry(rr, 40, 20, 0, 6.2832, 0, Math.PI / 2), R, .05);
@@ -2718,7 +2750,10 @@ function zMakeItem(kind, seed) {
     const st = zMat(0xA9A898, .9), dk = zMat(0x3A3A34, .9);
     add(new THREE.CylinderGeometry(.2, .24, .08, 8), st, 0, .04); add(new THREE.CylinderGeometry(.07, .09, .3, 12), st, 0, .23);
     add(new THREE.CylinderGeometry(.16, .14, .05, 8), st, 0, .4); add(new THREE.BoxGeometry(.22, .18, .22), st, 0, .51);
-    add(new THREE.BoxGeometry(.1, .09, .23), dk, 0, .52); add(new THREE.BoxGeometry(.23, .09, .1), dk, 0, .52);
+    const win = new THREE.MeshStandardMaterial({ color: 0x3A3A34, roughness: .9, emissive: 0xFFB35A, emissiveIntensity: 0 });
+    add(new THREE.BoxGeometry(.1, .09, .23), win, 0, .52); add(new THREE.BoxGeometry(.23, .09, .1), win, 0, .52);
+    const lamp = new THREE.PointLight(0xFFB35A, 0, 2.6, 2); lamp.position.y = .52; g.add(lamp);
+    g.userData.glow = { lamp, win };
     const roof = add(new THREE.ConeGeometry(.3, .16, 8), st, 0, .68); roof.rotation.y = Math.PI / 8;
     add(new THREE.SphereGeometry(.05, 16, 8), st, 0, .8);
   } else if (kind === "pagoda") {
@@ -2731,15 +2766,15 @@ function zMakeItem(kind, seed) {
     }
     add(new THREE.ConeGeometry(.025, .2, 8), gold, 0, y + .1);
   } else if (kind === "bridge") {
-    const wood = zMat(0x2F2E33, .7);
+    const wood = new THREE.MeshStandardMaterial({ map: zWoodTex(), color: 0xFFFFFF, roughness: .85 }), rail = new THREE.MeshStandardMaterial({ map: zWoodTex(), color: 0x8A6648, roughness: .85 });
     for (let k = 0; k <= 12; k++) {
       const t = k / 12, x = (t - .5) * 1.15, y = Math.sin(t * Math.PI) * .2 + .04, a = Math.cos(t * Math.PI) * .55;
       const s = add(new THREE.BoxGeometry(.1, .04, .42), wood, x, y); s.rotation.z = -a * .6;
-      if (k % 2 === 0) for (const zz of [-.19, .19]) add(new THREE.BoxGeometry(.035, .14, .035), wood, x, y + .08, zz);
+      if (k % 2 === 0) for (const zz of [-.19, .19]) add(new THREE.BoxGeometry(.035, .14, .035), rail, x, y + .08, zz);
     }
     for (const zz of [-.19, .19]) {
       const pts = []; for (let k = 0; k <= 16; k++) { const t = k / 16; pts.push(new THREE.Vector3((t - .5) * 1.15, Math.sin(t * Math.PI) * .2 + .17, zz)); }
-      add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, .02, 6), wood);
+      add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, .02, 6), rail);
     }
   } else if (kind === "tree") {
     const rock = add(lumpy(new THREE.DodecahedronGeometry(.32, 1), R, .15), zMat(0x5A3F2E, .9), 0, .1); rock.scale.set(1.2, .5, .9);
@@ -2760,7 +2795,7 @@ function zMakeItem(kind, seed) {
       p.scale.set(.6, 1.1, 1); p.lookAt(Math.cos(a) * 2, 1.2, Math.sin(a) * 2);
     }
     add(new THREE.CylinderGeometry(.008, .008, 1.1, 6), zMat(0xA0784E), 0, .62);
-    const tip = add(new THREE.SphereGeometry(.012, 8, 6), new THREE.MeshBasicMaterial({ color: 0xFF7A2A }), 0, 1.17); tip.castShadow = false;
+    const tip = add(new THREE.SphereGeometry(.012, 8, 6), new THREE.MeshBasicMaterial({ color: 0xFF7A2A }), 0, 1.17); tip.castShadow = false; g.userData.tip = tip;
     g.userData.smokeFrom = new THREE.Vector3(0, 1.18, 0);
   } else if (kind === "statue") {
     const sil = zMat(0x8C9096, .35, .7);
@@ -2826,36 +2861,43 @@ function zStir(e, dx, dz) {
 }
 
 /* ---- cherry petals: fall from the blossom trees, settle on the sand, blow around under a finger ---- */
-const ZP = { mesh: null, list: [], max: 160, dummy: null };
+const ZP = { mesh: null, list: [], max: 400, dummy: null, showerT: 600, life: 9000 };
 function zPetalsInit() {
-  const geo = new THREE.CircleGeometry(.03, 7), p = geo.attributes.position;
-  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i) * .62; p.setXYZ(i, x, y, (x * x + y * y) * 6); } // a little cupped
+  const geo = new THREE.CircleGeometry(.055, 8), p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i) * .62; p.setXYZ(i, x, y, (x * x + y * y) * 3.5); } // a little cupped
   geo.computeVertexNormals();
-  ZP.mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: .8 }), ZP.max);
+  ZP.mat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: .7, emissive: 0xFF6FA5, emissiveIntensity: .12 });
+  ZP.mesh = new THREE.InstancedMesh(geo, ZP.mat, ZP.max);
   ZP.mesh.count = 0; ZP.mesh.castShadow = true; ZP.mesh.frustumCulled = false; Z.scene.add(ZP.mesh);
-  const col = new THREE.Color(), pinks = [0xF7A8C4, 0xFFD1E0, 0xE97FA6, 0xFFC0D6];
+  const col = new THREE.Color(), pinks = [0xFF8FB8, 0xFFB3CF, 0xFF6FA5, 0xFFC9DC];
   for (let i = 0; i < ZP.max; i++) ZP.mesh.setColorAt(i, col.setHex(pinks[i % 4]));
   ZP.dummy = new THREE.Object3D();
 }
-function zPetal(it) {
+function zPetalAt(x, y, z, vx = 0) {
   if (ZP.list.length >= ZP.max) ZP.list.shift();
+  ZP.list.push({ x, y, z, vx, vy: 0, vz: 0, rx: rnd(0, 6.3), ry: rnd(0, 6.3), rz: rnd(0, 6.3), vr: rnd(.02, .06), ph: rnd(0, 6.3), rest: false, age: 0 });
+}
+function zPetal(it) {
   const c = it.obj.userData.canopy, a = rnd(0, 6.28), d = rnd(0, .22), cr = Math.cos(it.rot), sr = Math.sin(it.rot);
   const lx = c.x + Math.cos(a) * d, lz = c.z + Math.sin(a) * d;
-  ZP.list.push({ x: it.x + lx * cr + lz * sr, y: c.y + rnd(-.08, .1), z: it.z - lx * sr + lz * cr, vx: 0, vy: 0, vz: 0,
-    rx: rnd(0, 6.3), ry: rnd(0, 6.3), rz: rnd(0, 6.3), vr: rnd(.02, .06), ph: rnd(0, 6.3), rest: false, age: 0 });
+  zPetalAt(it.x + lx * cr + lz * sr, c.y + rnd(-.08, .1), it.z - lx * sr + lz * cr);
 }
 function zPetalBurst(it, n) { for (let i = 0; i < n; i++) zPetal(it); }
+// every so often a breeze carries a shower of petals right across the garden
+function zShower(n) { const wind = rnd(.003, .006); for (let i = 0; i < n; i++) zPetalAt(rnd(-ZW / 2, ZW / 4), rnd(.8, 1.7), rnd(-ZD / 2, ZD / 2), wind); }
 function zPetalStep(dt) {
+  const calm = typeof calmOn !== "undefined" && calmOn ? 2 : 1;
   for (const it of Z.items) if (it.kind === "tree" && it !== (Z.drag && Z.drag.it)) {
-    if ((it.petalT = (it.petalT ?? rnd(0, 120)) - dt) <= 0) { zPetal(it); it.petalT = rnd(90, 180); }
+    if ((it.petalT = (it.petalT ?? rnd(0, 60)) - dt) <= 0) { zPetal(it); it.petalT = rnd(30, 72) * calm; }
   }
-  const L = ZP.list, m = ZP.mesh, dmy = ZP.dummy, fric = Math.pow(.9, dt);
+  if (Z.items.some(i => i.kind === "tree") && (ZP.showerT -= dt) <= 0) { zShower(40 / calm); ZP.showerT = rnd(1200, 2400); }
+  const L = ZP.list, m = ZP.mesh, dmy = ZP.dummy, fric = Math.pow(.9, dt), life = ZP.life;
   for (let i = L.length - 1; i >= 0; i--) {
     const p = L[i]; p.age += dt;
-    if (p.age > 2600) { L.splice(i, 1); continue; }
+    if (p.age > life) { L.splice(i, 1); continue; }
     if (!p.rest) {
       p.ph += .05 * dt;
-      p.vy = Math.max(p.vy - .0005 * dt, -.006); p.vx += Math.sin(p.ph) * .00025 * dt; p.vz += Math.cos(p.ph * .7) * .00018 * dt;
+      p.vy = Math.max(p.vy - .0005 * dt, -.006); p.vx *= Math.pow(.995, dt); p.vx += Math.sin(p.ph) * .00025 * dt; p.vz += Math.cos(p.ph * .7) * .00018 * dt;
       p.rx += p.vr * dt; p.rz += p.vr * .6 * dt;
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
       if (p.y <= .006) { p.y = .006; p.rest = true; p.rx = -Math.PI / 2 + rnd(-.3, .3); p.rz = rnd(-.3, .3); }
@@ -2866,7 +2908,7 @@ function zPetalStep(dt) {
     if (Math.abs(p.z) > ZD / 2 - .02) { p.z = clamp(p.z, -ZD / 2 + .02, ZD / 2 - .02); p.vz *= -.4; }
   }
   for (let i = 0; i < L.length; i++) {
-    const p = L[i], sc = p.age > 2480 ? (2600 - p.age) / 120 : 1;
+    const p = L[i], sc = p.age > life - 120 ? (life - p.age) / 120 : 1;
     dmy.position.set(p.x, p.y, p.z); dmy.rotation.set(p.rx, p.ry, p.rz); dmy.scale.setScalar(sc); dmy.updateMatrix();
     m.setMatrixAt(i, dmy.matrix);
   }
@@ -2895,8 +2937,8 @@ function zenSetup() {
 function zenBuild() {
   const sc = new THREE.Scene(); Z.scene = sc;
   Z.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 80);
-  sc.add(new THREE.HemisphereLight(0xFFFFFF, 0xB8B0A0, .55));
-  const sun = new THREE.DirectionalLight(0xFFF6EA, 1.0); sun.position.set(-4, 9, 3); sun.castShadow = true;
+  Z.hemi = new THREE.HemisphereLight(0xFFFFFF, 0xB8B0A0, .55); sc.add(Z.hemi);
+  const sun = new THREE.DirectionalLight(0xFFF6EA, 1.0); Z.sun = sun; sun.position.set(-4, 9, 3); sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -4.5, right: 4.5, top: 4.5, bottom: -4.5, near: 1, far: 30 }); sun.shadow.bias = -.0006; sc.add(sun);
   const table = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: .22 }));
   table.rotation.x = -Math.PI / 2; table.position.y = -.32; table.receiveShadow = true; sc.add(table);
@@ -2924,6 +2966,9 @@ function zenBuild() {
   Z.h = new Float32Array(n); Z.dirty = [1e9, 1e9, -1, -1]; Z.settle = [1e9, 1e9, -1, -1, 0];
   Z.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); Z.v = new THREE.Vector3();
   zPetalsInit();
+  zFireflies();
+  let nightSaved = false; try { nightSaved = localStorage.getItem("fidget-zen-night") === "1"; } catch (e) {}
+  zSetNight(nightSaved, true); Z.nv = Z.night;
   let saved = null; try { saved = JSON.parse(localStorage.getItem("fidget-zen-items")); } catch (e) {}
   if (Array.isArray(saved)) saved.forEach(([k, px, pz, r, s]) => { if (ZITEMS[k]) zAddItem(k, px, pz, r, s, true); });
   else { zStartPattern(); ZSTART.forEach(([k, px, pz, r], i) => zAddItem(k, px, pz, r, 1000 + i * 77, true)); }
@@ -2935,12 +2980,51 @@ function zenCamera() {
   Z.cam.position.set(Z.tx + Math.sin(Z.az) * Math.cos(el) * 20, Math.sin(el) * 20, Z.tz + Math.cos(Z.az) * Math.cos(el) * 20);
   Z.cam.lookAt(Z.tx, 0, Z.tz); Z.cam.updateProjectionMatrix(); Z.cam.updateMatrixWorld();
 }
+/* ---- night: moonlight, lantern glow, fireflies ---- */
+function zSetNight(on, quiet) {
+  Z.night = on ? 1 : 0;
+  document.documentElement.classList.toggle("zen-night", on);
+  const b = $("#zenNight"); b.setAttribute("aria-pressed", on); b.classList.toggle("off", !on);
+  try { localStorage.setItem("fidget-zen-night", on ? "1" : "0"); } catch (e) {}
+  if (!quiet) { S.tick(900, .06, .05, "sine"); buzz(4); }
+}
+function zFireflies() {
+  const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, "rgba(240,255,170,1)"); g.addColorStop(.25, "rgba(200,255,120,.55)"); g.addColorStop(1, "rgba(200,255,120,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  Z.flies = [];
+  for (let i = 0; i < 14; i++) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, color: 0xD8FF8A, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    s.scale.setScalar(.14); Z.scene.add(s);
+    Z.flies.push({ s, x: rnd(-ZW / 2, ZW / 2), z: rnd(-ZD / 2, ZD / 2), y: rnd(.2, .8), ph: rnd(0, 6.3), sp: rnd(.004, .009) });
+  }
+}
+function zNightStep(dt) {
+  Z.nv = (Z.nv || 0) + ((Z.night || 0) - (Z.nv || 0)) * Math.min(1, .06 * dt);
+  const v = Z.nv, t = performance.now() / 1000;
+  Z.hemi.intensity = .55 - .43 * v; Z.hemi.color.setRGB(1 - .65 * v, 1 - .6 * v, 1 - .33 * v);
+  Z.sun.intensity = 1 - .65 * v; Z.sun.color.setRGB(1 - .38 * v, .965 - .26 * v, .918 + .08 * v);
+  ZP.mat.emissiveIntensity = .12 + v * .3;
+  let lamps = 0;
+  for (const it of Z.items) {
+    const gl = it.obj.userData.glow, tip = it.obj.userData.tip;
+    if (gl) { const fl = .85 + Math.sin(t * 7 + it.seed) * .08 + Math.sin(t * 13.7) * .05; gl.lamp.intensity = lamps++ < 4 ? v * 1.4 * fl : 0; gl.win.emissiveIntensity = v * 1.6 * fl; }
+    if (tip) tip.scale.setScalar(1 + v * 1.6);
+  }
+  for (const f of Z.flies) {
+    f.ph += f.sp * dt * 6; f.x += Math.cos(f.ph * .7) * f.sp * dt; f.z += Math.sin(f.ph * .53) * f.sp * dt;
+    if (Math.abs(f.x) > ZW / 2) f.x = clamp(f.x, -ZW / 2, ZW / 2); if (Math.abs(f.z) > ZD / 2) f.z = clamp(f.z, -ZD / 2, ZD / 2);
+    f.s.position.set(f.x, f.y + Math.sin(f.ph) * .1, f.z);
+    f.s.material.opacity = v * (.35 + .65 * Math.max(0, Math.sin(f.ph * 1.7))); f.s.visible = v > .01;
+  }
+}
 function zenFrame(now) {
   const dt = clamp((now - (Z.last || now - 16.7)) / 16.67, .25, 2.5); Z.last = now;
   if (Z.azT !== null) { const d = Z.azT - Z.az; Z.az += d * Math.min(1, .16 * dt); if (Math.abs(d) < .002) { Z.az = Z.azT; Z.azT = null; } zenCamera(); }
   else if (!Z.twist && Math.abs(Z.azV) > .0005) { Z.az += Z.azV * dt; Z.azV *= Math.pow(.9, dt); zenCamera(); }
   zRelax(); zUpload();
   if (Z.smoke.length) zSmokeStep(dt);
+  zNightStep(dt);
   zPetalStep(dt);
   // the raking hush fades away soon after the finger stops
   if (Z.bed && now - Z.rakeT > 110) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .18);
@@ -3106,6 +3190,7 @@ const zEnd = e => {
   const trash = d.moved && zOverTrash(e.clientX, e.clientY);
   zTrash.hidden = true; zTrash.classList.remove("over");
   if (trash) { zRemoveItem(it); S.whoosh(); buzz(14); return; }
+  if (!d.moved && it.kind === "tree") { it.obj.position.y = -.01; zPetalBurst(it, 30); S.rustle(.6); setTimeout(() => S.rustle(.4), 120); buzz(8); return; }
   if (!d.moved) { it.obj.position.y = -.01; it.rot += Math.PI / 4; it.obj.rotation.y = it.rot; zTap(); buzz(6); zSave(); return; } // a tap turns it
   zDrop(it);
 };
@@ -3121,6 +3206,7 @@ document.querySelectorAll("#mode-zen [data-tool]").forEach(b => b.addEventListen
 $("#zenClear").addEventListener("click", () => { if (!Z.scene) return; zCloseItems(); zClearSand(); zEnsureBed(); zRakeSound(.8); buzz(6); });
 $("#zenL").addEventListener("click", () => { Z.azT = (Z.azT ?? Z.az) - Math.PI / 4; Z.azV = 0; S.tick(1200, .05, .03, "sine"); buzz(4); });
 $("#zenR").addEventListener("click", () => { Z.azT = (Z.azT ?? Z.az) + Math.PI / 4; Z.azV = 0; S.tick(1200, .05, .03, "sine"); buzz(4); });
+$("#zenNight").addEventListener("click", () => zSetNight(!Z.night));
 $("#zenMusic").addEventListener("click", () => {
   ZM.on = !ZM.on; zShowMusic(); try { localStorage.setItem("fidget-zen-music", ZM.on ? "1" : "0"); } catch (e) {}
   zMusic(mode === "zen"); buzz(4);
