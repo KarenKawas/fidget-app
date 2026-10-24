@@ -3342,7 +3342,7 @@ const CTRL = {
     CB.faceMat = fm;
     const mesh = part(g, new THREE.CircleGeometry(.44, 48), fm, 0, 0, .004);
     mesh.castShadow = false;
-    const F = { state: "", until: 0, held: null, touch: performance.now(), blinkAt: performance.now() + 3000, spinT: 0, snd: 0, ink: "#1E1A26" };
+    const F = { state: "", until: 0, held: null, touch: performance.now(), blinkAt: performance.now() + 3000, spinT: 0, dizzyUntil: 0, snd: 0, ink: "#1E1A26" };
     const arc = (cx, cy, r, a0, a1, w) => { x.lineWidth = w; x.beginPath(); x.arc(cx, cy, r, a0, a1); x.stroke(); };
     const eyeRound = cx => {
       x.fillStyle = F.ink; x.beginPath(); x.arc(cx, 108, 25, 0, 6.3); x.fill();
@@ -3391,12 +3391,12 @@ const CTRL = {
       up() { if (moved <= 12) { show("giggle", 900); S.blip(1320); setTimeout(() => S.blip(1568), 90); buzz(10); } },
       step() {
         const now = performance.now();
-        // spun hard: dizzy, then grumpy if it keeps going
+        // spun hard: dizzy for as long as it keeps turning, then woozy for 2 more seconds
         const sp = CB.spin ? CB.spin.angle : 0;
         F.spinT = sp > .06 ? F.spinT + 1 : Math.max(0, F.spinT - 2);
+        if (F.spinT > 8 || (F.dizzyUntil > now && sp > .02)) F.dizzyUntil = now + 2000;
         if (F.until > now) return;
-        if (F.spinT > 120) return show("grumpy");
-        if (F.spinT > 8) return show("dizzy");
+        if (F.dizzyUntil > now) return show("dizzy");
         if (now - F.touch > 12000) return show("sleepy");
         if (now > F.blinkAt) { if (now > F.blinkAt + 140) F.blinkAt = now + rnd(3000, 6000); else return show("blink"); }
         show("idle");
