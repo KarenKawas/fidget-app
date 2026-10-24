@@ -442,14 +442,14 @@ button{font:inherit;color:inherit}
   </section>
 
   <section class="mode" id="mode-dice" aria-label="Dice table">
-    <canvas id="dicecv" aria-label="Dice table. Drag a die to throw it, tap a die to roll it, or tap the table to roll them all."></canvas>
+    <canvas id="dicecv" aria-label="Dice table. Drag a die to throw it, tap a die to roll it, tap the table to roll them all, or turn on Tilt and tilt the phone."></canvas>
     <div class="table-rim"></div>
     <div class="chips" id="dChips"></div>
     <div class="dice-hud" aria-live="polite"><span class="lbl">Total</span><span class="total" id="dTotal">…</span><span class="crit" id="dCrit"></span></div>
     <p class="dice-msg" id="diceMsg" hidden></p>
     <div class="tray" id="tray">
       <div class="row" id="dieBtns"></div>
-      <div class="row"><button class="act" id="rollAll">Roll all</button><button class="act" id="clearDice">Clear table</button><button class="act" id="shakeBtn" aria-pressed="false" hidden>Shake: off</button></div>
+      <div class="row"><button class="act" id="rollAll">Roll all</button><button class="act" id="clearDice">Clear table</button><button class="act" id="shakeBtn" aria-pressed="false" hidden>Tilt: off</button></div>
     </div>
   </section>
 
@@ -669,7 +669,7 @@ function setMode(m) {
   document.documentElement.dataset.mode = m;
   if (m === "slime") slimeSetup(false);
   if (m === "bubbles") layoutBubbles(false);
-  if (m === "dice") initDice();
+  if (m === "dice") { initDice(); tiltRebase(); }
   if (m === "grass") grassSetup(false);
   if (m === "pop") popSetup(false);
   if (m === "spin") spinSetup();
@@ -1617,7 +1617,7 @@ $("#clearDice").addEventListener("click", () => {
 });
 function saveDiceSet() { try { localStorage.setItem("fidget-dice-set", JSON.stringify(D.dice.map(d => d.type))); } catch (e) {} }
 
-// shake the phone to roll. iOS asks for motion permission, which must come from a tap.
+// tilt or shake the phone to move the dice. iOS asks for motion permission, which must come from a tap.
 const shakeBtn = $("#shakeBtn"), askMotion = typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function";
 let shakeOn = false, motionOK = !askMotion, lastG = null, lastShake = 0;
 // the dice slide against the phone's movement, like dice in a box: shake sideways and they rattle sideways.
@@ -1646,15 +1646,43 @@ function onMotion(e) {
   });
   if (!D.rolling) startRoll(); else { D.settle = 0; D.rollStart = now; }
 }
+// tilt: the phone's angle steers gravity on the table, measured from however it was held when tilt started
+const TILT = { base: null, gx: 0, gz: 0, kick: [0, 0] };
+const askOrient = typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function";
+function tiltRebase() { TILT.base = null; }
+function onOrient(e) {
+  if (mode !== "dice" || !D.ready || e.beta == null || e.gamma == null) return;
+  if (!TILT.base) { TILT.base = [e.beta, e.gamma]; return; }
+  const lim = 50 * Math.PI / 180, R = Math.PI / 180;
+  const tz = clamp((e.beta - TILT.base[0]) * R, -lim, lim), tx = clamp((e.gamma - TILT.base[1]) * R, -lim, lim);
+  // tilt right -> roll right (+x); top edge up -> roll toward the bottom of the screen (+z)
+  const G = 34, sx = Math.sin(tx), sz = Math.sin(tz);
+  TILT.gx += (G * sx - TILT.gx) * .3; TILT.gz += (G * sz - TILT.gz) * .3;
+  const gy = -G * Math.sqrt(Math.max(.2, 1 - sx * sx - sz * sz));
+  D.world.gravity.set(TILT.gx, gy, TILT.gz);
+  // sleeping dice ignore gravity: wake them (and start a new reading) once the tilt has really changed
+  if (Math.hypot(TILT.gx - TILT.kick[0], TILT.gz - TILT.kick[1]) > 4) {
+    TILT.kick = [TILT.gx, TILT.gz];
+    D.dice.forEach(d => d.body.wakeUp());
+    if (D.dice.length) { if (!D.rolling) startRoll(); else { D.settle = 0; D.rollStart = performance.now(); } }
+  }
+}
 async function askMotionPermission() {
   if (motionOK) return true;
-  try { motionOK = await DeviceMotionEvent.requestPermission() === "granted"; } catch (e) { motionOK = false; }
-  if (!motionOK) { const m = $("#diceMsg"); m.hidden = false; m.textContent = "Motion access is off, so shaking can’t roll the dice."; setTimeout(() => m.hidden = true, 2200); }
+  try {
+    const asks = [DeviceMotionEvent.requestPermission()];
+    if (askOrient) asks.push(DeviceOrientationEvent.requestPermission());
+    motionOK = (await Promise.all(asks)).every(r => r === "granted");
+  } catch (e) { motionOK = false; }
+  if (!motionOK) { const m = $("#diceMsg"); m.hidden = false; m.textContent = "Motion access is off, so tilting and shaking can’t move the dice."; setTimeout(() => m.hidden = true, 2400); }
   return motionOK;
 }
 function setShake(on) {
-  shakeOn = on; shakeBtn.textContent = on ? "Shake: on" : "Shake: off"; shakeBtn.setAttribute("aria-pressed", on);
-  window[on && motionOK ? "addEventListener" : "removeEventListener"]("devicemotion", onMotion);
+  shakeOn = on; shakeBtn.textContent = on ? "Tilt: on" : "Tilt: off"; shakeBtn.setAttribute("aria-pressed", on);
+  const verb = on && motionOK ? "addEventListener" : "removeEventListener";
+  window[verb]("devicemotion", onMotion); window[verb]("deviceorientation", onOrient);
+  tiltRebase(); TILT.gx = TILT.gz = 0; TILT.kick = [0, 0];
+  if (!on && D.ready) D.world.gravity.set(0, -34, 0);
   try { localStorage.setItem("fidget-dice-shake", on ? "1" : "0"); } catch (e) {}
 }
 if (typeof DeviceMotionEvent !== "undefined") {
