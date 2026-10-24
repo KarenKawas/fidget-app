@@ -36,6 +36,7 @@ html[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.55) 0 
 html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15122A 75%)}
 html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE8E1 80%)}
 html[data-mode="cradle"]{background:linear-gradient(180deg,#F1ECE4,#D6CCBE)}
+html[data-mode="cube"]{background:radial-gradient(ellipse at 50% 40%,#FBF8FF,#E2DAEE 80%)}
 *,*::before,*::after{box-sizing:inherit}
 body{
   height:100%; margin:0; overflow:hidden; overscroll-behavior:none; color:var(--ink); background:transparent;
@@ -346,6 +347,10 @@ button{font:inherit;color:inherit}
 .ico.zen{background:radial-gradient(circle at 34% 40%,#7D776E 0 6px,transparent 6.5px),repeating-radial-gradient(circle at 34% 40%,#E9DABA 0 3px,#CDB98F 3px 4.5px)}
 .ico.cradle{background:linear-gradient(180deg,#F4EFE8,#D9CFC2);display:grid;place-items:center}
 .ico.cradle svg{width:36px;height:36px}
+.ico.cube{background:radial-gradient(circle at 50% 40%,#FBF8FF,#E2DAEE);display:grid;place-items:center}
+.ico.cube svg{width:36px;height:36px}
+#mode-cube .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-cube .hint{color:rgba(60,40,80,.7);text-shadow:none;bottom:70px}
 #mode-zen .hint{color:rgba(60,50,40,.7);text-shadow:none;bottom:96px}
 .zen-tools{left:10px;right:10px;transform:none;gap:2px;padding:5px}
 .zen-tools .top-btn{min-width:0;flex:1;padding:6px 4px 5px;font-size:.74rem}
@@ -503,9 +508,18 @@ button{font:inherit;color:inherit}
     <canvas id="cradlecv" aria-label="Newton's cradle. Pull a ball to the side and let go."></canvas>
     <p class="hint" id="cHint">Pull a ball out and let go</p>
   </section>
+  <section class="mode" id="mode-cube" aria-label="Fidget cube. Drag to turn it, then press, roll, flick and spin the controls on each side.">
+    <p class="hint" id="cubeHint">Drag to turn it · play with every side</p>
+    <div class="themes" role="group" aria-label="Fidget cube color">
+      <button class="opt" data-color="lilac" aria-pressed="true"><i style="background:linear-gradient(135deg,#D4B3EA 50%,#F9C74F 50%)"></i>Lilac</button>
+      <button class="opt" data-color="mint" aria-pressed="false"><i style="background:linear-gradient(135deg,#A8E6CF 50%,#FF8FB8 50%)"></i>Mint</button>
+      <button class="opt" data-color="midnight" aria-pressed="false"><i style="background:linear-gradient(135deg,#2E3240 50%,#00E5D4 50%)"></i>Midnight</button>
+    </div>
+  </section>
 </div>
 
-<button class="fab" id="menuBtn" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+<button class="fab" id="menuBtn"
+ aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
   <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
 </button>
 <div class="scrim" id="scrim"></div>
@@ -521,6 +535,7 @@ button{font:inherit;color:inherit}
   <button class="mode-btn" data-mode="spin" aria-current="false"><span class="ico spin"><svg viewBox="0 0 34 34"><g fill="#8C6CFF"><circle cx="17" cy="17" r="6.5"/><circle cx="17" cy="6.5" r="6"/><circle cx="7.9" cy="22.3" r="6"/><circle cx="26.1" cy="22.3" r="6"/><path d="M17 17L17 6.5M17 17L7.9 22.3M17 17L26.1 22.3" stroke="#8C6CFF" stroke-width="7"/></g><g fill="#DDE1E8"><circle cx="17" cy="6.5" r="3.6"/><circle cx="7.9" cy="22.3" r="3.6"/><circle cx="26.1" cy="22.3" r="3.6"/></g><circle cx="17" cy="17" r="3.8" fill="#FFD23F"/></svg></span>Fidget spinner</button>
   <button class="mode-btn" data-mode="zen" aria-current="false"><span class="ico zen"></span>Zen garden</button>
   <button class="mode-btn" data-mode="cradle" aria-current="false"><span class="ico cradle"><svg viewBox="0 0 36 36" fill="none" stroke-linecap="round"><path d="M5 7h26" stroke="#8C939E" stroke-width="2.5"/><path d="M6 24V7M12 24V7M18 24V7M24 24V7M30 24V7" stroke="#9AA0A8" stroke-width=".9"/><g fill="#B9BEC6" stroke="#6E7580" stroke-width=".8"><circle cx="6" cy="26" r="3.2"/><circle cx="12" cy="26" r="3.2"/><circle cx="18" cy="26" r="3.2"/><circle cx="24" cy="26" r="3.2"/><circle cx="30" cy="26" r="3.2"/></g></svg></span>Newton's cradle</button>
+  <button class="mode-btn" data-mode="cube" aria-current="false"><span class="ico cube"><svg viewBox="0 0 36 36"><path d="M18 3l13 9.5-5 15.5H10L5 12.5z" fill="#D4B3EA" stroke="#A47BC6" stroke-width="1.2" stroke-linejoin="round"/><path d="M18 9l7.6 5.5-2.9 9H13.3l-2.9-9z" fill="#E6CCF5"/><path d="M14 15l4 3.5M22 15l-4 3.5" stroke="#2B2B30" stroke-width="2" stroke-linecap="round"/><path d="M18 18.5V22" stroke="#F9C74F" stroke-width="2.4" stroke-linecap="round"/><circle cx="29" cy="8" r="3.2" fill="#F5A623"/></svg></span>Fidget cube</button>
   </div>
   <div class="pills"><button class="pill" id="soundBtn" aria-pressed="true">Sound on</button><button class="pill" id="hapticBtn">Haptics: strong</button></div>
   <p class="note" id="hapticNote" hidden>iPhone browsers block vibration. The installed app has full haptics.</p>
@@ -660,6 +675,7 @@ function setMode(m) {
   if (m === "spin") spinSetup();
   if (m === "zen") zenSetup();
   if (m === "cradle") cradleSetup(false);
+  if (m === "cube") cubeSetup();
   try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
 }
@@ -2871,6 +2887,309 @@ Object.entries(ZITEMS).forEach(([k, v]) => {
   zItemsBar.appendChild(b);
 });
 
+/* ================= fidget cube (3D) ================= */
+// A 12-sided fidget toy. Each face carries one control; dragging anywhere else turns the whole toy.
+const secCube = $("#mode-cube"), cHint3 = $("#cubeHint");
+const CB = { W: 0, scene: null, cam: null, toy: null, mats: null, ctrls: [], ptrs: new Map(), act: null, rot: null, spin: null, pinch: null, zoom: 1, dist: 8, last: 0 };
+const CUBE_THEMES = {
+  lilac: { body: 0xD4B3EA, a: 0xF9C74F, b: 0x2B2B30, c: 0xF5A623, d: 0x4CC74A, e: 0xC199DE },
+  mint: { body: 0xA8E6CF, a: 0xFF8FB8, b: 0x2B2B30, c: 0xFFD23F, d: 0x5B8DEF, e: 0x8AD6B8 },
+  midnight: { body: 0x2E3240, a: 0x00E5D4, b: 0x15171E, c: 0xFF3DCB, d: 0xA6FF3D, e: 0x464C5E },
+};
+const CUBE_IN = .7947; // distance from the centre to each face of a unit dodecahedron
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+
+// screen-space helpers: where a local point lands, and how a finger drag maps onto a face's own x/y axes
+function cubeScreen(v) { const p = v.clone().project(CB.cam); return [(p.x + 1) / 2 * GL.w, (1 - p.y) / 2 * GL.h]; }
+function faceAxes(g) {
+  const o = new THREE.Vector3().setFromMatrixPosition(g.matrixWorld), q = new THREE.Quaternion(); g.getWorldQuaternion(q);
+  const [ox, oy] = cubeScreen(o), [tx, ty] = cubeScreen(V3(.2, 0, 0).applyQuaternion(q).add(o)), [bx, by] = cubeScreen(V3(0, .2, 0).applyQuaternion(q).add(o));
+  return { ox, oy, T: [tx - ox, ty - oy], B: [bx - ox, by - oy] };
+}
+// a screen drag (dx, dy) expressed as movement along the face's local x and y, in toy units
+function toLocal(ax, dx, dy) {
+  const [a, b] = ax.T, [c, d] = ax.B, det = a * d - b * c;
+  if (Math.abs(det) < 1) return [0, 0];
+  return [(dx * d - dy * c) / det * .2, (a * dy - b * dx) / det * .2];
+}
+
+/* ---- controls ---- (each returns { g, down(p), move(p), up(p), step(dt) }; p has sx, sy, dx, dy from the touch point) */
+function cmat(key, rough = .45) { const m = new THREE.MeshStandardMaterial({ color: CUBE_THEMES.lilac[key], roughness: rough, envMap: GL.env, envMapIntensity: .7 }); CB.mats[key] = CB.mats[key] || []; CB.mats[key].push(m); return m; }
+function part(g, geo, mat, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; }
+function stripeTex(n, light, dark) {
+  const c = document.createElement("canvas"); c.width = 128; c.height = 8; const x = c.getContext("2d");
+  x.fillStyle = light; x.fillRect(0, 0, 128, 8); x.fillStyle = dark; for (let i = 0; i < n; i++) x.fillRect(i * 128 / n, 0, 128 / n * .35, 8);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+}
+const CTRL = {
+  xpad(g) {
+    const keys = [["a", 0], ["e", Math.PI / 2], ["b", Math.PI], ["e", -Math.PI / 2]].map(([col, a], i) => {
+      const sh = new THREE.Shape(); sh.moveTo(0, .05); sh.lineTo(-.16, .29); sh.quadraticCurveTo(0, .33, .16, .29); sh.closePath();
+      const piv = new THREE.Group(); piv.rotation.z = a; g.add(piv);
+      const k = part(piv, extrudeGeo(sh, .05, .012), cmat(col)); k.position.z = .03; k.userData.key = i; return { k, z: 0, t: 0 };
+    });
+    let held = null;
+    return {
+      down(p) { held = keys[p.hit.object.userData.key]; if (!held) return; held.t = -.03; S.tick(2400 + p.hit.object.userData.key * 200, .25, .02, "square"); buzz(12); },
+      up() { if (held) { held.t = 0; S.tick(3200, .1, .015); held = null; } },
+      step(dt) { for (const k of keys) { k.z += (k.t - k.z) * Math.min(1, .5 * dt); k.k.position.z = .03 + k.z; } },
+    };
+  },
+  joystick(g) {
+    part(g, zcyl(.24, .05, 40), cmat("b", .6), 0, 0, .02);
+    const piv = new THREE.Group(); g.add(piv);
+    part(piv, zcyl(.05, .2, 16), cmat("b", .5), 0, 0, .12); const cap = part(piv, zcyl(.17, .06, 40), cmat("b", .4), 0, 0, .24);
+    part(piv, new THREE.TorusGeometry(.13, .012, 8, 40), cmat("e"), 0, 0, .275); cap.userData.cap = true;
+    let ax = null, tx = 0, ty = 0, dir = -1, held = false;
+    return {
+      down() { ax = faceAxes(g); held = true; S.tick(1500, .1, .02); buzz(6); },
+      move(p) {
+        const [lx, ly] = toLocal(ax, p.dx, p.dy), l = Math.hypot(lx, ly), k = l > .3 ? .3 / l : 1;
+        tx = lx * k; ty = ly * k;
+        const d = l > .15 ? (Math.round(Math.atan2(lx, ly) / (Math.PI / 4)) + 8) % 8 : -1;
+        if (d !== dir) { if (d >= 0) { S.tick(1300 + d * 110, .26, .025, "square"); buzz(10); } else S.tick(900, .1, .02); dir = d; }
+      },
+      up() { held = false; tx = ty = 0; if (dir >= 0) { S.thunk(); buzz(14); } dir = -1; },
+      step(dt) { const f = Math.min(1, (held ? .5 : .25) * dt); piv.rotation.y += (tx * 1.6 - piv.rotation.y) * f; piv.rotation.x += (-ty * 1.6 - piv.rotation.x) * f; },
+    };
+  },
+  rollers(g) {
+    const cols = [["a", "#F9C74F"], ["e", "#C199DE"], ["b", "#2B2B30"]], wheels = cols.map(([key], i) => {
+      part(g, new THREE.BoxGeometry(.11, .34, .04), cmat("b", .8), (i - 1) * .17, 0, .0);
+      const m = cmat(key, .5); m.map = stripeTex(14, "#FFFFFF", "#9A9AA2"); const geo = new THREE.CylinderGeometry(.14, .14, .08, 32); geo.rotateZ(Math.PI / 2);
+      const w = part(g, geo, m, (i - 1) * .17, 0, -.04); w.userData.wheel = i; return { w, a: 0, last: 0 };
+    });
+    let cur = null, ax = null, ly0 = 0;
+    return {
+      down(p) { cur = wheels[p.hit.object.userData.wheel]; if (!cur) return; ax = faceAxes(g); ly0 = 0; S.tick(1600, .08, .015); },
+      move(p) {
+        if (!cur) return; const [, ly] = toLocal(ax, p.dx, p.dy);
+        cur.a -= (ly - ly0) / .14; ly0 = ly; cur.w.rotation.x = cur.a;
+        const n = Math.round(cur.a / (Math.PI / 6));
+        if (n !== cur.last) { cur.last = n; S.tick(1800 + wheels.indexOf(cur) * 300, .12, .015, "triangle"); buzz(4); }
+      },
+      up() { cur = null; },
+    };
+  },
+  dial(g) {
+    const sh = new THREE.Shape(), N = 40;
+    for (let i = 0; i <= N * 2; i++) { const a = i / (N * 2) * Math.PI * 2, r = i % 2 ? .31 : .295; if (i) sh.lineTo(Math.cos(a) * r, Math.sin(a) * r); else sh.moveTo(r, 0); }
+    const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
+    x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, 256, 256);
+    for (let r = 118; r > 4; r -= 9) { x.strokeStyle = "rgba(0,0,0,.18)"; x.lineWidth = 2.5; x.beginPath(); x.arc(128, 128, r, 0, 6.3); x.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.repeat.set(1 / .62, 1 / .62); t.offset.set(.5, .5);
+    const m = cmat("e", .5); m.map = t;
+    const piv = new THREE.Group(); g.add(piv); part(piv, extrudeGeo(sh, .06, .01), m, 0, 0, .04);
+    let a0 = null, last = 0, ctr = null;
+    const ang = p => Math.atan2(p.sy - ctr[1], p.sx - ctr[0]);
+    return {
+      down(p) { const ax = faceAxes(g); ctr = [ax.ox, ax.oy]; a0 = ang(p); },
+      move(p) {
+        const a = ang(p); let d = a - a0; d = Math.atan2(Math.sin(d), Math.cos(d)); a0 = a; piv.rotation.z -= d;
+        const n = Math.round(piv.rotation.z / (Math.PI / 12));
+        if (n !== last) { last = n; S.tick(1100, .18, .02, "square"); buzz(5); }
+      },
+      up() {},
+    };
+  },
+  spikes(g) {
+    const geo = new THREE.ConeGeometry(.028, .08, 8); geo.rotateX(Math.PI / 2); geo.translate(0, 0, .04);
+    const pts = []; for (let y = -.4; y <= .4; y += .066) for (let x = -.4; x <= .4; x += .072) { const xx = x + (Math.round(y / .066) % 2 ? .036 : 0); if (Math.hypot(xx, y) < .4) pts.push([xx, y]); }
+    const inst = new THREE.InstancedMesh(geo, cmat("a", .8), pts.length), m4 = new THREE.Matrix4();
+    pts.forEach(([x, y], i) => { m4.makeTranslation(x, y, 0); inst.setMatrixAt(i, m4); });
+    const pad = new THREE.Group(); g.add(pad); pad.add(inst); inst.castShadow = true; part(pad, zcyl(.43, .02, 40), cmat("a", .8), 0, 0, .005);
+    let s = 1, v = 0, held = false;
+    return {
+      down() { held = true; S.thup(); S.rustle(.6); buzz(10); },
+      up() { held = false; v = .12; S.rustle(.4); },
+      step(dt) { const t = held ? .45 : 1; v += (t - s) * .25 * dt; v *= Math.pow(.78, dt); s += v * dt; pad.scale.z = Math.max(.2, s); },
+    };
+  },
+  lever(g) {
+    part(g, new THREE.SphereGeometry(.12, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), cmat("b", .5)).rotation.x = Math.PI / 2;
+    const piv = new THREE.Group(); g.add(piv);
+    const geo = new THREE.CylinderGeometry(.045, .045, .62, 16); geo.rotateX(Math.PI / 2); geo.translate(0, 0, .31);
+    part(piv, geo, cmat("d", .4)); part(piv, new THREE.SphereGeometry(.06, 16, 10), cmat("d", .4), 0, 0, .62);
+    let on = false, a = -.55, ax = null, flipped = false;
+    const flip = () => { on = !on; S.thunk(); S.tick(2600, .2, .02); buzz(18); };
+    return {
+      down() { ax = faceAxes(g); flipped = false; },
+      move(p) { const [lx] = toLocal(ax, p.dx, p.dy); if (!flipped && Math.abs(lx) > .1 && (lx > 0) !== on) { flip(); flipped = true; } },
+      up(p) { if (!flipped && Math.hypot(p.dx, p.dy) < 10) flip(); },
+      step(dt) { a += ((on ? .55 : -.55) - a) * Math.min(1, .35 * dt); piv.rotation.y = a; },
+    };
+  },
+  button(g) {
+    part(g, ringGeo(.2, .27, .07, 48), cmat("b", .5), 0, 0, .02);
+    const btn = part(g, zcyl(.19, .1, 48), cmat("c", .35), 0, 0, .05);
+    const glow = new THREE.Mesh(new THREE.TorusGeometry(.235, .012, 8, 48), new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0, toneMapped: false }));
+    glow.position.z = .06; g.add(glow);
+    let z = 0, t = 0, l = 0;
+    return {
+      down() { t = -.045; S.knock(.7); buzz(22); },
+      up() { t = 0; l = 1; S.tick(2800, .12, .02); },
+      step(dt) { z += (t - z) * Math.min(1, .5 * dt); btn.position.z = .05 + z; l = Math.max(0, l - dt / 30); glow.material.opacity = l; },
+    };
+  },
+  rocker(g) {
+    part(g, new THREE.BoxGeometry(.42, .3, .04), cmat("b", .6), 0, 0, .01);
+    const piv = new THREE.Group(); piv.position.z = .03; g.add(piv);
+    part(piv, new THREE.BoxGeometry(.36, .24, .07), cmat("e", .4), 0, 0, .03);
+    part(piv, new THREE.BoxGeometry(.03, .07, .01), cmat("b"), 0, .07, .07); part(piv, new THREE.TorusGeometry(.03, .01, 6, 20), cmat("b"), 0, -.07, .07);
+    let on = false, a = .18;
+    return {
+      down() { on = !on; S.tick(on ? 1700 : 1300, .3, .03, "square"); S.knock(.8); buzz(20); },
+      up() {},
+      step(dt) { a += ((on ? -.18 : .18) - a) * Math.min(1, .45 * dt); piv.rotation.x = a; },
+    };
+  },
+  ball(g) {
+    const m = cmat("c", .35); m.map = stripeTex(2, "#FFFFFF", "#E8E0F0");
+    const b = part(g, new THREE.SphereGeometry(.22, 32, 20), m, 0, 0, .02);
+    let ax = null, px = 0, py = 0, vx = 0, vy = 0, held = false, snd = 0;
+    // rolling under the finger: moving along the face's x turns it about the face's y (and vice versa)
+    const roll = (dx, dy) => { b.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(V3(-dy, dx, 0).normalize(), Math.hypot(dx, dy) / .22)); };
+    return {
+      down() { ax = faceAxes(g); px = py = 0; held = true; },
+      move(p) {
+        const [lx, ly] = toLocal(ax, p.dx, p.dy), dx = lx - px, dy = ly - py; px = lx; py = ly; vx = dx; vy = dy;
+        if (Math.hypot(dx, dy) > 1e-4) roll(dx, dy);
+        const now = performance.now(); if (now - snd > 90 && Math.hypot(dx, dy) > .01) { snd = now; S.rustle(.3); buzz(2); }
+      },
+      up() { held = false; },
+      step(dt) { if (held) return; vx *= Math.pow(.92, dt); vy *= Math.pow(.92, dt); if (Math.hypot(vx, vy) > 1e-4) roll(vx * dt, vy * dt); },
+    };
+  },
+  minis(g) {
+    const bs = [["a", 0], ["b", 2.09], ["e", 4.19]].map(([k, a], i) => { const m = part(g, zcyl(.1, .07, 32), cmat(k, .4), Math.cos(a + .5) * .2, Math.sin(a + .5) * .2, .03); m.userData.mini = i; return { m, z: 0, t: 0 }; });
+    let held = null;
+    return {
+      down(p) { held = bs[p.hit.object.userData.mini]; if (!held) return; held.t = -.035; S.tick(2600 + bs.indexOf(held) * 260, .22, .02, "square"); buzz(12); },
+      up() { if (held) { held.t = 0; S.tick(3400, .1, .015); held = null; } },
+      step(dt) { for (const b of bs) { b.z += (b.t - b.z) * Math.min(1, .5 * dt); b.m.position.z = .03 + b.z; } },
+    };
+  },
+  stone(g) {
+    const geo = new THREE.SphereGeometry(.34, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2); geo.rotateX(-Math.PI / 2); geo.scale(1, 1, -.12);
+    part(g, geo, cmat("e", .25), 0, 0, .012);
+    let ax = null, px = 0, py = 0, snd = 0;
+    return {
+      down() { ax = faceAxes(g); px = py = 0; buzz(3); },
+      move(p) { const [lx, ly] = toLocal(ax, p.dx, p.dy), d = Math.hypot(lx - px, ly - py); px = lx; py = ly; const now = performance.now(); if (d > .006 && now - snd > 80) { snd = now; S.rustle(.25); buzz(2); } },
+      up() {},
+    };
+  },
+  beads(g) {
+    const bs = [0, 2.09, 4.19].map((a, i) => { const m = part(g, new THREE.SphereGeometry(.13, 24, 16), cmat("c", .35), Math.cos(a) * .2, Math.sin(a) * .2, .04); m.userData.bead = i; return { m, w: 0, axis: V3(1, 0, 0) }; });
+    return {
+      down(p) { const b = bs[p.hit.object.userData.bead]; if (!b) return; b.w = .4; b.axis.set(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1)).normalize(); S.clack(.4); buzz(6); },
+      up() {},
+      step(dt) { for (const b of bs) if (b.w > .002) { b.m.rotateOnAxis(b.axis, b.w * dt); b.w *= Math.pow(.95, dt); } },
+    };
+  },
+};
+// which control sits on which face, most visible first (the X-pad faces you, the joystick sits on top)
+const CUBE_ORDER = ["xpad", "joystick", "rollers", "dial", "button", "spikes", "lever", "rocker", "ball", "minis", "stone", "beads"];
+
+function cubeSetup() {
+  if (!mount3D(secCube)) return;
+  if (!CB.scene) cubeBuild();
+  CB.cam.aspect = GL.w / GL.h;
+  const t = Math.tan(17.5 * Math.PI / 180); CB.dist = 1.45 / (t * Math.min(1, CB.cam.aspect));
+  CB.cam.position.set(0, 0, CB.dist / CB.zoom); CB.cam.lookAt(0, 0, 0); CB.cam.updateProjectionMatrix();
+  CB.W = GL.w;
+}
+function cubeBuild() {
+  const sc = new THREE.Scene(); CB.scene = sc; CB.mats = {};
+  CB.cam = new THREE.PerspectiveCamera(35, 1, .1, 60);
+  sc.add(new THREE.HemisphereLight(0xFFFFFF, 0x8A80A0, .6));
+  const key = new THREE.DirectionalLight(0xFFFFFF, .95); key.position.set(-3, 5, 6); key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -2.5, right: 2.5, top: 2.5, bottom: -2.5, near: 1, far: 20 }); key.shadow.radius = 6; sc.add(key);
+  const rim = new THREE.DirectionalLight(0xF0E6FF, .35); rim.position.set(4, -2, -3); sc.add(rim);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: .18 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -1.7; floor.receiveShadow = true; sc.add(floor);
+  const toy = new THREE.Group(); CB.toy = toy; sc.add(toy);
+  const bodyMat = new THREE.MeshPhysicalMaterial({ color: CUBE_THEMES.lilac.body, roughness: .55, clearcoat: .35, clearcoatRoughness: .4, flatShading: true, envMap: GL.env, envMapIntensity: .6 });
+  CB.mats.body = [bodyMat];
+  const body = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 0), bodyMat); body.castShadow = true; toy.add(body);
+  // face normals of a dodecahedron: (±1, 0, ±φ), (0, ±φ, ±1), (±φ, ±1, 0)
+  const P = (1 + Math.sqrt(5)) / 2, N = [];
+  for (const a of [-1, 1]) for (const b of [-1, 1]) N.push(V3(a, 0, b * P).normalize(), V3(0, a * P, b).normalize(), V3(a * P, b, 0).normalize());
+  // start with one face turned toward you and tipped up a little, so three or four sides show
+  const front = N[0], q0 = new THREE.Quaternion().setFromUnitVectors(front, V3(0, .38, .92).normalize());
+  const rest = N.slice(1), up = n => n.clone().applyQuaternion(q0).y, seen = n => n.clone().applyQuaternion(q0).z;
+  rest.sort((a, b) => up(b) - up(a));
+  const top = rest.shift(); rest.sort((a, b) => seen(b) - seen(a));
+  const faces = [front, top, ...rest];
+  CB.ctrls = faces.map((n, i) => {
+    const g = new THREE.Group(), t = Math.abs(n.y) > .95 ? V3(1, 0, 0) : V3(0, 1, 0).cross(n).normalize(), b = n.clone().cross(t);
+    g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(t, b, n)); g.position.copy(n).multiplyScalar(CUBE_IN); toy.add(g);
+    const c = CTRL[CUBE_ORDER[i]](g); c.g = g; g.traverse(o => { if (o.isMesh) o.userData.ctrl = c; });
+    return c;
+  });
+  toy.quaternion.copy(q0);
+  let th = "lilac"; try { th = localStorage.getItem("fidget-cube-color") || "lilac"; } catch (e) {}
+  setCubeTheme(CUBE_THEMES[th] ? th : "lilac");
+}
+function setCubeTheme(name) {
+  document.querySelectorAll("#mode-cube .opt").forEach(b => b.setAttribute("aria-pressed", b.dataset.color === name ? "true" : "false"));
+  try { localStorage.setItem("fidget-cube-color", name); } catch (e) {}
+  if (!CB.mats) return;
+  const T = CUBE_THEMES[name];
+  for (const [k, list] of Object.entries(CB.mats)) for (const m of list) m.color.setHex(T[k]);
+}
+function cubeFrame(now) {
+  const dt = clamp((now - (CB.last || now - 16.7)) / 16.67, .25, 2.5); CB.last = now;
+  if (!CB.rot && CB.spin && CB.spin.angle > .0004) {
+    CB.toy.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(CB.spin.axis, CB.spin.angle * dt)); CB.spin.angle *= Math.pow(.94, dt);
+  }
+  for (const c of CB.ctrls) if (c.step) c.step(dt);
+  GL.r.render(CB.scene, CB.cam);
+}
+function cubeHit(e) {
+  const hits = rayAt(e, CB.cam).intersectObject(CB.toy, true);
+  return hits[0] || null;
+}
+on3D(secCube, "pointerdown", e => {
+  if (!CB.scene) return;
+  GL.canvas.setPointerCapture(e.pointerId); ac(); cHint3.classList.add("gone");
+  CB.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (CB.ptrs.size === 2) {
+    if (CB.act) { CB.act.c.up({ sx: e.clientX, sy: e.clientY, dx: 99, dy: 99 }); CB.act = null; }
+    CB.rot = null; const [a, b] = [...CB.ptrs.values()]; CB.pinch = Math.hypot(a.x - b.x, a.y - b.y) || 1; return;
+  }
+  if (CB.ptrs.size > 2) return;
+  const hit = cubeHit(e), c = hit && hit.object.userData.ctrl;
+  if (c) { CB.act = { c, id: e.pointerId, x0: e.clientX, y0: e.clientY }; c.down({ hit, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0 }); return; }
+  CB.rot = { id: e.pointerId, x: e.clientX, y: e.clientY }; CB.spin = null;
+});
+on3D(secCube, "pointermove", e => {
+  const p = CB.ptrs.get(e.pointerId); if (!p) return;
+  p.x = e.clientX; p.y = e.clientY;
+  if (CB.pinch && CB.ptrs.size >= 2) {
+    const [a, b] = [...CB.ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    CB.zoom = clamp(CB.zoom * d / CB.pinch, .7, 1.7); CB.pinch = d; CB.cam.position.z = CB.dist / CB.zoom; return;
+  }
+  const A = CB.act;
+  if (A && A.id === e.pointerId) { if (A.c.move) A.c.move({ sx: e.clientX, sy: e.clientY, dx: e.clientX - A.x0, dy: e.clientY - A.y0 }); return; }
+  const R = CB.rot; if (!R || R.id !== e.pointerId) return;
+  // trackball: drag right turns the front to the right, drag down tips the top toward you
+  const dx = e.clientX - R.x, dy = e.clientY - R.y, l = Math.hypot(dx, dy); R.x = e.clientX; R.y = e.clientY;
+  if (l < .5) return;
+  const axis = V3(dy, dx, 0).normalize(), angle = l * .009;
+  CB.toy.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, angle));
+  CB.spin = { axis, angle, t: performance.now() };
+});
+const cubeEnd = e => {
+  if (!CB.ptrs.delete(e.pointerId)) return;
+  if (CB.pinch) { if (CB.ptrs.size < 2) CB.pinch = null; return; }
+  const A = CB.act;
+  if (A && A.id === e.pointerId) { A.c.up({ sx: e.clientX, sy: e.clientY, dx: e.clientX - A.x0, dy: e.clientY - A.y0 }); CB.act = null; return; }
+  if (CB.rot && CB.rot.id === e.pointerId) { CB.rot = null; if (CB.spin && performance.now() - CB.spin.t > 80) CB.spin = null; }
+};
+on3D(secCube, "pointerup", cubeEnd); on3D(secCube, "pointercancel", cubeEnd);
+document.querySelectorAll("#mode-cube .opt").forEach(b => b.addEventListener("click", () => { setCubeTheme(b.dataset.color); S.tick(2200, .15, .03, "square"); buzz(10); }));
+
 /* ================= newton's cradle ================= */
 const ccv = $("#cradlecv"), cctx = ccv.getContext("2d"), cHint = $("#cHint");
 const NC = { W: 0, H: 0, dpr: 1, n: 5, r: 0, L: 0, top: 0, cx: 0, th: [0, 0, 0, 0, 0], om: [0, 0, 0, 0, 0], grab: null, last: 0, hit: 0, bz: 0 };
@@ -2965,7 +3284,7 @@ const cEnd = e => { const g = NC.grab; if (!g || g.id !== e.pointerId) return; N
 ccv.addEventListener("pointerup", cEnd); ccv.addEventListener("pointercancel", cEnd);
 
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(false); });
+window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(false); if (mode === "cube") cubeSetup(); });
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
@@ -2976,7 +3295,7 @@ let savedMode = null; try { savedMode = localStorage.getItem("fidget-mode"); } c
 if (location.hash.length > 1) savedMode = location.hash.slice(1); // index.html#dice opens a mode directly when previewing in a browser
 // wait for the deferred 3D engine scripts in case the last mode was Dice
 if (savedMode && savedMode !== "slime" && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
-if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, popFrame, spinFrame, cradleFrame }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, popFrame, spinFrame, cradleFrame }; // state handle for browser previews and tests
 (function loop(now) {
   if (mode === "slime" && N) { slimeStep(now || 0); slimeRender(now || 0); }
   else if (bed) bed.g.gain.setTargetAtTime(0, actx.currentTime, .05);
@@ -2987,6 +3306,7 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, popFrame, spinFrame, 
   if (mode === "pop" && P.W) popFrame(now || 0);
   if (mode === "zen" && Z.W) zenFrame(now || 0);
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
+  if (mode === "cube" && CB.W) cubeFrame(now || 0);
   if (mode === "spin" && SP.W) spinFrame(now || 0);
   else if (SP.bed) { SP.bed.g.gain.setTargetAtTime(0, actx.currentTime, .05); SP.bed.og.gain.setTargetAtTime(0, actx.currentTime, .05); }
   requestAnimationFrame(loop);

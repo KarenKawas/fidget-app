@@ -2,7 +2,7 @@
   "name": "fidget-app",
   "version": "1.1.0",
   "private": true,
-  "description": "DigiFidget: slime, board, bubble wrap, dice, touch grass, pop-it, spinner, zen garden and Newton's cradle",
+  "description": "DigiFidget: slime, board, bubble wrap, dice, touch grass, pop-it, spinner, zen garden, Newton's cradle and fidget cube",
   "scripts": {
     "vendor": "node scripts/copy-vendor.js",
     "icons": "node scripts/make-icons.js && npx capacitor-assets generate",
