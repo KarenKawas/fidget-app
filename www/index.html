@@ -359,6 +359,7 @@ button{font:inherit;color:inherit}
 .zen-view{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;display:flex;gap:8px}
 .zen-view button{width:46px;height:46px;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;background:rgba(255,255,255,.8);box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .zen-view svg{width:22px;height:22px}
+.zen-view button.off svg{opacity:.3}
 .zen-items{position:absolute;z-index:5;left:12px;right:12px;bottom:92px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px;border-radius:20px;
   background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 18px rgba(0,0,0,.18)}
 .zen-items[hidden]{display:none}
@@ -489,6 +490,7 @@ button{font:inherit;color:inherit}
   <section class="mode" id="mode-zen" aria-label="Zen sand garden. Drag to rake the sand, two fingers to turn and zoom, drag an item to move it.">
     <p class="hint" id="zHint">Drag to rake · two fingers to turn</p>
     <div class="zen-view">
+      <button id="zenMusic" aria-label="Calm music" aria-pressed="true"><svg viewBox="0 0 24 24" fill="#2A2438"><path d="M9 17.5V5l11-2v12.5" fill="none" stroke="#2A2438" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8"/><circle cx="17.5" cy="15.5" r="2.8"/></svg></button>
       <button id="zenL" aria-label="Turn the garden left"><svg viewBox="0 0 24 24" fill="none" stroke="#2A2438" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg></button>
       <button id="zenR" aria-label="Turn the garden right"><svg viewBox="0 0 24 24" fill="none" stroke="#2A2438" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4"/></svg></button>
     </div>
@@ -639,6 +641,7 @@ function ensureBed() {
 }
 $("#soundBtn").addEventListener("click", e => {
   soundOn = !soundOn; e.currentTarget.textContent = soundOn ? "Sound on" : "Sound off";
+  zMusic(mode === "zen");
   e.currentTarget.setAttribute("aria-pressed", soundOn); if (soundOn) S.tick(1800);
 });
 $("#hapticBtn").addEventListener("click", e => {
@@ -2541,7 +2544,7 @@ const ZTOOLS = {
   wide: { tines: [-.2, 0, .2], r: .07, depth: .04 },
   stylus: { tines: [0], r: .034, depth: .042 },
 };
-const Z = { W: 0, scene: null, cam: null, sand: null, h: null, dirty: null, settle: null, tool: "rake", az: Math.PI / 4, azV: 0, azT: null, zoom: 1,
+const Z = { W: 0, scene: null, cam: null, sand: null, h: null, dirty: null, settle: null, tool: "rake", az: Math.PI / 4, azV: 0, azT: null, zoom: 1.8, tx: -.2, tz: .25, bed: null, rakeT: 0, brown: null,
   items: [], ptrs: new Map(), stroke: null, drag: null, twist: null, snd: 0, bz: 0, last: 0, smoke: [], v: null };
 const ZITEMS = {
   stone: { label: "Big stone", r: .5 }, pebbles: { label: "Pebbles", r: .32 }, moss: { label: "Moss", r: .46 },
@@ -2725,7 +2728,7 @@ function zAddItem(kind, x, z, rot, seed, quiet) {
   it.obj.position.set(x, -.01, z); it.obj.rotation.y = it.rot; Z.scene.add(it.obj); Z.items.push(it);
   if (it.obj.userData.smokeFrom) zSmokeFor(it);
   zRingAround(x, z, ZITEMS[kind].r);
-  if (!quiet) { S.thud(.45); buzz(14); zSave(); }
+  if (!quiet) { zTap(); buzz(8); zSave(); }
   return it;
 }
 function zRemoveItem(it) {
@@ -2762,6 +2765,7 @@ function zenSetup() {
   if (!mount3D(secZen)) return;
   if (!Z.scene) zenBuild();
   zenCamera(); Z.W = GL.w;
+  zMusic(true);
 }
 function zenBuild() {
   const sc = new THREE.Scene(); Z.scene = sc;
@@ -2802,8 +2806,8 @@ function zenBuild() {
 function zenCamera() {
   const asp = GL.w / GL.h, el = 34 * Math.PI / 180, halfW = 4.05 / Z.zoom, halfH = halfW / asp;
   Object.assign(Z.cam, { left: -halfW, right: halfW, top: halfH * 1.08, bottom: -halfH * .92 });
-  Z.cam.position.set(Math.sin(Z.az) * Math.cos(el) * 20, Math.sin(el) * 20, Math.cos(Z.az) * Math.cos(el) * 20);
-  Z.cam.lookAt(0, 0, 0); Z.cam.updateProjectionMatrix();
+  Z.cam.position.set(Z.tx + Math.sin(Z.az) * Math.cos(el) * 20, Math.sin(el) * 20, Z.tz + Math.cos(Z.az) * Math.cos(el) * 20);
+  Z.cam.lookAt(Z.tx, 0, Z.tz); Z.cam.updateProjectionMatrix(); Z.cam.updateMatrixWorld();
 }
 function zenFrame(now) {
   const dt = clamp((now - (Z.last || now - 16.7)) / 16.67, .25, 2.5); Z.last = now;
@@ -2811,55 +2815,139 @@ function zenFrame(now) {
   else if (!Z.twist && Math.abs(Z.azV) > .0005) { Z.az += Z.azV * dt; Z.azV *= Math.pow(.9, dt); zenCamera(); }
   zRelax(); zUpload();
   if (Z.smoke.length) zSmokeStep(dt);
+  // the raking hush fades away soon after the finger stops
+  if (Z.bed && now - Z.rakeT > 110) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .18);
   GL.r.render(Z.scene, Z.cam);
 }
 
+/* ---- sound: a soft continuous hush while raking, a gentle tap for stones ---- */
+function zBrown(a) {
+  if (Z.brown) return Z.brown;
+  const b = a.createBuffer(1, a.sampleRate * 2, a.sampleRate), d = b.getChannelData(0); let last = 0;
+  for (let i = 0; i < d.length; i++) { last = (last + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+  return Z.brown = b;
+}
+function zEnsureBed() {
+  const a = ac(); if (!a || Z.bed) return;
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = zBrown(a); s.loop = true; f.type = "lowpass"; f.frequency.value = 700; f.Q.value = .4; g.gain.value = 0;
+  s.connect(f).connect(g).connect(out(a)); s.start(); Z.bed = { f, g };
+}
+function zRakeSound(speed) {
+  if (!Z.bed) return; const t = actx.currentTime, v = Math.min(1, speed);
+  Z.bed.f.frequency.setTargetAtTime(700 + v * 400, t, .1);
+  Z.bed.g.gain.setTargetAtTime(soundOn ? .025 + v * .035 : 0, t, .08);
+  Z.rakeT = performance.now();
+}
+function zTap() { const a = ac(); if (!a || !soundOn) return; tone(a, "sine", 170, 120, .16, .14); nz(a, "lowpass", 500, 160, 1, .08, .08, 0, .01); }
+
+/* ---- calm music: slow pentatonic pads, a soft drone and the odd low bell, through a long reverb ---- */
+const ZM = { on: true, bus: null, drone: null, timer: null, playing: false };
+try { ZM.on = localStorage.getItem("fidget-zen-music") !== "0"; } catch (e) {}
+const ZNOTES = [220, 261.63, 293.66, 329.63, 392, 440, 523.25];
+function zMusicBus(a) {
+  if (ZM.bus) return ZM.bus;
+  const master = a.createGain(), dry = a.createGain(), wet = a.createGain(), rev = a.createConvolver();
+  const len = a.sampleRate * 3.5, ir = a.createBuffer(2, len, a.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+  rev.buffer = ir; master.gain.value = 0; dry.gain.value = .55; wet.gain.value = .7;
+  master.connect(dry).connect(out(a)); master.connect(rev).connect(wet).connect(out(a));
+  const o = a.createOscillator(), og = a.createGain(), lfo = a.createOscillator(), lg = a.createGain();
+  o.type = "sine"; o.frequency.value = 110; og.gain.value = .018; lfo.frequency.value = .07; lg.gain.value = .008;
+  lfo.connect(lg).connect(og.gain); o.connect(og).connect(master); o.start(); lfo.start();
+  return ZM.bus = master;
+}
+function zNote() {
+  const a = actx; if (!a || !ZM.playing) return;
+  const bus = ZM.bus, t = a.currentTime, f = pick(ZNOTES), long = rnd(3.5, 6);
+  for (const [mul, type, vol] of [[1, "sine", .05], [1.003, "sine", .03], [2, "triangle", .008]]) {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.value = f * mul;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 1.4); g.gain.setTargetAtTime(0, t + 1.6, long / 3);
+    o.connect(g).connect(bus); o.start(t); o.stop(t + 1.6 + long * 2);
+  }
+  if (Math.random() < .2) { // a low, far-away bell
+    const b = pick([110, 146.83, 164.81]);
+    for (const [mul, vol] of [[1, .05], [2.76, .015], [5.4, .006]]) {
+      const o = a.createOscillator(), g = a.createGain(); o.type = "sine"; o.frequency.value = b * mul;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 5);
+      o.connect(g).connect(bus); o.start(t); o.stop(t + 5.1);
+    }
+  }
+  ZM.timer = setTimeout(zNote, rnd(1600, 3400));
+}
+function zMusic(play) {
+  play = play && ZM.on && soundOn;
+  if (play === ZM.playing) return;
+  const a = ac(); if (!a) return;
+  const bus = zMusicBus(a); ZM.playing = play;
+  bus.gain.setTargetAtTime(play ? 1 : 0, a.currentTime, play ? 1.2 : .4);
+  clearTimeout(ZM.timer); if (play) ZM.timer = setTimeout(zNote, 400);
+}
+function zShowMusic() { const b = $("#zenMusic"); b.setAttribute("aria-pressed", ZM.on); b.classList.toggle("off", !ZM.on); }
+
 /* ---- input ---- */
+function zGroundAt(cx, cy) { return zGround({ clientX: cx, clientY: cy }); }
 function zGround(e) { const p = rayAt(e, Z.cam).ray.intersectPlane(Z.plane, Z.v); return p ? [p.x, p.z] : null; }
 const zInside = (x, z, m = 0) => Math.abs(x) < ZW / 2 - m && Math.abs(z) < ZD / 2 - m;
+// finger-friendly picking: an exact hit first, otherwise the nearest item whose footprint is close on screen
 function zItemAt(e) {
   const hits = rayAt(e, Z.cam).intersectObjects(Z.items.map(i => i.obj), true);
   for (const h of hits) { let o = h.object; while (o && !o.userData.item) o = o.parent; if (o) return o.userData.item; }
-  return null;
+  const r = GL.canvas.getBoundingClientRect(), scr = v => { const p = v.project(Z.cam); return [r.left + (p.x + 1) / 2 * r.width, r.top + (1 - p.y) / 2 * r.height]; };
+  let best = null, bd = 1e9;
+  for (const it of Z.items) {
+    const [x, y] = scr(new THREE.Vector3(it.x, .12, it.z)), [ex, ey] = scr(new THREE.Vector3(it.x + ZITEMS[it.kind].r, .12, it.z));
+    const d = Math.hypot(e.clientX - x, e.clientY - y), lim = Math.max(36, Math.hypot(ex - x, ey - y));
+    if (d < lim && d < bd) { bd = d; best = it; }
+  }
+  return best;
 }
 function zTwistInfo() {
   const [a, b] = [...Z.ptrs.values()];
-  return { ang: Math.atan2(b.y - a.y, b.x - a.x), dist: Math.hypot(b.x - a.x, b.y - a.y) || 1 };
+  return { ang: Math.atan2(b.y - a.y, b.x - a.x), dist: Math.hypot(b.x - a.x, b.y - a.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
 }
-const zOverTrash = (x, y) => { if (zTrash.hidden) return false; const r = zTrash.getBoundingClientRect(); return x > r.left - 10 && x < r.right + 10 && y > r.top - 10 && y < r.bottom + 14; };
+const zOverTrash = (x, y) => { const r = zTrash.getBoundingClientRect(); return r.width > 0 && x > r.left - 10 && x < r.right + 10 && y > r.top - 10 && y < r.bottom + 14; };
+function zDrop(it) { it.obj.position.y = -.01; zRingAround(it.x, it.z, ZITEMS[it.kind].r); zTap(); buzz(8); zSave(); }
 on3D(secZen, "pointerdown", e => {
   if (!Z.scene) return;
-  GL.canvas.setPointerCapture(e.pointerId); ac(); zHint.classList.add("gone"); zCloseItems();
+  GL.canvas.setPointerCapture(e.pointerId); ac(); zEnsureBed(); zHint.classList.add("gone"); zCloseItems();
   Z.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (Z.ptrs.size === 2) {
-    // second finger: this is a turn/zoom gesture, so drop whatever the first finger was doing
-    if (Z.drag) { const it = Z.drag.it; it.obj.position.y = -.01; Z.drag = null; zTrash.hidden = true; zRingAround(it.x, it.z, ZITEMS[it.kind].r); }
+    // second finger: this is a turn/zoom/pan gesture, so put down whatever the first finger was doing
+    if (Z.drag) { const it = Z.drag.it; Z.drag = null; zTrash.hidden = true; zDrop(it); }
     Z.stroke = null; Z.twist = zTwistInfo(); Z.azT = null; Z.azV = 0; return;
   }
   if (Z.ptrs.size > 2) return;
   const it = zItemAt(e);
   if (it) {
-    Z.drag = { it, id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false };
-    it.obj.position.y = .12; S.tick(1400, .12, .02); buzz(8); return;
+    // keep the item where it is relative to the finger, so it doesn't jump on pickup
+    const g = zGround(e) || [it.x, it.z];
+    Z.drag = { it, id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false, ox: it.x - g[0], oz: it.z - g[1] };
+    it.obj.position.y = .12; S.tick(1200, .06, .02, "sine"); buzz(4); return;
   }
   const g = zGround(e); if (!g || !zInside(g[0], g[1])) return;
   Z.stroke = { id: e.pointerId, x: g[0], z: g[1], hx: 0, hz: 0, nx: undefined, nz: undefined };
   // touching down leaves a soft dimple
   if (Z.tool === "smooth") zSmooth(g[0], g[1], .3); else zStamp(g[0], g[1], ZTOOLS[Z.tool].r * 1.2, ZTOOLS[Z.tool].depth * .6);
-  S.sand(.5); buzz(4);
+  zRakeSound(.2); buzz(2);
 });
 on3D(secZen, "pointermove", e => {
   const p = Z.ptrs.get(e.pointerId); if (!p) return;
   p.x = e.clientX; p.y = e.clientY;
   if (Z.twist && Z.ptrs.size >= 2) {
-    const t = zTwistInfo(); let da = t.ang - Z.twist.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
-    Z.az += da; Z.azV = da; Z.zoom = clamp(Z.zoom * t.dist / Z.twist.dist, .8, 2.6); Z.twist = t; zenCamera(); return;
+    const t = zTwistInfo(), was = Z.twist; let da = t.ang - was.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
+    // pan: keep the sand under the fingers' midpoint under it
+    const g0 = zGroundAt(was.mx, was.my), g1 = zGroundAt(t.mx, t.my);
+    if (g0 && g1) { Z.tx = clamp(Z.tx - (g1[0] - g0[0]), -ZW / 2, ZW / 2); Z.tz = clamp(Z.tz - (g1[1] - g0[1]), -ZD / 2, ZD / 2); }
+    Z.az += da; Z.azV = da; Z.zoom = clamp(Z.zoom * t.dist / was.dist, .9, 3.5); Z.twist = t; zenCamera(); return;
   }
-  const now = performance.now();
   if (Z.drag && Z.drag.id === e.pointerId) {
     const d = Z.drag, it = d.it;
-    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 8) { d.moved = true; zTrash.hidden = false; }
-    const g = zGround(e); if (g) { const m = ZITEMS[it.kind].r * .6; it.x = clamp(g[0], -ZW / 2 + m, ZW / 2 - m); it.z = clamp(g[1], -ZD / 2 + m, ZD / 2 - m); it.obj.position.x = it.x; it.obj.position.z = it.z; }
+    if (!d.moved && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 8) { d.moved = true; zTrash.hidden = false; }
+    if (!d.moved) return;
+    const g = zGround(e);
+    if (g) { const m = ZITEMS[it.kind].r * .6; it.x = clamp(g[0] + d.ox, -ZW / 2 + m, ZW / 2 - m); it.z = clamp(g[1] + d.oz, -ZD / 2 + m, ZD / 2 - m); it.obj.position.x = it.x; it.obj.position.z = it.z; }
     zTrash.classList.toggle("over", zOverTrash(e.clientX, e.clientY));
     return;
   }
@@ -2875,41 +2963,51 @@ on3D(secZen, "pointermove", e => {
     zGroove([[s.x, s.z], [x, z]], Z.tool, -s.hz / hl, s.hx / hl);
   }
   s.x = x; s.z = z;
-  if (now - Z.snd > 70) { Z.snd = now; S.sand(Math.min(1, .35 + l * 2)); }
-  if (now - Z.bz > 120) { Z.bz = now; buzz(2); }
+  zRakeSound(l * 4);
+  const now = performance.now(); if (now - Z.bz > 200) { Z.bz = now; buzz(1); }
 });
 const zEnd = e => {
   if (!Z.ptrs.delete(e.pointerId)) return;
   if (Z.twist) { if (Z.ptrs.size < 2) Z.twist = null; return; }
   if (Z.stroke && Z.stroke.id === e.pointerId) Z.stroke = null;
   const d = Z.drag; if (!d || d.id !== e.pointerId) return;
-  Z.drag = null; const it = d.it; zTrash.hidden = true; zTrash.classList.remove("over");
-  if (zOverTrash(e.clientX, e.clientY)) { zRemoveItem(it); S.whoosh(); buzz(18); return; }
-  it.obj.position.y = -.01;
-  if (!d.moved && performance.now() - d.t0 < 300) { it.rot += Math.PI / 4; it.obj.rotation.y = it.rot; S.clack(.5); buzz(10); zSave(); return; } // a tap turns it
-  zRingAround(it.x, it.z, ZITEMS[it.kind].r); S.thud(.45); buzz(14); zSave();
+  Z.drag = null; const it = d.it;
+  // check the drop target before hiding it
+  const trash = d.moved && zOverTrash(e.clientX, e.clientY);
+  zTrash.hidden = true; zTrash.classList.remove("over");
+  if (trash) { zRemoveItem(it); S.whoosh(); buzz(14); return; }
+  if (!d.moved) { it.obj.position.y = -.01; it.rot += Math.PI / 4; it.obj.rotation.y = it.rot; zTap(); buzz(6); zSave(); return; } // a tap turns it
+  zDrop(it);
 };
 on3D(secZen, "pointerup", zEnd); on3D(secZen, "pointercancel", zEnd);
-secZen.addEventListener("wheel", e => { if (e.target !== GL.canvas) return; e.preventDefault(); Z.zoom = clamp(Z.zoom * (e.deltaY < 0 ? 1.08 : .93), .8, 2.6); zenCamera(); }, { passive: false });
+secZen.addEventListener("wheel", e => { if (e.target !== GL.canvas) return; e.preventDefault(); Z.zoom = clamp(Z.zoom * (e.deltaY < 0 ? 1.08 : .93), .9, 3.5); zenCamera(); }, { passive: false });
 
 /* ---- toolbar ---- */
 document.querySelectorAll("#mode-zen [data-tool]").forEach(b => b.addEventListener("click", () => {
   Z.tool = b.dataset.tool; zCloseItems();
   document.querySelectorAll("#mode-zen [data-tool]").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
-  S.tick(1800, .1, .03); buzz(8);
+  S.tick(1200, .05, .03, "sine"); buzz(4);
 }));
-$("#zenClear").addEventListener("click", () => { if (!Z.scene) return; zCloseItems(); zClearSand(); S.whoosh(); setTimeout(() => S.sand(1), 120); buzz(12); });
-$("#zenL").addEventListener("click", () => { Z.azT = (Z.azT ?? Z.az) - Math.PI / 4; Z.azV = 0; S.tick(1600, .1, .03); buzz(8); });
-$("#zenR").addEventListener("click", () => { Z.azT = (Z.azT ?? Z.az) + Math.PI / 4; Z.azV = 0; S.tick(1600, .1, .03); buzz(8); });
+$("#zenClear").addEventListener("click", () => { if (!Z.scene) return; zCloseItems(); zClearSand(); zEnsureBed(); zRakeSound(.8); buzz(6); });
+$("#zenL").addEventListener("click", () => { Z.azT = (Z.azT ?? Z.az) - Math.PI / 4; Z.azV = 0; S.tick(1200, .05, .03, "sine"); buzz(4); });
+$("#zenR").addEventListener("click", () => { Z.azT = (Z.azT ?? Z.az) + Math.PI / 4; Z.azV = 0; S.tick(1200, .05, .03, "sine"); buzz(4); });
+$("#zenMusic").addEventListener("click", () => {
+  ZM.on = !ZM.on; zShowMusic(); try { localStorage.setItem("fidget-zen-music", ZM.on ? "1" : "0"); } catch (e) {}
+  zMusic(mode === "zen"); buzz(4);
+});
+zShowMusic();
 function zCloseItems() { zItemsBar.hidden = true; zAddBtn.setAttribute("aria-expanded", "false"); }
-zAddBtn.addEventListener("click", () => { const open = zItemsBar.hidden; zItemsBar.hidden = !open; zAddBtn.setAttribute("aria-expanded", open); S.tick(1500, .1, .03); });
+zAddBtn.addEventListener("click", () => { const open = zItemsBar.hidden; zItemsBar.hidden = !open; zAddBtn.setAttribute("aria-expanded", open); S.tick(1200, .05, .03, "sine"); });
 Object.entries(ZITEMS).forEach(([k, v]) => {
   const b = document.createElement("button"); b.className = "opt"; b.textContent = v.label;
   b.addEventListener("click", () => {
     if (!Z.scene) return;
-    // drop it near the middle, nudged so it doesn't land exactly on top of something
+    // drop it near the middle of what you're looking at, nudged so it doesn't land on top of something
     let x = 0, z = 0;
-    for (let tries = 0; tries < 30; tries++) { x = rnd(-1.6, 1.6); z = rnd(-1.1, 1.1); if (Z.items.every(i => Math.hypot(i.x - x, i.z - z) > ZITEMS[i.kind].r + v.r)) break; }
+    for (let tries = 0; tries < 30; tries++) {
+      x = clamp(Z.tx + rnd(-.9, .9) / Z.zoom * 1.6, -ZW / 2 + v.r, ZW / 2 - v.r); z = clamp(Z.tz + rnd(-.6, .6) / Z.zoom * 1.6, -ZD / 2 + v.r, ZD / 2 - v.r);
+      if (Z.items.every(i => Math.hypot(i.x - x, i.z - z) > ZITEMS[i.kind].r + v.r)) break;
+    }
     zAddItem(k, x, z, rnd(0, 6.28)); zCloseItems();
   });
   zItemsBar.appendChild(b);
@@ -3333,6 +3431,8 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, popFrame, spinFra
   if (mode === "bubbles") bubblesFrame();
   if (mode === "pop" && P.W) popFrame(now || 0);
   if (mode === "zen" && Z.W) zenFrame(now || 0);
+  else if (ZM.playing) zMusic(false);
+  if (mode !== "zen" && Z.bed) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .1);
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
   if (mode === "cube" && CB.W) cubeFrame(now || 0);
   if (mode === "spin" && SP.W) spinFrame(now || 0);
