@@ -88,7 +88,7 @@ button{font:inherit;color:inherit}
 .drawer .note{font-size:.85rem;color:var(--muted);margin:10px 6px 0;line-height:1.4}
 
 /* ---------- slime ---------- */
-#slime,#dicecv,#grasscv,#popcv,#spincv,#zencv,#cradlecv{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
+#slime,#dicecv,#grasscv,#popcv,#zencv,#cradlecv,.gl3d{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
 .hint{
   position:absolute; left:0; right:0; bottom:152px; text-align:center; margin:0; pointer-events:none;
   font-size:1.05rem; font-weight:500; color:rgba(255,255,255,.92); text-shadow:0 1px 6px rgba(0,0,0,.25);
@@ -457,8 +457,7 @@ button{font:inherit;color:inherit}
     </div>
   </section>
 
-  <section class="mode" id="mode-spin" aria-label="Fidget spinner">
-    <canvas id="spincv" aria-label="A fidget spinner. Flick it round to spin it, touch it to stop it."></canvas>
+  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick it round to spin it, touch it to stop it.">
     <div class="spin-hud" aria-live="off"><span class="lbl">RPM</span><span class="total" id="spinRpm">0</span><span class="best" id="spinBest"></span></div>
     <p class="hint" id="sHint">Flick it round to spin</p>
     <div class="themes" role="group" aria-label="Spinner design">
@@ -632,7 +631,7 @@ function setMode(m) {
   if (m === "dice") initDice();
   if (m === "grass") grassSetup(false);
   if (m === "pop") popSetup(false);
-  if (m === "spin") spinSetup(false);
+  if (m === "spin") spinSetup();
   if (m === "zen") zenSetup(false);
   if (m === "cradle") cradleSetup(false);
   try { localStorage.setItem("fidget-mode", m); } catch (e) {}
@@ -2241,66 +2240,146 @@ document.querySelectorAll("#mode-pop .opt").forEach(b => b.addEventListener("cli
 let savedShape = "square"; try { savedShape = localStorage.getItem("fidget-pop-shape") || "square"; } catch (e) {}
 setPopShape(POP_SHAPES[savedShape] ? savedShape : "square");
 
+/* ================= shared 3D (spinner, zen garden, fidget cube) ================= */
+// one WebGL renderer whose canvas moves into whichever 3D mode is open (Dice keeps its own)
+const GL = { r: null, canvas: null, env: null, ray: null, w: 0, h: 0, failed: false, mats: {} };
+function ensure3D() {
+  if (GL.r) return true;
+  if (GL.failed || typeof THREE === "undefined") return false;
+  let r;
+  try { r = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" }); }
+  catch (e) { try { r = new THREE.WebGLRenderer({ alpha: true, precision: "mediump" }); } catch (e2) { GL.failed = true; return false; } }
+  r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); r.setClearColor(0, 0);
+  r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
+  r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+  GL.r = r; GL.canvas = r.domElement; GL.canvas.className = "gl3d"; GL.ray = new THREE.Raycaster();
+  GL.env = studioEnv(r);
+  return true;
+}
+// a soft studio (bright top, two softboxes, dark floor) for metal and glossy plastic to reflect
+function studioEnv(r) {
+  const c = document.createElement("canvas"); c.width = 512; c.height = 256;
+  const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, "#FFFFFF"); g.addColorStop(.45, "#C9CDD6"); g.addColorStop(.55, "#8A8796"); g.addColorStop(1, "#2B2833");
+  x.fillStyle = g; x.fillRect(0, 0, 512, 256);
+  x.fillStyle = "#FFFFFF"; x.fillRect(90, 50, 90, 34); x.fillRect(330, 60, 130, 26); x.fillStyle = "rgba(255,240,220,.8)"; x.fillRect(220, 30, 50, 60);
+  const tex = new THREE.CanvasTexture(c); tex.mapping = THREE.EquirectangularReflectionMapping; tex.encoding = THREE.sRGBEncoding;
+  const pm = new THREE.PMREMGenerator(r), env = pm.fromEquirectangular(tex).texture;
+  pm.dispose(); tex.dispose();
+  return env;
+}
+function mount3D(sec) {
+  if (!ensure3D()) { show3DError(sec); return false; }
+  if (GL.canvas.parentNode !== sec) sec.insertBefore(GL.canvas, sec.firstChild);
+  const w = GL.canvas.clientWidth, h = GL.canvas.clientHeight;
+  if (w && h && (w !== GL.w || h !== GL.h)) { GL.r.setSize(w, h, false); GL.w = w; GL.h = h; }
+  return !!(GL.w && GL.h);
+}
+function show3DError(sec) {
+  let m = sec.querySelector(".gl-msg");
+  if (!m) { m = document.createElement("p"); m.className = "dice-msg gl-msg"; sec.appendChild(m); }
+  m.hidden = false; m.textContent = "The 3D engine didn’t load. Close the app and open it again.";
+}
+function rayAt(e, cam) {
+  const r = GL.canvas.getBoundingClientRect();
+  GL.ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), cam);
+  return GL.ray;
+}
+// pointer events from the shared canvas, for one mode's section only
+const on3D = (sec, type, fn) => sec.addEventListener(type, e => { if (e.target === GL.canvas) fn(e); });
+// cylinders and rings standing along +Z (the "up" of flat parts built in shape coordinates)
+function zcyl(r, h, seg = 40) { const g = new THREE.CylinderGeometry(r, r, h, seg); g.rotateX(Math.PI / 2); return g; }
+function ringGeo(ri, ro, h, seg = 48) {
+  const V = THREE.Vector2, g = new THREE.LatheGeometry([new V(ri, -h / 2), new V(ro, -h / 2), new V(ro, h / 2), new V(ri, h / 2), new V(ri, -h / 2)], seg);
+  g.rotateX(Math.PI / 2); return g;
+}
+function extrudeGeo(shape, depth, bevel = .03) {
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel * 1.2, bevelSize: bevel, bevelSegments: 3, curveSegments: 64 });
+  g.translate(0, 0, -depth / 2); return g;
+}
+function chromeMat() { return GL.mats.chrome || (GL.mats.chrome = new THREE.MeshStandardMaterial({ color: 0xE9ECF1, metalness: 1, roughness: .14, envMap: GL.env })); }
+function disposeTree(o) { o.traverse(n => { if (n.geometry) n.geometry.dispose(); }); }
+
 /* ================= fidget spinner ================= */
-const scv = $("#spincv"), sctx = scv.getContext("2d"), sHint = $("#sHint"), spinRpm = $("#spinRpm"), spinBest = $("#spinBest");
-const SP = { W: 0, H: 0, dpr: 1, design: "classic", spr: null, R: 0, cx: 0, cy: 0, th: 0, om: 0, grab: null, last: 0, lobe: 0, tk: 0, bz: 0, shown: -1, best: 0, bed: null };
+const secSpin = $("#mode-spin"), sHint = $("#sHint"), spinRpm = $("#spinRpm"), spinBest = $("#spinBest");
+const SP = { W: 0, design: "classic", th: 0, om: 0, grab: null, last: 0, lobe: 0, tk: 0, bz: 0, shown: -1, best: 0, bed: null, scene: null, cam: null, root: null, blur: null };
 try { SP.best = +localStorage.getItem("fidget-spin-best") || 0; } catch (e) {}
 const SPIN_LOBES = { classic: 3, metal: 4, neon: 3 };
-function chrome(c, x, y, r) {
-  const g = c.createRadialGradient(x - r * .3, y - r * .35, r * .1, x, y, r);
-  g.addColorStop(0, "#FFFFFF"); g.addColorStop(.45, "#C9CED6"); g.addColorStop(1, "#6E7580");
-  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
-}
-// each design is drawn once into a sprite, then rotated every frame
-function buildSpinner() {
-  const R = SP.R, d = SP.dpr, L = SPIN_LOBES[SP.design], cv2 = document.createElement("canvas");
-  cv2.width = cv2.height = Math.ceil(R * 2.3 * d);
-  const c = cv2.getContext("2d"); c.scale(d, d); c.translate(R * 1.15, R * 1.15);
-  const lobes = []; for (let k = 0; k < L; k++) { const a = k * 6.2832 / L; lobes.push([Math.sin(a), -Math.cos(a)]); }
-  if (SP.design === "metal") {
-    const g = c.createLinearGradient(-R, -R, R, R); g.addColorStop(0, "#F4F6F9"); g.addColorStop(.5, "#A3AAB4"); g.addColorStop(1, "#E3E7EC");
-    c.strokeStyle = g; c.lineWidth = R * .12; c.beginPath(); c.arc(0, 0, R * .9, 0, 6.2832); c.stroke();
-    c.lineWidth = R * .2; c.lineCap = "round";
-    for (const [x, y] of lobes) { c.beginPath(); c.moveTo(0, 0); c.lineTo(x * R * .86, y * R * .86); c.stroke(); }
-    c.fillStyle = g; c.beginPath(); c.arc(0, 0, R * .34, 0, 6.2832); c.fill();
-    for (const [x, y] of lobes) { c.fillStyle = "#3B4048"; c.beginPath(); c.arc(x * R * .9, y * R * .9, R * .17, 0, 6.2832); c.fill(); chrome(c, x * R * .9, y * R * .9, R * .13); }
-    c.strokeStyle = "rgba(0,0,0,.25)"; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, R * .96, 0, 6.2832); c.stroke();
-  } else {
-    const neon = SP.design === "neon", body = new Path2D();
-    body.arc(0, 0, R * .42, 0, 6.2832);
-    for (const [x, y] of lobes) { body.moveTo(x * R * .64 + R * .36, y * R * .64); body.arc(x * R * .64, y * R * .64, R * .36, 0, 6.2832); }
-    c.lineWidth = R * .5; c.lineCap = "round";
-    const arms = new Path2D(); for (const [x, y] of lobes) { arms.moveTo(0, 0); arms.lineTo(x * R * .64, y * R * .64); }
-    if (neon) {
-      c.fillStyle = c.strokeStyle = "#1B1736"; c.fill(body); c.stroke(arms);
-      c.shadowColor = "#00FFE0"; c.shadowBlur = R * .12; c.lineWidth = 2.5; c.strokeStyle = "#00FFE0";
-      for (const [x, y] of lobes) { c.beginPath(); c.arc(x * R * .64, y * R * .64, R * .33, 0, 6.2832); c.stroke(); }
-      c.shadowColor = "#FF3DCB"; c.strokeStyle = "#FF3DCB";
-      for (const [x, y] of lobes) { c.beginPath(); c.arc(x * R * .64, y * R * .64, R * .2, 0, 6.2832); c.stroke(); }
-      c.beginPath(); c.arc(0, 0, R * .26, 0, 6.2832); c.stroke(); c.shadowColor = "transparent";
-    } else {
-      const g = c.createLinearGradient(-R, -R, R, R); g.addColorStop(0, "#A58BFF"); g.addColorStop(.5, "#6D4BEA"); g.addColorStop(1, "#4A2FB8");
-      c.fillStyle = c.strokeStyle = g; c.fill(body); c.stroke(arms);
-      c.strokeStyle = "rgba(255,255,255,.28)"; c.lineWidth = 2;
-      for (const [x, y] of lobes) { c.beginPath(); c.arc(x * R * .64, y * R * .64, R * .34, Math.PI * 1.05, Math.PI * 1.6); c.stroke(); }
-      for (const [x, y] of lobes) { c.fillStyle = "#3A2A80"; c.beginPath(); c.arc(x * R * .64, y * R * .64, R * .25, 0, 6.2832); c.fill(); chrome(c, x * R * .64, y * R * .64, R * .21); }
-    }
+const SPIN_TOP = .16; // height of the spinner's top face
+// classic outline: lobe circles joined by concave arcs that just touch them, with holes for the weights and hub
+function spinShape(L, dl, rl, rc) {
+  const th = Math.PI / L, dc = dl * Math.cos(th) + Math.sqrt((rl + rc) ** 2 - (dl * Math.sin(th)) ** 2), off = Math.PI / 2;
+  const at = (d, a) => [d * Math.cos(a), d * Math.sin(a)], Lc = k => at(dl, off + k * 2 * th), Cc = k => at(dc, off + k * 2 * th + th);
+  const sh = new THREE.Shape();
+  for (let k = 0; k < L; k++) {
+    const [lx, ly] = Lc(k), [px, py] = Cc(k - 1), [nx, ny] = Cc(k), [mx, my] = Lc(k + 1);
+    sh.absarc(lx, ly, rl, Math.atan2(py - ly, px - lx), Math.atan2(ny - ly, nx - lx), false);
+    sh.absarc(nx, ny, rc, Math.atan2(ly - ny, lx - nx), Math.atan2(my - ny, mx - nx), true);
   }
-  // centre bearing cap (does not need to look rotated, but it is: the dimple makes the spin readable)
-  const cap = SP.design === "neon" ? ["#2A2450", "#120F24"] : SP.design === "metal" ? ["#FFE38A", "#D9A520"] : ["#FFE38A", "#E3A912"];
-  const g2 = c.createRadialGradient(-R * .08, -R * .1, R * .02, 0, 0, R * .24); g2.addColorStop(0, cap[0]); g2.addColorStop(1, cap[1]);
-  c.fillStyle = g2; c.beginPath(); c.arc(0, 0, R * .24, 0, 6.2832); c.fill();
-  c.fillStyle = "rgba(0,0,0,.18)"; c.beginPath(); c.arc(R * .07, -R * .05, R * .05, 0, 6.2832); c.fill();
-  SP.spr = cv2;
+  for (let k = 0; k < L; k++) { const [lx, ly] = Lc(k), h = new THREE.Path(); h.absarc(lx, ly, .25, 0, Math.PI * 2, true); sh.holes.push(h); }
+  const hub = new THREE.Path(); hub.absarc(0, 0, .27, 0, Math.PI * 2, true); sh.holes.push(hub);
+  return sh;
 }
-function spinSetup(force) {
-  const w = scv.clientWidth, hh = scv.clientHeight;
-  if (!w || !hh) return;
-  if (!force && w === SP.W && hh === SP.H) return;
-  SP.W = w; SP.H = hh; SP.dpr = Math.min(window.devicePixelRatio || 1, 2);
-  scv.width = Math.round(w * SP.dpr); scv.height = Math.round(hh * SP.dpr); sctx.setTransform(SP.dpr, 0, 0, SP.dpr, 0, 0);
-  SP.R = Math.min(w * .42, hh * .3, 210); SP.cx = w / 2; SP.cy = hh * .46;
-  buildSpinner();
+function buildSpinner() {
+  if (SP.root) { SP.scene.remove(SP.root); disposeTree(SP.root); }
+  const L = SPIN_LOBES[SP.design], root = new THREE.Group(), flat = new THREE.Group(), T = .22, top = T / 2 + .04;
+  flat.rotation.x = -Math.PI / 2; root.add(flat);
+  const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; flat.add(m); return m; };
+  const dirs = []; for (let k = 0; k < L; k++) { const a = Math.PI / 2 + k * 2 * Math.PI / L; dirs.push([Math.cos(a), Math.sin(a), a]); }
+  const chrome = chromeMat(), dark = new THREE.MeshStandardMaterial({ color: 0x2B2F36, roughness: .5, metalness: .4, envMap: GL.env });
+  const neon = SP.design === "neon";
+  if (SP.design === "metal") {
+    const steel = new THREE.MeshStandardMaterial({ color: 0xC9CED6, metalness: 1, roughness: .3, envMap: GL.env });
+    const sh = new THREE.Shape(); sh.absarc(0, 0, .96, 0, Math.PI * 2, false);
+    const hole = new THREE.Path(); hole.absarc(0, 0, .82, 0, Math.PI * 2, true); sh.holes.push(hole);
+    add(extrudeGeo(sh, .16, .025), steel);
+    for (const [x, y, a] of dirs) {
+      const s = add(new THREE.BoxGeometry(.18, .52, .14), steel, x * .58, y * .58); s.rotation.z = a - Math.PI / 2;
+      add(zcyl(.17, .22), dark, x * .89, y * .89); add(new THREE.SphereGeometry(.13, 32, 16), chrome, x * .89, y * .89, .06);
+    }
+    add(zcyl(.34, .2, 64), steel);
+  } else {
+    const body = neon ? new THREE.MeshStandardMaterial({ color: 0x1B1736, roughness: .55, envMap: GL.env, envMapIntensity: .5 })
+      : new THREE.MeshPhysicalMaterial({ color: 0x6D4BEA, roughness: .3, clearcoat: 1, clearcoatRoughness: .12, envMap: GL.env });
+    add(extrudeGeo(spinShape(L, .64, .38, .26), T), body);
+    const glow = c => new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
+    for (const [x, y] of dirs) {
+      const lx = x * .64, ly = y * .64;
+      if (neon) {
+        add(zcyl(.25, T * .9), new THREE.MeshStandardMaterial({ color: 0x120F24, roughness: .2, envMap: GL.env }), lx, ly);
+        add(new THREE.TorusGeometry(.33, .014, 8, 72), glow(0x00FFE0), lx, ly, top);
+        add(new THREE.TorusGeometry(.2, .012, 8, 64), glow(0xFF3DCB), lx, ly, T * .46);
+      } else {
+        add(ringGeo(.21, .25, T * .98), dark, lx, ly); add(zcyl(.21, T * .94), chrome, lx, ly);
+      }
+    }
+    add(ringGeo(.2, .27, T, 64), chrome);
+    if (neon) add(new THREE.TorusGeometry(.26, .012, 8, 64), glow(0xFF3DCB), 0, 0, top + .01);
+  }
+  // centre caps on both faces, with a dot so slow spins are easy to read
+  const capMat = neon ? new THREE.MeshStandardMaterial({ color: 0x2A2450, roughness: .3, envMap: GL.env })
+    : new THREE.MeshStandardMaterial({ color: 0xF2B21C, roughness: .28, metalness: .3, envMap: GL.env });
+  add(zcyl(.22, .07, 48), capMat, 0, 0, top + .02); add(zcyl(.22, .07, 48), capMat, 0, 0, -top - .02);
+  add(zcyl(.045, .02, 20), dark, .08, -.05, top + .06);
+  const blur = new THREE.Mesh(new THREE.CircleGeometry(1, 72), new THREE.MeshBasicMaterial({ color: neon ? 0x00FFE0 : SP.design === "metal" ? 0xC9CED6 : 0x7B5CFF, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }));
+  blur.position.z = top + .03; blur.visible = false; flat.add(blur);
+  SP.blur = blur; SP.root = root; SP.scene.add(root);
+}
+function spinSetup() {
+  if (!mount3D(secSpin)) return;
+  if (!SP.scene) {
+    const sc = new THREE.Scene(); SP.scene = sc;
+    SP.cam = new THREE.PerspectiveCamera(32, 1, .1, 60);
+    sc.add(new THREE.HemisphereLight(0xFFFFFF, 0x2A2440, .55));
+    const sun = new THREE.DirectionalLight(0xFFFFFF, 1.1); sun.position.set(-2, 6, 3); sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024); Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 1, far: 15 }); sun.shadow.radius = 4; sc.add(sun);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: .35 }));
+    floor.rotation.x = -Math.PI / 2; floor.position.y = -.25; floor.receiveShadow = true; sc.add(floor);
+    buildSpinner();
+  }
+  const asp = GL.w / GL.h, t = Math.tan(16 * Math.PI / 180), dist = Math.max(1.12 / (t * asp * .86), 1.12 / (t * .58)), el = 55 * Math.PI / 180;
+  SP.cam.aspect = asp; SP.cam.position.set(0, dist * Math.sin(el), dist * Math.cos(el)); SP.cam.lookAt(0, 0, 0); SP.cam.updateProjectionMatrix();
+  SP.W = GL.w;
 }
 function ensureSpinBed() {
   const a = ac(); if (!a || SP.bed) return;
@@ -2335,35 +2414,34 @@ function spinFrame(now) {
     if (rpm > SP.best) { SP.best = rpm; try { localStorage.setItem("fidget-spin-best", rpm); } catch (e) {} }
     spinBest.textContent = SP.best ? "Best " + SP.best : "";
   }
-  const c = sctx, R = SP.R, s = SP.spr, half = s.width / SP.dpr / 2;
-  c.clearRect(0, 0, SP.W, SP.H);
-  const sg = c.createRadialGradient(SP.cx, SP.cy + R * .12, R * .2, SP.cx, SP.cy + R * .12, R * 1.15);
-  sg.addColorStop(0, "rgba(0,0,0,.35)"); sg.addColorStop(1, "rgba(0,0,0,0)");
-  c.fillStyle = sg; c.beginPath(); c.arc(SP.cx, SP.cy + R * .12, R * 1.15, 0, 6.2832); c.fill();
-  // motion blur: faint copies spread over the angle covered in one frame
-  const span = Math.min(2.1, w / 60), copies = span > .04 ? Math.min(10, Math.ceil(span / .05)) : 0;
-  for (let i = copies; i >= 0; i--) {
-    c.globalAlpha = i ? .22 : 1;
-    c.save(); c.translate(SP.cx, SP.cy); c.rotate(SP.th - Math.sign(SP.om) * span * i / Math.max(1, copies));
-    c.drawImage(s, -half, -half, half * 2, half * 2); c.restore();
-  }
-  c.globalAlpha = 1;
+  // screen-clockwise spin is a negative turn about +Y seen from above
+  SP.root.rotation.y = -SP.th;
+  const bo = clamp((w - 12) / 70, 0, .45); SP.blur.material.opacity = bo; SP.blur.visible = bo > .01;
+  GL.r.render(SP.scene, SP.cam);
 }
-const spinAng = e => Math.atan2(e.offsetY - SP.cy, e.offsetX - SP.cx);
-scv.addEventListener("pointerdown", e => {
-  scv.setPointerCapture(e.pointerId); ensureSpinBed(); sHint.classList.add("gone");
+// angle of the finger around the hub, measured on the spinner's top face (screen-style: x right, z down)
+const spinPlane = { n: null, v: null };
+function spinHit(e) {
+  if (!spinPlane.n) { spinPlane.n = new THREE.Plane(new THREE.Vector3(0, 1, 0), -SPIN_TOP); spinPlane.v = new THREE.Vector3(); }
+  const p = rayAt(e, SP.cam).ray.intersectPlane(spinPlane.n, spinPlane.v);
+  return p ? { a: Math.atan2(p.z, p.x), r: Math.hypot(p.x, p.z) } : null;
+}
+on3D(secSpin, "pointerdown", e => {
+  if (!SP.scene) return;
+  GL.canvas.setPointerCapture(e.pointerId); ensureSpinBed(); sHint.classList.add("gone");
   if (SP.grab) return;
+  const h = spinHit(e); if (!h) return;
   if (Math.abs(SP.om) > 3) { S.knock(.6); buzz(16); } // caught it mid-spin
-  SP.om = 0; SP.grab = { id: e.pointerId, a: spinAng(e), t: performance.now(), vel: 0 };
+  SP.om = 0; SP.grab = { id: e.pointerId, a: h.a, t: performance.now(), vel: 0 };
 });
-scv.addEventListener("pointermove", e => {
+on3D(secSpin, "pointermove", e => {
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
-  const a = spinAng(e), now = performance.now(), dt = Math.max(.008, (now - g.t) / 1000);
-  let d = a - g.a; d = Math.atan2(Math.sin(d), Math.cos(d));
+  const h = spinHit(e); if (!h) return;
+  const now = performance.now(), dt = Math.max(.008, (now - g.t) / 1000);
+  let d = h.a - g.a; d = Math.atan2(Math.sin(d), Math.cos(d));
   // a finger near the hub swings the angle wildly, so only count moves from the arms outward
-  const far = Math.hypot(e.offsetX - SP.cx, e.offsetY - SP.cy) > SP.R * .25;
-  if (far) { SP.th += d; g.vel = g.vel * .5 + (d / dt) * .5; }
-  g.a = a; g.t = now;
+  if (h.r > .25) { SP.th += d; g.vel = g.vel * .5 + (d / dt) * .5; }
+  g.a = h.a; g.t = now;
 });
 const spinEnd = e => {
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
@@ -2371,12 +2449,12 @@ const spinEnd = e => {
   SP.om = performance.now() - g.t > 90 ? 0 : clamp(g.vel, -90, 90);
   if (Math.abs(SP.om) < .4) SP.om = 0; else { S.whoosh(); buzz(12); }
 };
-scv.addEventListener("pointerup", spinEnd); scv.addEventListener("pointercancel", spinEnd);
+on3D(secSpin, "pointerup", spinEnd); on3D(secSpin, "pointercancel", spinEnd);
 function setSpinDesign(s) {
   SP.design = s;
   document.querySelectorAll("#mode-spin .opt").forEach(b => b.setAttribute("aria-pressed", b.dataset.design === s ? "true" : "false"));
   try { localStorage.setItem("fidget-spin-design", s); } catch (e) {}
-  if (SP.W) buildSpinner();
+  if (SP.scene) buildSpinner();
 }
 document.querySelectorAll("#mode-spin .opt").forEach(b => b.addEventListener("click", () => { setSpinDesign(b.dataset.design); S.clack(.6); buzz(10); }));
 let savedDesign = "classic"; try { savedDesign = localStorage.getItem("fidget-spin-design") || "classic"; } catch (e) {}
@@ -2569,7 +2647,7 @@ const cEnd = e => { const g = NC.grab; if (!g || g.id !== e.pointerId) return; N
 ccv.addEventListener("pointerup", cEnd); ccv.addEventListener("pointercancel", cEnd);
 
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(false); if (mode === "zen") zenSetup(false); if (mode === "cradle") cradleSetup(false); });
+window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(false); if (mode === "cradle") cradleSetup(false); });
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
