@@ -1,6 +1,6 @@
 {
-  "appId": "com.yourname.fidget",
-  "appName": "Fidget",
+  "appId": "com.kawasmotion.digifidget",
+  "appName": "DigiFidget",
   "webDir": "www",
   "ios": {
     "contentInset": "never",

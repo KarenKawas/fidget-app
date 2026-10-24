@@ -1,6 +1,6 @@
-# Fidget app (iOS + Android)
+# DigiFidget (iOS + Android)
 
-This wraps the Fidget prototype in a real native app using Capacitor.
+This wraps the DigiFidget prototype in a real native app using Capacitor.
 The app uses the phone's real haptics engine (Taptic Engine on iPhone),
 so haptics work properly, unlike in a browser.
 
@@ -50,7 +50,12 @@ To get an installable file instead: Build > Build App Bundle(s) / APK(s) > Build
 All the app code lives in `www/index.html`. After editing it, run
 `npm run sync` and press Play/Run again.
 
-## Optional: lock to portrait
+## Portrait lock, icon and splash
+
+The CI build (`.github/workflows/build.yml`) locks the app to portrait and
+generates the app icon and splash screen from `scripts/make-icons.js`.
+To do the same for a local build, run `npm run icons` after `npx cap add`,
+then lock portrait yourself:
 
 - iOS: in Xcode, App target > General > Deployment Info, untick Landscape.
 - Android: in `android/app/src/main/AndroidManifest.xml`, add

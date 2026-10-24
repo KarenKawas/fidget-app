@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fidget</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<title>DigiFidget</title>
 <style>
+/* bundled by scripts/copy-vendor.js so the app works offline */
+@font-face{font-family:"Fredoka";font-weight:400;font-display:swap;src:url(vendor/fonts/fredoka-400.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:500;font-display:swap;src:url(vendor/fonts/fredoka-500.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:600;font-display:swap;src:url(vendor/fonts/fredoka-600.woff2) format("woff2")}
 :root{
   --surface:#F7F4FB; --ink:#2A2438; --muted:#6E6680; --line:rgba(42,36,56,.12);
   --sheet:#D9E9F4; --sheet-line:rgba(70,120,160,.10);
@@ -75,7 +77,8 @@ button{font:inherit;color:inherit}
 .swatches{display:flex;gap:10px;padding:0 6px}
 .sw{width:40px;height:40px;border-radius:50%;border:3px solid transparent;cursor:pointer;background:var(--c);box-shadow:inset 0 -4px 0 rgba(0,0,0,.15)}
 .sw[aria-pressed="true"]{border-color:var(--ink)}
-.drawer .spacer{flex:1}
+.drawer .modes{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin:0 -6px;padding:0 6px 8px;scrollbar-width:none}
+.drawer .modes::-webkit-scrollbar{display:none}
 .pill{border:0;border-radius:999px;padding:10px 18px;background:var(--line);cursor:pointer;font-weight:500;align-self:flex-start;margin-left:6px}
 .drawer .note{font-size:.85rem;color:var(--muted);margin:10px 6px 0;line-height:1.4}
 
@@ -381,13 +384,14 @@ button{font:inherit;color:inherit}
 </button>
 <div class="scrim" id="scrim"></div>
 <nav class="drawer" id="drawer" aria-label="Modes">
-  <h2>Fidget</h2>
+  <h2>DigiFidget</h2>
+  <div class="modes">
   <button class="mode-btn" data-mode="slime" aria-current="true"><span class="ico slime"></span>Slime</button>
   <button class="mode-btn" data-mode="board" aria-current="false"><span class="ico board"></span>Board</button>
   <button class="mode-btn" data-mode="bubbles" aria-current="false"><span class="ico bubbles"></span>Bubble wrap</button>
   <button class="mode-btn" data-mode="dice" aria-current="false"><span class="ico dice"></span>Dice</button>
   <button class="mode-btn" data-mode="grass" aria-current="false"><span class="ico grass"><svg viewBox="0 0 44 44"><path d="M4 44Q8 30 6 16Q12 30 11 44Z" fill="#3F9A2A"/><path d="M11 44Q15 26 18 10Q19 28 18 44Z" fill="#2E7A1E"/><path d="M18 44Q22 30 26 18Q25 32 25 44Z" fill="#4CAF33"/><path d="M25 44Q29 24 34 12Q33 30 32 44Z" fill="#2E7A1E"/><path d="M32 44Q36 30 40 20Q40 34 40 44Z" fill="#3F9A2A"/><circle cx="29" cy="15" r="3.4" fill="#fff"/><circle cx="29" cy="15" r="1.4" fill="#FFD23F"/></svg></span>Touch grass</button>
-  <div class="spacer"></div>
+  </div>
   <div class="pills"><button class="pill" id="soundBtn" aria-pressed="true">Sound on</button><button class="pill" id="hapticBtn">Haptics: strong</button></div>
   <p class="note" id="hapticNote" hidden>iPhone browsers block vibration. The installed app has full haptics.</p>
 </nav>
@@ -515,6 +519,7 @@ function setMode(m) {
   if (m === "bubbles") layoutBubbles(false);
   if (m === "dice") initDice();
   if (m === "grass") grassSetup(false);
+  try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
 }
 document.querySelectorAll(".mode-btn").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
@@ -1670,7 +1675,16 @@ setSeason(SEASONS[savedSeason] ? savedSeason : "summer");
 
 /* ================= loop + resize ================= */
 window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); });
+// silence everything (including the slime squish bed) while the app is in the background
+document.addEventListener("visibilitychange", () => {
+  if (!actx) return;
+  if (document.hidden) actx.suspend(); else actx.resume();
+});
 slimeSetup(true);
+let savedMode = null; try { savedMode = localStorage.getItem("fidget-mode"); } catch (e) {}
+if (location.hash.length > 1) savedMode = location.hash.slice(1); // index.html#dice opens a mode directly when previewing in a browser
+// wait for the deferred 3D engine scripts in case the last mode was Dice
+if (savedMode && savedMode !== "slime" && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 (function loop(now) {
   if (mode === "slime" && N) { slimeStep(now || 0); slimeRender(now || 0); }
   else if (bed) bed.g.gain.setTargetAtTime(0, actx.currentTime, .05);

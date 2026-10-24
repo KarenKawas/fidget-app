@@ -20,6 +20,10 @@ jobs:
           java-version: 21
       - run: npm install
       - run: npx cap add android
+      - name: App icon and splash
+        run: node scripts/make-icons.js && npx capacitor-assets generate --android
+      - name: Lock to portrait
+        run: sed -i 's/<activity/<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
       - run: npm run sync
       - name: Build APK
         working-directory: android
@@ -41,6 +45,16 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npx cap add ios
+      - name: App icon and splash
+        run: node scripts/make-icons.js && npx capacitor-assets generate --ios
+      - name: Lock to portrait
+        run: |
+          P=ios/App/App/Info.plist
+          for K in UISupportedInterfaceOrientations "UISupportedInterfaceOrientations~ipad"; do
+            /usr/libexec/PlistBuddy -c "Delete :$K" "$P" || true
+            /usr/libexec/PlistBuddy -c "Add :$K array" -c "Add :$K:0 string UIInterfaceOrientationPortrait" "$P"
+          done
+          /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" "$P" || /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" "$P"
       - run: npm run sync
       - name: Build unsigned IPA
         run: |
