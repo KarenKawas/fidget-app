@@ -37,6 +37,8 @@ html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15
 html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE8E1 80%)}
 html[data-mode="cradle"]{background:linear-gradient(180deg,#F1ECE4,#D6CCBE)}
 html[data-mode="cube"]{background:radial-gradient(ellipse at 50% 40%,#F6F3FA,#D9D0E8 80%)}
+html[data-mode="cube"].dodec-night{background:radial-gradient(ellipse at 50% 40%,#252A4F,#0A0B18 80%)}
+html.dodec-night #mode-cube .hint{color:rgba(220,225,255,.7)}
 *,*::before,*::after{box-sizing:inherit}
 body{
   height:100%; margin:0; overflow:hidden; overscroll-behavior:none; color:var(--ink); background:transparent;
@@ -3123,9 +3125,9 @@ Object.entries(ZITEMS).forEach(([k, v]) => {
 const secCube = $("#mode-cube"), cHint3 = $("#cubeHint");
 const CB = { W: 0, scene: null, cam: null, toy: null, mats: null, ctrls: [], ptrs: new Map(), act: null, rot: null, spin: null, pinch: null, zoom: 1, dist: 8, last: 0 };
 const CUBE_THEMES = {
-  violet: { body: 0x8B4FD8, a: 0xFFB400, b: 0x1E1A26, c: 0xFF7A1A, d: 0x2DBE4E, e: 0x5E2FA8 },
-  mint: { body: 0x14A889, a: 0xFF4F93, b: 0x1E1A26, c: 0xFFC300, d: 0x2F6FE0, e: 0x0B7A63 },
-  midnight: { body: 0x1B1E33, a: 0x00E5D4, b: 0x0D0E16, c: 0xFF2E9A, d: 0xA6FF3D, e: 0x33395A },
+  violet: { body: 0x8B4FD8, a: 0xFFB400, b: 0x1E1A26, c: 0xFF7A1A, d: 0x2DBE4E, e: 0x5E2FA8, r: 0xE5322D },
+  mint: { body: 0x14A889, a: 0xFF4F93, b: 0x1E1A26, c: 0xFFC300, d: 0x2F6FE0, e: 0x0B7A63, r: 0xE5322D },
+  midnight: { body: 0x1B1E33, a: 0x00E5D4, b: 0x0D0E16, c: 0xFF2E9A, d: 0xA6FF3D, e: 0x33395A, r: 0xFF2E9A },
 };
 const CUBE_IN = .7947; // distance from the centre to each face of a unit dodecahedron
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -3252,11 +3254,12 @@ const CTRL = {
   },
   button(g) {
     part(g, ringGeo(.2, .27, .07, 48), cmat("b", .5), 0, 0, .02);
-    const btn = part(g, zcyl(.19, .1, 48), cmat("c", .35), 0, 0, .05);
+    const btn = part(g, zcyl(.19, .1, 48), cmat("r", .35), 0, 0, .05);
     const glow = new THREE.Mesh(new THREE.TorusGeometry(.235, .012, 8, 48), new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0, toneMapped: false }));
     glow.position.z = .06; g.add(glow);
     let z = 0, t = 0, l = 0;
     return {
+      grumps: true, // pressing it annoys the little face
       down() { t = -.045; S.knock(.7); buzz(22); },
       up() { t = 0; l = 1; S.tick(2800, .12, .02); },
       step(dt) { z += (t - z) * Math.min(1, .5 * dt); btn.position.z = .05 + z; l = Math.max(0, l - dt / 30); glow.material.opacity = l; },
@@ -3277,25 +3280,44 @@ const CTRL = {
   ball(g) {
     const m = cmat("c", .35); m.map = stripeTex(2, "#FFFFFF", "#E8E0F0");
     const b = part(g, new THREE.SphereGeometry(.22, 32, 20), m, 0, 0, .02);
-    let ax = null, px = 0, py = 0, vx = 0, vy = 0, held = false, snd = 0;
+    let ax = null, px = 0, py = 0, vx = 0, vy = 0, held = false, ph = 0;
     // rolling under the finger: moving along the face's x turns it about the face's y (and vice versa)
     const roll = (dx, dy) => { b.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(V3(-dy, dx, 0).normalize(), Math.hypot(dx, dy) / .22)); };
+    // a smooth marble-on-glass rumble that follows the roll speed
+    const bed = () => {
+      if (CB.ballBed) return CB.ballBed;
+      const a = ac(); if (!a) return null;
+      const s = a.createBufferSource(), bp = a.createBiquadFilter(), lp = a.createBiquadFilter(), gn = a.createGain();
+      s.buffer = noise(a); s.loop = true; bp.type = "bandpass"; bp.Q.value = .9; bp.frequency.value = 220; lp.type = "lowpass"; lp.frequency.value = 1400; gn.gain.value = 0;
+      s.connect(bp).connect(lp).connect(gn).connect(out(a)); s.start();
+      return CB.ballBed = { bp, gn };
+    };
     return {
-      down() { ax = faceAxes(g); px = py = 0; held = true; },
+      down() { ax = faceAxes(g); px = py = 0; held = true; bed(); },
       move(p) {
         const [lx, ly] = toLocal(ax, p.dx, p.dy), dx = lx - px, dy = ly - py; px = lx; py = ly; vx = dx; vy = dy;
         if (Math.hypot(dx, dy) > 1e-4) roll(dx, dy);
-        const now = performance.now(); if (now - snd > 90 && Math.hypot(dx, dy) > .01) { snd = now; S.rustle(.3); buzz(2); }
       },
       up() { held = false; },
-      step(dt) { if (held) return; vx *= Math.pow(.92, dt); vy *= Math.pow(.92, dt); if (Math.hypot(vx, vy) > 1e-4) roll(vx * dt, vy * dt); },
+      step(dt) {
+        vx *= Math.pow(held ? .8 : .92, dt); vy *= Math.pow(held ? .8 : .92, dt);
+        const sp = Math.hypot(vx, vy);
+        if (!held && sp > 1e-4) roll(vx * dt, vy * dt);
+        const B = CB.ballBed; if (!B) return;
+        const v = Math.min(1, sp * 25), t = actx.currentTime; ph += sp * 40 * dt;
+        B.bp.frequency.setTargetAtTime(220 + v * 430, t, .05);
+        B.gn.gain.setTargetAtTime(soundOn ? v * .06 * (1 + .15 * Math.sin(ph)) : 0, t, .05);
+        if (v > .15 && Math.random() < .03 * dt) buzz(1);
+      },
     };
   },
   // a tiny kawaii face that reacts to everything you do with the toy
   face(g) {
     const cv = document.createElement("canvas"); cv.width = cv.height = 256;
     const x = cv.getContext("2d"), tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
-    const mesh = part(g, new THREE.CircleGeometry(.44, 48), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 }), 0, 0, .004);
+    const fm = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0x000000, transparent: true, roughness: .5, polygonOffset: true, polygonOffsetFactor: -2 });
+    CB.faceMat = fm;
+    const mesh = part(g, new THREE.CircleGeometry(.44, 48), fm, 0, 0, .004);
     mesh.castShadow = false;
     const F = { state: "", until: 0, held: null, touch: performance.now(), blinkAt: performance.now() + 3000, spinT: 0, snd: 0, ink: "#1E1A26" };
     const arc = (cx, cy, r, a0, a1, w) => { x.lineWidth = w; x.beginPath(); x.arc(cx, cy, r, a0, a1); x.stroke(); };
@@ -3332,7 +3354,11 @@ const CTRL = {
     const ctrl = {
       isFace: true,
       // other controls (and turning the toy) report here
-      poke(kind) { F.touch = performance.now(); if (kind === "control" && F.until < F.touch + 300) show("happy", 800); },
+      poke(kind) {
+        F.touch = performance.now();
+        if (kind === "grump") show("grumpy", 1300);
+        else if (kind === "control" && (F.until < F.touch + 300 || F.state !== "grumpy")) show("happy", 800);
+      },
       setInk(c) { F.ink = c; const s = F.state; F.state = ""; show(s || "idle", Math.max(0, F.until - performance.now())); },
       down(p) { moved = 0; last = [p.sx, p.sy]; },
       move(p) {
@@ -3356,27 +3382,54 @@ const CTRL = {
     draw("idle"); F.state = "idle";
     return ctrl;
   },
-  stone(g) {
-    const geo = new THREE.SphereGeometry(.34, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2); geo.rotateX(-Math.PI / 2); geo.scale(1, 1, -.12);
-    part(g, geo, cmat("e", .25), 0, 0, .012);
-    let ax = null, px = 0, py = 0, snd = 0;
+  // a chunky ON/OFF toggle: turns night mode on and off
+  power(g) {
+    const c = document.createElement("canvas"); c.width = 128; c.height = 160; const x = c.getContext("2d");
+    x.fillStyle = "#1E1A26"; x.fillRect(0, 0, 128, 160); x.fillStyle = "#FFFFFF"; x.font = "600 30px Fredoka, sans-serif"; x.textAlign = "center";
+    x.fillText("ON", 64, 34); x.fillText("OFF", 64, 150);
+    const lt = new THREE.CanvasTexture(c); lt.encoding = THREE.sRGBEncoding;
+    part(g, new THREE.BoxGeometry(.36, .46, .04), new THREE.MeshStandardMaterial({ map: lt, roughness: .6 }), 0, 0, .01);
+    part(g, zcyl(.07, .05, 24), cmat("b", .4), 0, 0, .04);
+    const piv = new THREE.Group(); piv.position.z = .05; g.add(piv);
+    const hg = new THREE.BoxGeometry(.1, .1, .24); hg.translate(0, 0, .12); part(piv, hg, cmat("e", .35));
+    part(piv, new THREE.SphereGeometry(.065, 20, 12), cmat("e", .35), 0, 0, .24);
+    const led = new THREE.Mesh(new THREE.SphereGeometry(.03, 16, 10), new THREE.MeshBasicMaterial({ color: 0x2A2A30, toneMapped: false })); led.position.set(.13, .17, .05); g.add(led);
+    let on = false, a = .45;
+    const set = (v, quiet) => { on = v; led.material.color.setHex(on ? 0x5BFF8A : 0x2A2A30); setNight(on, quiet); };
+    try { set(localStorage.getItem("fidget-dodec-night") === "1", true); a = on ? -.45 : .45; } catch (e) {}
     return {
-      down() { ax = faceAxes(g); px = py = 0; buzz(3); },
-      move(p) { const [lx, ly] = toLocal(ax, p.dx, p.dy), d = Math.hypot(lx - px, ly - py); px = lx; py = ly; const now = performance.now(); if (d > .006 && now - snd > 80) { snd = now; S.rustle(.25); buzz(2); } },
+      down() { set(!on); S.thunk(); S.tick(on ? 2400 : 1500, .22, .03, "square"); buzz(24); },
       up() {},
+      step(dt) { a += ((on ? -.45 : .45) - a) * Math.min(1, .4 * dt); piv.rotation.x = a; },
     };
   },
-  beads(g) {
-    const bs = [0, 2.09, 4.19].map((a, i) => { const m = part(g, new THREE.SphereGeometry(.13, 24, 16), cmat("c", .35), Math.cos(a) * .2, Math.sin(a) * .2, .04); m.userData.bead = i; return { m, w: 0, axis: V3(1, 0, 0) }; });
+  // three little bat-handle toggles, each with its own light
+  flips(g) {
+    part(g, new THREE.BoxGeometry(.52, .3, .04), cmat("b", .6), 0, -.02, .01);
+    const cols = [0xFFB400, 0x5BFF8A, 0xFF4F93];
+    const sw = [-1, 0, 1].map((k, i) => {
+      part(g, zcyl(.05, .03, 20), chromeMat(), k * .16, -.04, .035);
+      const piv = new THREE.Group(); piv.position.set(k * .16, -.04, .045); g.add(piv);
+      const hg = new THREE.CylinderGeometry(.02, .03, .18, 12); hg.rotateX(Math.PI / 2); hg.translate(0, 0, .09);
+      const h = part(piv, hg, chromeMat()); h.userData.flip = i;
+      const tip = part(piv, new THREE.SphereGeometry(.03, 12, 8), chromeMat(), 0, 0, .18); tip.userData.flip = i;
+      const led = new THREE.Mesh(new THREE.SphereGeometry(.025, 12, 8), new THREE.MeshBasicMaterial({ color: 0x2A2A30, toneMapped: false })); led.position.set(k * .16, .1, .04); g.add(led);
+      return { piv, led, on: false, a: .5, col: cols[i] };
+    });
     return {
-      down(p) { const b = bs[p.hit.object.userData.bead]; if (!b) return; b.w = .4; b.axis.set(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1)).normalize(); S.clack(.4); buzz(6); },
+      down(p) {
+        const s = sw[p.hit.object.userData.flip]; if (!s) return;
+        s.on = !s.on; s.led.material.color.setHex(s.on ? s.col : 0x2A2A30);
+        S.tick(2900 + sw.indexOf(s) * 160, .25, .02, "square"); S.knock(.35); buzz(14);
+      },
       up() {},
-      step(dt) { for (const b of bs) if (b.w > .002) { b.m.rotateOnAxis(b.axis, b.w * dt); b.w *= Math.pow(.95, dt); } },
+      step(dt) { for (const s of sw) { s.a += ((s.on ? -.5 : .5) - s.a) * Math.min(1, .5 * dt); s.piv.rotation.x = s.a; } },
     };
   },
 };
-// which control sits on which face, most visible first (the X-pad faces you, the joystick sits on top, the face peeks out beside them)
-const CUBE_ORDER = ["xpad", "joystick", "face", "rollers", "dial", "button", "spikes", "lever", "rocker", "ball", "stone", "beads"];
+// which control sits on which face: the X-pad faces you, the joystick sits on top, the cute face takes the next most visible side,
+// the red button goes on the face beside it (so you can watch it react), and the rest follow, most visible first
+const CUBE_REST = ["rollers", "dial", "spikes", "lever", "power", "rocker", "ball", "flips"];
 
 function cubeSetup() {
   if (!mount3D(secCube)) return;
@@ -3389,10 +3442,11 @@ function cubeSetup() {
 function cubeBuild() {
   const sc = new THREE.Scene(); CB.scene = sc; CB.mats = {};
   CB.cam = new THREE.PerspectiveCamera(35, 1, .1, 60);
-  sc.add(new THREE.HemisphereLight(0xFFFFFF, 0x8A80A0, .6));
+  const hemi = new THREE.HemisphereLight(0xFFFFFF, 0x8A80A0, .6); sc.add(hemi);
   const key = new THREE.DirectionalLight(0xFFFFFF, .95); key.position.set(-3, 5, 6); key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -2.5, right: 2.5, top: 2.5, bottom: -2.5, near: 1, far: 20 }); key.shadow.radius = 6; sc.add(key);
   const rim = new THREE.DirectionalLight(0xF0E6FF, .35); rim.position.set(4, -2, -3); sc.add(rim);
+  CB.lights = { hemi, key, rim };
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: .18 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = -1.7; floor.receiveShadow = true; sc.add(floor);
   const toy = new THREE.Group(); CB.toy = toy; sc.add(toy);
@@ -3407,11 +3461,13 @@ function cubeBuild() {
   const rest = N.slice(1), up = n => n.clone().applyQuaternion(q0).y, seen = n => n.clone().applyQuaternion(q0).z;
   rest.sort((a, b) => up(b) - up(a));
   const top = rest.shift(); rest.sort((a, b) => seen(b) - seen(a));
-  const faces = [front, top, ...rest];
-  CB.ctrls = faces.map((n, i) => {
+  const faceN = rest.shift(), bi = rest.reduce((best, n, i) => n.dot(faceN) > .4 && (best < 0 || seen(n) > seen(rest[best])) ? i : best, -1);
+  const btnN = rest.splice(bi, 1)[0];
+  const plan = [[front, "xpad"], [top, "joystick"], [faceN, "face"], [btnN, "button"], ...rest.map((n, i) => [n, CUBE_REST[i]])];
+  CB.ctrls = plan.map(([n, kind]) => {
     const g = new THREE.Group(), t = Math.abs(n.y) > .95 ? V3(1, 0, 0) : V3(0, 1, 0).cross(n).normalize(), b = n.clone().cross(t);
     g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(t, b, n)); g.position.copy(n).multiplyScalar(CUBE_IN); toy.add(g);
-    const c = CTRL[CUBE_ORDER[i]](g); c.g = g; g.traverse(o => { if (o.isMesh) o.userData.ctrl = c; });
+    const c = CTRL[kind](g); c.g = g; g.traverse(o => { if (o.isMesh) o.userData.ctrl = c; });
     return c;
   });
   toy.quaternion.copy(q0);
@@ -3425,7 +3481,27 @@ function setCubeTheme(name) {
   if (!CB.mats) return;
   const T = CUBE_THEMES[name];
   for (const [k, list] of Object.entries(CB.mats)) for (const m of list) m.color.setHex(T[k]);
-  if (CB.face) CB.face.setInk(name === "midnight" ? "#F4F1FA" : "#1E1A26");
+  CB.theme = name; cubeInk();
+}
+function cubeInk() { if (CB.face) CB.face.setInk(CB.night || CB.theme === "midnight" ? "#F4F1FA" : "#1E1A26"); }
+function setNight(on, quiet) {
+  CB.night = on ? 1 : 0; cubeInk();
+  document.documentElement.classList.toggle("dodec-night", on);
+  try { localStorage.setItem("fidget-dodec-night", on ? "1" : "0"); } catch (e) {}
+  if (!quiet && CB.face) CB.face.poke("control");
+}
+// eases between day and night: lights dim to moonlight and the coloured plastic starts to glow
+function cubeNight(dt) {
+  const t = CB.night || 0; if (Math.abs(t - (CB.nv || 0)) < .001 && CB.nvSet) return;
+  CB.nv = (CB.nv || 0) + (t - (CB.nv || 0)) * Math.min(1, .1 * dt); CB.nvSet = true;
+  const v = CB.nv, L = CB.lights, moon = CB.moon || (CB.moon = [new THREE.Color(0x4A5AA8), new THREE.Color(0x8090FF)]);
+  L.hemi.intensity = .6 - .46 * v; L.key.intensity = .95 - .72 * v; L.rim.intensity = .35 - .15 * v;
+  L.hemi.color.setHex(0xFFFFFF).lerp(moon[0], v); L.key.color.setHex(0xFFFFFF).lerp(moon[1], v);
+  for (const [k, list] of Object.entries(CB.mats)) for (const m of list) {
+    if (!m.emissive) continue;
+    m.emissive.copy(m.color).multiplyScalar(k === "b" ? 0 : k === "body" ? .07 * v : .55 * v);
+  }
+  if (CB.faceMat) { CB.faceMat.emissive.setRGB(v * .6, v * .6, v * .6); }
 }
 function cubeFrame(now) {
   const dt = clamp((now - (CB.last || now - 16.7)) / 16.67, .25, 2.5); CB.last = now;
@@ -3433,6 +3509,7 @@ function cubeFrame(now) {
     CB.toy.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(CB.spin.axis, CB.spin.angle * dt)); CB.spin.angle *= Math.pow(.94, dt);
   }
   for (const c of CB.ctrls) if (c.step) c.step(dt);
+  cubeNight(dt);
   GL.r.render(CB.scene, CB.cam);
 }
 function cubeHit(e) {
@@ -3449,7 +3526,7 @@ on3D(secCube, "pointerdown", e => {
   }
   if (CB.ptrs.size > 2) return;
   const hit = cubeHit(e), c = hit && hit.object.userData.ctrl;
-  if (CB.face) CB.face.poke(c && c !== CB.face ? "control" : null);
+  if (CB.face) CB.face.poke(c && c.grumps ? "grump" : c && c !== CB.face ? "control" : null);
   if (c) { CB.act = { c, id: e.pointerId, x0: e.clientX, y0: e.clientY }; c.down({ hit, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0 }); return; }
   CB.rot = { id: e.pointerId, x: e.clientX, y: e.clientY }; CB.spin = null;
 });
@@ -3634,6 +3711,7 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, popFrame, spinFra
   if (mode !== "zen" && Z.bed) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .1);
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
   if (mode === "cube" && CB.W) cubeFrame(now || 0);
+  else if (CB.ballBed) CB.ballBed.gn.gain.setTargetAtTime(0, actx.currentTime, .05);
   if (mode === "spin" && SP.W) spinFrame(now || 0);
   else if (SP.bed) { SP.bed.g.gain.setTargetAtTime(0, actx.currentTime, .05); SP.bed.og.gain.setTargetAtTime(0, actx.currentTime, .05); }
   requestAnimationFrame(loop);
