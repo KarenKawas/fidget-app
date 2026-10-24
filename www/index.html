@@ -682,7 +682,7 @@ function setMode(m) {
   document.documentElement.dataset.mode = m;
   if (m === "slime") slimeSetup(false);
   if (m === "bubbles") layoutBubbles(false);
-  if (m === "dice") { initDice(); tiltRebase(); }
+  if (m === "dice") initDice();
   if (m === "grass") grassSetup(false);
   if (m === "pop") popSetup(false);
   if (m === "spin") spinSetup();
@@ -1659,15 +1659,13 @@ function onMotion(e) {
   });
   if (!D.rolling) startRoll(); else { D.settle = 0; D.rollStart = now; }
 }
-// tilt: the phone's angle steers gravity on the table, measured from however it was held when tilt started
-const TILT = { base: null, gx: 0, gz: 0, kick: [0, 0] };
+// tilt: the phone's angle steers gravity on the table; lying flat is level
+const TILT = { gx: 0, gz: 0, kick: [0, 0] };
 const askOrient = typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function";
-function tiltRebase() { TILT.base = null; }
 function onOrient(e) {
   if (mode !== "dice" || !D.ready || e.beta == null || e.gamma == null) return;
-  if (!TILT.base) { TILT.base = [e.beta, e.gamma]; return; }
   const lim = 50 * Math.PI / 180, R = Math.PI / 180;
-  const tz = clamp((e.beta - TILT.base[0]) * R, -lim, lim), tx = clamp((e.gamma - TILT.base[1]) * R, -lim, lim);
+  const tz = clamp(e.beta * R, -lim, lim), tx = clamp(e.gamma * R, -lim, lim);
   // tilt right -> roll right (+x); top edge up -> roll toward the bottom of the screen (+z)
   const G = 34, sx = Math.sin(tx), sz = Math.sin(tz);
   TILT.gx += (G * sx - TILT.gx) * .3; TILT.gz += (G * sz - TILT.gz) * .3;
@@ -1694,7 +1692,7 @@ function setShake(on) {
   shakeOn = on; shakeBtn.textContent = on ? "Tilt: on" : "Tilt: off"; shakeBtn.setAttribute("aria-pressed", on);
   const verb = on && motionOK ? "addEventListener" : "removeEventListener";
   window[verb]("devicemotion", onMotion); window[verb]("deviceorientation", onOrient);
-  tiltRebase(); TILT.gx = TILT.gz = 0; TILT.kick = [0, 0];
+  TILT.gx = TILT.gz = 0; TILT.kick = [0, 0];
   if (!on && D.ready) D.world.gravity.set(0, -34, 0);
   try { localStorage.setItem("fidget-dice-shake", on ? "1" : "0"); } catch (e) {}
 }
