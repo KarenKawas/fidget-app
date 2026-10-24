@@ -34,7 +34,7 @@ html[data-mode="dice"]{background:#3A2212}
 html[data-mode="grass"]{background:var(--grassbg,#3F8226)}
 html[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.55) 0 3px,transparent 3.5px) 0 0/28px 28px,#FBE3EE}
 html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15122A 75%)}
-html[data-mode="zen"]{background:#E6D5B0}
+html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE8E1 80%)}
 html[data-mode="cradle"]{background:linear-gradient(180deg,#F1ECE4,#D6CCBE)}
 *,*::before,*::after{box-sizing:inherit}
 body{
@@ -88,7 +88,7 @@ button{font:inherit;color:inherit}
 .drawer .note{font-size:.85rem;color:var(--muted);margin:10px 6px 0;line-height:1.4}
 
 /* ---------- slime ---------- */
-#slime,#dicecv,#grasscv,#popcv,#zencv,#cradlecv,.gl3d{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
+#slime,#dicecv,#grasscv,#popcv,#cradlecv,.gl3d{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
 .hint{
   position:absolute; left:0; right:0; bottom:152px; text-align:center; margin:0; pointer-events:none;
   font-size:1.05rem; font-weight:500; color:rgba(255,255,255,.92); text-shadow:0 1px 6px rgba(0,0,0,.25);
@@ -346,7 +346,21 @@ button{font:inherit;color:inherit}
 .ico.zen{background:radial-gradient(circle at 34% 40%,#7D776E 0 6px,transparent 6.5px),repeating-radial-gradient(circle at 34% 40%,#E9DABA 0 3px,#CDB98F 3px 4.5px)}
 .ico.cradle{background:linear-gradient(180deg,#F4EFE8,#D9CFC2);display:grid;place-items:center}
 .ico.cradle svg{width:36px;height:36px}
-#mode-zen .hint{color:rgba(90,70,40,.75);text-shadow:none;bottom:84px}
+#mode-zen .hint{color:rgba(60,50,40,.7);text-shadow:none;bottom:96px}
+.zen-tools{left:10px;right:10px;transform:none;gap:2px;padding:5px}
+.zen-tools .top-btn{min-width:0;flex:1;padding:6px 4px 5px;font-size:.74rem}
+.zen-tools .top-btn svg{width:26px;height:26px}
+.zen-tools .top-btn[aria-pressed="true"],.zen-tools .top-btn[aria-expanded="true"]{background:rgba(42,36,56,.13)}
+.zen-view{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;display:flex;gap:8px}
+.zen-view button{width:46px;height:46px;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;background:rgba(255,255,255,.8);box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.zen-view svg{width:22px;height:22px}
+.zen-items{position:absolute;z-index:5;left:12px;right:12px;bottom:92px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px;border-radius:20px;
+  background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.zen-items[hidden]{display:none}
+.zen-items .opt{padding:7px 12px;box-shadow:none;background:rgba(42,36,56,.07)}
+.zen-trash{position:fixed;z-index:5;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translateX(-50%);padding:10px 18px;border-radius:999px;
+  font-weight:500;color:#fff;background:rgba(200,50,50,.75);transition:transform .15s,background .15s;pointer-events:none}
+.zen-trash.over{transform:translateX(-50%) scale(1.12);background:#D0302C}
 #mode-cradle .hint{color:rgba(60,50,40,.7);text-shadow:none;bottom:40px}
 #mode-grass .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
 #mode-grass .newsheet{bottom:70px}
@@ -467,10 +481,22 @@ button{font:inherit;color:inherit}
     </div>
   </section>
 
-  <section class="mode" id="mode-zen" aria-label="Zen sand garden">
-    <canvas id="zencv" aria-label="A zen sand garden. Drag to rake the sand, drag a stone to move it."></canvas>
-    <p class="hint" id="zHint">Drag to rake the sand</p>
-    <button class="newsheet" id="zenSmooth">Smooth the sand</button>
+  <section class="mode" id="mode-zen" aria-label="Zen sand garden. Drag to rake the sand, two fingers to turn and zoom, drag an item to move it.">
+    <p class="hint" id="zHint">Drag to rake · two fingers to turn</p>
+    <div class="zen-view">
+      <button id="zenL" aria-label="Turn the garden left"><svg viewBox="0 0 24 24" fill="none" stroke="#2A2438" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg></button>
+      <button id="zenR" aria-label="Turn the garden right"><svg viewBox="0 0 24 24" fill="none" stroke="#2A2438" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4"/></svg></button>
+    </div>
+    <div class="zen-trash" id="zenTrash" hidden>Drop here to remove</div>
+    <div class="zen-items" id="zenItems" role="group" aria-label="Add an item" hidden></div>
+    <div class="toppings zen-tools" role="toolbar" aria-label="Zen garden tools">
+      <button class="top-btn" id="zenAdd" aria-expanded="false" aria-controls="zenItems"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 8v14M8 15h14"/><circle cx="15" cy="15" r="11"/></svg>Add</button>
+      <button class="top-btn" data-tool="rake" aria-pressed="true"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 28V13M6 13h18M7 13v-6M11 13v-6M15 13v-6M19 13v-6M23 13v-6"/></svg>Rake</button>
+      <button class="top-btn" data-tool="wide" aria-pressed="false"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 28V14M5 14h20M6 14V6M15 14V6M24 14V6"/></svg>Wide</button>
+      <button class="top-btn" data-tool="stylus" aria-pressed="false"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 26l3-1 13-13-2-2L9 23z"/><path d="M20 8l2 2"/></svg>Stylus</button>
+      <button class="top-btn" data-tool="smooth" aria-pressed="false"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20h20c0 3-2 4-4 4H9c-2 0-4-1-4-4zM15 20v-9a3 3 0 0 1 3-3h2"/></svg>Smooth</button>
+      <button class="top-btn" id="zenClear"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22h18M9 22c0-4 2-6 6-6s6 2 6 6M15 16V5"/></svg>Clear</button>
+    </div>
   </section>
 
   <section class="mode" id="mode-cradle" aria-label="Newton's cradle">
@@ -632,7 +658,7 @@ function setMode(m) {
   if (m === "grass") grassSetup(false);
   if (m === "pop") popSetup(false);
   if (m === "spin") spinSetup();
-  if (m === "zen") zenSetup(false);
+  if (m === "zen") zenSetup();
   if (m === "cradle") cradleSetup(false);
   try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
@@ -2460,98 +2486,390 @@ document.querySelectorAll("#mode-spin .opt").forEach(b => b.addEventListener("cl
 let savedDesign = "classic"; try { savedDesign = localStorage.getItem("fidget-spin-design") || "classic"; } catch (e) {}
 setSpinDesign(SPIN_LOBES[savedDesign] ? savedDesign : "classic");
 
-/* ================= zen garden ================= */
-const zcv = $("#zencv"), zctx = zcv.getContext("2d"), zHint = $("#zHint");
-const Z = { W: 0, H: 0, dpr: 1, sand: null, sx: null, stones: [], ptrs: new Map(), dirty: true, snd: 0, bz: 0 };
-const TINES = [-2, -1, 0, 1, 2], TINE_GAP = 9;
-function zenSetup(force) {
-  const w = zcv.clientWidth, hh = zcv.clientHeight;
-  if (!w || !hh) return;
-  if (!force && w === Z.W && hh === Z.H) return;
-  const first = !Z.W; Z.W = w; Z.H = hh; Z.dpr = Math.min(window.devicePixelRatio || 1, 2);
-  zcv.width = Math.round(w * Z.dpr); zcv.height = Math.round(hh * Z.dpr); zctx.setTransform(Z.dpr, 0, 0, Z.dpr, 0, 0);
-  Z.sand = document.createElement("canvas"); Z.sand.width = zcv.width; Z.sand.height = zcv.height;
-  Z.sx = Z.sand.getContext("2d"); Z.sx.setTransform(Z.dpr, 0, 0, Z.dpr, 0, 0);
-  if (first) [[.3, .3, 36], [.7, .5, 26], [.38, .68, 19]].forEach(([x, y, r]) => Z.stones.push(makeZenStone(w * x, hh * y, r)));
-  else Z.stones.forEach(s => { s.x = clamp(s.x, s.r, w - s.r); s.y = clamp(s.y, s.r + 60, hh - s.r - 90); });
-  smoothSand();
+/* ================= zen garden (3D) ================= */
+// A tabletop sand tray seen isometrically. The sand is a heightfield: tools carve grooves and push the sand up
+// beside them, then anything steeper than the angle of repose slowly slumps, so it settles but never springs back.
+const secZen = $("#mode-zen"), zHint = $("#zHint"), zTrash = $("#zenTrash"), zItemsBar = $("#zenItems"), zAddBtn = $("#zenAdd");
+const ZW = 5.2, ZD = 4, ZNX = 168, ZNZ = 130, ZDX = ZW / (ZNX - 1), ZDZ = ZD / (ZNZ - 1);
+const ZMAXD = ZDX * .62; // largest height step between neighbours that sand will hold
+const ZTOOLS = {
+  rake: { tines: [-.22, -.11, 0, .11, .22], r: .042, depth: .034 },
+  wide: { tines: [-.2, 0, .2], r: .07, depth: .04 },
+  stylus: { tines: [0], r: .034, depth: .042 },
+};
+const Z = { W: 0, scene: null, cam: null, sand: null, h: null, dirty: null, settle: null, tool: "rake", az: Math.PI / 4, azV: 0, azT: null, zoom: 1,
+  items: [], ptrs: new Map(), stroke: null, drag: null, twist: null, snd: 0, bz: 0, last: 0, smoke: [], v: null };
+const ZITEMS = {
+  stone: { label: "Big stone", r: .5 }, pebbles: { label: "Pebbles", r: .32 }, moss: { label: "Moss", r: .46 },
+  lantern: { label: "Lantern", r: .24 }, pagoda: { label: "Pagoda", r: .22 }, bridge: { label: "Bridge", r: .62 },
+  tree: { label: "Blossom tree", r: .42 }, incense: { label: "Incense", r: .2 }, statue: { label: "Statue", r: .28 },
+};
+const ZSTART = [
+  ["incense", -1.25, .1, 0], ["bridge", .25, .25, .25], ["stone", 1.35, 1.0, .4], ["stone", 1.85, .55, 2.1], ["stone", .95, 1.35, 1.2],
+  ["pebbles", .1, -.05, 0], ["pebbles", -.35, 1.35, 1], ["moss", .2, -1.35, 0], ["pagoda", 1.45, -1.35, 0], ["lantern", -.55, -1.5, 0],
+  ["tree", -2.05, -1.45, .5], ["tree", 2.05, -.55, 2.4],
+];
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* ---- sand heightfield ---- */
+const zIdx = (i, j) => j * ZNX + i;
+function zMark(i0, j0, i1, j1) {
+  const d = Z.dirty, s = Z.settle;
+  d[0] = Math.min(d[0], i0); d[1] = Math.min(d[1], j0); d[2] = Math.max(d[2], i1); d[3] = Math.max(d[3], j1);
+  s[0] = Math.min(s[0], i0); s[1] = Math.min(s[1], j0); s[2] = Math.max(s[2], i1); s[3] = Math.max(s[3], j1); s[4] = 40;
 }
-function makeZenStone(x, y, r) {
-  const c = document.createElement("canvas"), d = Z.dpr, S2 = r * 2.8;
-  c.width = c.height = Math.ceil(S2 * d);
-  const g = c.getContext("2d"); g.scale(d, d); g.translate(S2 / 2, S2 / 2);
-  const pts = []; for (let i = 0; i < 14; i++) { const a = i / 14 * 6.2832, rr = r * rnd(.86, 1.04); pts.push([Math.cos(a) * rr, Math.sin(a) * rr * .9]); }
-  const outline = () => { g.beginPath(); pts.forEach(([px, py], i) => { const [qx, qy] = pts[(i + 1) % 14]; i ? 0 : g.moveTo((px + qx) / 2, (py + qy) / 2); g.quadraticCurveTo(qx, qy, (qx + pts[(i + 2) % 14][0]) / 2, (qy + pts[(i + 2) % 14][1]) / 2); }); g.closePath(); };
-  g.save(); g.shadowColor = "rgba(70,50,20,.45)"; g.shadowBlur = r * .35; g.shadowOffsetX = r * .12; g.shadowOffsetY = r * .2;
-  outline(); g.fillStyle = "#6E6A64"; g.fill(); g.restore();
-  const l = 38 + Math.random() * 14, gr = g.createRadialGradient(-r * .35, -r * .4, r * .1, 0, 0, r * 1.05);
-  gr.addColorStop(0, `hsl(30,6%,${l + 22}%)`); gr.addColorStop(.6, `hsl(30,5%,${l}%)`); gr.addColorStop(1, `hsl(30,6%,${l - 14}%)`);
-  outline(); g.fillStyle = gr; g.fill();
-  g.save(); g.clip(); g.fillStyle = "rgba(0,0,0,.12)"; for (let i = 0; i < r * 3; i++) g.fillRect(rnd(-r, r), rnd(-r, r), 1.3, 1.3);
-  g.fillStyle = "rgba(255,255,255,.1)"; for (let i = 0; i < r * 2; i++) g.fillRect(rnd(-r, r), rnd(-r, r), 1, 1); g.restore();
-  return { x, y, r, spr: c, size: S2 };
+// one tine touching down at (x, z): scoop a rounded trough and pile what was removed in a ring just outside it
+function zStamp(x, z, r, depth) {
+  const h = Z.h, ci = (x + ZW / 2) / ZDX, cj = (z + ZD / 2) / ZDZ, R = r * 2.1 / ZDX;
+  const i0 = Math.max(1, Math.floor(ci - R)), i1 = Math.min(ZNX - 2, Math.ceil(ci + R)), j0 = Math.max(1, Math.floor(cj - R)), j1 = Math.min(ZNZ - 2, Math.ceil(cj + R));
+  if (i0 > i1 || j0 > j1) return;
+  let rem = 0, sw = 0;
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const d = Math.hypot((i - ci) * ZDX, (j - cj) * ZDZ);
+    if (d < r) { const t = -depth * .5 * (1 + Math.cos(Math.PI * d / r)), k = zIdx(i, j); if (h[k] > t) { rem += h[k] - t; h[k] = t; } }
+    else if (d < r * 2.1) sw += Math.sin(Math.PI * (d - r) / (r * 1.1));
+  }
+  if (rem > 0 && sw > 0) for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const d = Math.hypot((i - ci) * ZDX, (j - cj) * ZDZ);
+    if (d >= r && d < r * 2.1) h[zIdx(i, j)] += rem * Math.sin(Math.PI * (d - r) / (r * 1.1)) / sw;
+  }
+  zMark(i0 - 1, j0 - 1, i1 + 1, j1 + 1);
 }
-function smoothSand() {
-  const x = Z.sx, W = Z.W, H = Z.H;
-  const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#EDDDBA"); g.addColorStop(1, "#E0CDA4"); x.fillStyle = g; x.fillRect(0, 0, W, H);
-  for (let i = 0; i < W * H / 60; i++) { x.fillStyle = Math.random() < .5 ? "rgba(255,250,235,.35)" : "rgba(140,110,60,.18)"; x.fillRect(rnd(0, W), rnd(0, H), 1.2, 1.2); }
-  Z.stones.forEach(stoneRings); Z.dirty = true;
+function zSmooth(x, z, R) {
+  const h = Z.h, ci = (x + ZW / 2) / ZDX, cj = (z + ZD / 2) / ZDZ, Rc = R / ZDX;
+  const i0 = Math.max(1, Math.floor(ci - Rc)), i1 = Math.min(ZNX - 2, Math.ceil(ci + Rc)), j0 = Math.max(1, Math.floor(cj - Rc)), j1 = Math.min(ZNZ - 2, Math.ceil(cj + Rc));
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const f = 1 - Math.hypot((i - ci) * ZDX, (j - cj) * ZDZ) / R; if (f <= 0) continue;
+    const k = zIdx(i, j), avg = (h[k - 1] + h[k + 1] + h[k - ZNX] + h[k + ZNX]) * .25;
+    h[k] += ((avg - h[k]) * .6 - h[k] * .12) * f;
+  }
+  zMark(i0 - 1, j0 - 1, i1 + 1, j1 + 1);
 }
-// one raked line: a shadowed trough with a lit ridge on the side facing the light (top-left)
-function groove(x, pts, w) {
-  if (pts.length < 2) return;
-  const path = () => { x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); };
-  x.lineCap = x.lineJoin = "round";
-  x.save(); x.translate(-.9, -1.1); path(); x.strokeStyle = "rgba(255,250,232,.75)"; x.lineWidth = w; x.stroke(); x.restore();
-  x.save(); x.translate(.7, .9); path(); x.strokeStyle = "rgba(120,92,50,.32)"; x.lineWidth = w; x.stroke(); x.restore();
-  path(); x.strokeStyle = "rgba(196,170,120,.9)"; x.lineWidth = w * .55; x.stroke();
-}
-function stoneRings(s) {
-  for (let k = 1; k <= 3; k++) {
-    const pts = [], rr = s.r + 6 + k * TINE_GAP;
-    for (let i = 0; i <= 48; i++) { const a = i / 48 * 6.2832; pts.push([s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr * .92]); }
-    groove(Z.sx, pts, 3.2);
+// a groove along a polyline (tool tines spread across the direction of travel)
+function zGroove(pts, tool, nx, nz) {
+  const T = ZTOOLS[tool];
+  for (let p = 1; p < pts.length; p++) {
+    const [ax, az] = pts[p - 1], [bx, bz] = pts[p], l = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(l / (T.r * .45)));
+    let px = nx, pz = nz;
+    if (px === undefined) { px = -(bz - az) / (l || 1); pz = (bx - ax) / (l || 1); }
+    for (let s = 1; s <= n; s++) { const x = ax + (bx - ax) * s / n, z = az + (bz - az) * s / n; for (const o of T.tines) zStamp(x + px * o, z + pz * o, T.r, T.depth); }
   }
 }
-const inStone = (x, y) => Z.stones.some(s => (x - s.x) ** 2 + ((y - s.y) / .92) ** 2 < (s.r + 4) ** 2);
-function rake(p, x1, y1) {
-  const dx = x1 - p.x, dy = y1 - p.y, l = Math.hypot(dx, dy);
-  if (l < 3) return 0;
-  // smoothed heading keeps the five tines parallel through wobbly finger paths
-  p.hx = p.hx * .6 + dx / l * .4; p.hy = p.hy * .6 + dy / l * .4;
-  const hl = Math.hypot(p.hx, p.hy) || 1, nx = -p.hy / hl, ny = p.hx / hl;
-  for (const k of TINES) {
-    const o = k * TINE_GAP, a = [p.x + (p.nx ?? nx) * o, p.y + (p.ny ?? ny) * o], b = [x1 + nx * o, y1 + ny * o];
-    if (!inStone(...a) && !inStone(...b)) groove(Z.sx, [a, b], 3.2);
+function zRingAround(x, z, r) { for (const rr of [r + .14, r + .27]) { const pts = []; for (let a = 0; a <= 64; a++) pts.push([x + Math.cos(a / 64 * 6.2832) * rr, z + Math.sin(a / 64 * 6.2832) * rr]); zGroove(pts, "stylus"); } }
+// sand steeper than it can hold slides down a little each frame (only near recent work)
+function zRelax() {
+  const s = Z.settle; if (s[4] <= 0) return;
+  const h = Z.h, i0 = Math.max(1, s[0]), i1 = Math.min(ZNX - 2, s[2]), j0 = Math.max(1, s[1]), j1 = Math.min(ZNZ - 2, s[3]);
+  let moved = 0;
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const k = zIdx(i, j);
+    for (const n of [k + 1, k + ZNX]) {
+      const d = h[k] - h[n], ex = Math.abs(d) - ZMAXD;
+      if (ex > 2e-4) { const t = ex * .22 * Math.sign(d); h[k] -= t; h[n] += t; moved++; }
+    }
   }
-  p.nx = nx; p.ny = ny; p.x = x1; p.y = y1; Z.dirty = true;
-  return l;
+  // only the mesh needs refreshing here; the settle area and its countdown are left alone so this winds down
+  const d = Z.dirty;
+  d[0] = Math.min(d[0], i0 - 1); d[1] = Math.min(d[1], j0 - 1); d[2] = Math.max(d[2], i1 + 1); d[3] = Math.max(d[3], j1 + 1);
+  s[4] = moved ? s[4] - 1 : 0;
+  if (!s[4]) { s[0] = s[1] = 1e9; s[2] = s[3] = -1; }
 }
-function zenFrame() {
-  if (!Z.dirty) return; Z.dirty = false;
-  const c = zctx; c.drawImage(Z.sand, 0, 0, Z.W, Z.H);
-  for (const s of Z.stones) c.drawImage(s.spr, s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
+function zUpload() {
+  const d = Z.dirty; if (d[2] < 0) return;
+  const g = Z.sand.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, h = Z.h;
+  const i0 = Math.max(0, d[0]), i1 = Math.min(ZNX - 1, d[2]), j0 = Math.max(0, d[1]), j1 = Math.min(ZNZ - 1, d[3]);
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const k = zIdx(i, j), hl = h[i > 0 ? k - 1 : k], hr = h[i < ZNX - 1 ? k + 1 : k], hu = h[j > 0 ? k - ZNX : k], hd = h[j < ZNZ - 1 ? k + ZNX : k];
+    pos[k * 3 + 1] = h[k];
+    let nx = (hl - hr) / (2 * ZDX), nz = (hu - hd) / (2 * ZDZ); const l = 1 / Math.sqrt(nx * nx + 1 + nz * nz);
+    nor[k * 3] = nx * l; nor[k * 3 + 1] = l; nor[k * 3 + 2] = nz * l;
+  }
+  for (const a of [g.attributes.position, g.attributes.normal]) { a.updateRange.offset = j0 * ZNX * 3; a.updateRange.count = (j1 - j0 + 1) * ZNX * 3; a.needsUpdate = true; }
+  d[0] = d[1] = 1e9; d[2] = d[3] = -1;
 }
-const zenStoneAt = (x, y) => { for (let i = Z.stones.length - 1; i >= 0; i--) { const s = Z.stones[i]; if (Math.hypot(x - s.x, y - s.y) < s.r + 8) return s; } return null; };
-zcv.addEventListener("pointerdown", e => {
-  zcv.setPointerCapture(e.pointerId); ac(); zHint.classList.add("gone");
-  const st = zenStoneAt(e.offsetX, e.offsetY);
-  if (st) { Z.stones.splice(Z.stones.indexOf(st), 1); Z.stones.push(st); S.knock(.5); buzz(12); }
-  Z.ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY, hx: 0, hy: 0, nx: null, ny: null, st, ox: st ? st.x - e.offsetX : 0, oy: st ? st.y - e.offsetY : 0 });
+function zClearSand() { Z.h.fill(0); zMark(0, 0, ZNX - 1, ZNZ - 1); Z.settle[4] = 0; for (const it of Z.items) zRingAround(it.x, it.z, ZITEMS[it.kind].r); }
+// the opening pattern from the reference: rings around the incense, waves sweeping out to the right
+function zStartPattern() {
+  for (let k = 0; k < 6; k++) { const rr = .38 + k * .12, pts = []; for (let a = 0; a <= 90; a++) pts.push([-1.25 + Math.cos(a / 90 * 6.2832) * rr, .1 + Math.sin(a / 90 * 6.2832) * rr * .96]); zGroove(pts, "stylus"); }
+  for (let k = 0; k < 5; k++) { const pts = []; for (let x = -.45; x <= 2.55; x += .05) pts.push([x, 1.2 + k * .12 + Math.sin(x * 2.1) * .18 - (x < 0 ? (x + .45) * .4 : 0)]); zGroove(pts, "stylus"); }
+  for (let k = 0; k < 4; k++) { const pts = []; for (let x = -2.55; x <= -.2; x += .05) pts.push([x, 1.0 + k * .12 + Math.sin(x * 2.4 + 1) * .1]); zGroove(pts, "stylus"); }
+}
+
+/* ---- items, built from primitives ---- */
+function zMat(color, rough = .8, metal = 0) { return new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, envMap: GL.env, envMapIntensity: .6 }); }
+function lumpy(geo, rnd, amt) {
+  const p = geo.attributes.position, v = new THREE.Vector3(), f1 = rnd() * 9, f2 = rnd() * 9;
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const n = 1 + amt * (Math.sin(v.x * 3.1 + f1) * Math.sin(v.y * 2.7 + f2) * Math.sin(v.z * 3.3 + f1)); p.setXYZ(i, v.x * n, v.y * n, v.z * n); }
+  geo.computeVertexNormals(); return geo;
+}
+function zMakeItem(kind, seed) {
+  const g = new THREE.Group(), R = mulberry(seed), add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
+  const stoneMat = () => zMat(new THREE.Color().setHSL(.08, .04, .26 + R() * .14), .55);
+  if (kind === "stone") {
+    const m = add(lumpy(new THREE.IcosahedronGeometry(1, 4), R, .08), stoneMat()); m.scale.set(.5, .3, .38); m.position.y = .2; m.rotation.y = R() * 6.3;
+    if (R() > .4) { const m2 = add(lumpy(new THREE.IcosahedronGeometry(1, 3), R, .1), stoneMat(), .42, .13, .2); m2.scale.set(.28, .2, .24); }
+  } else if (kind === "pebbles") {
+    const cols = [0xC9B79C, 0x8A7E70, 0x3A3A3C, 0xD8CFC2, 0xB0835A, 0x6E6862, 0xE6DED0];
+    for (let i = 0; i < 9; i++) { const a = R() * 6.3, d = R() * .26, s = .045 + R() * .04, m = add(lumpy(new THREE.IcosahedronGeometry(1, 2), R, .12), zMat(cols[i % cols.length], .45), Math.cos(a) * d, s * .6, Math.sin(a) * d); m.scale.set(s * 1.3, s * .8, s); m.rotation.y = R() * 6; }
+  } else if (kind === "moss") {
+    const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d");
+    x.fillStyle = "#5C9A2C"; x.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 2500; i++) { x.fillStyle = `hsl(${85 + R() * 30},${45 + R() * 25}%,${28 + R() * 30}%)`; x.fillRect(R() * 128, R() * 128, 2, 2); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3);
+    const m = add(lumpy(new THREE.SphereGeometry(.46, 48, 24, 0, 6.2832, 0, Math.PI / 2), R, .06), new THREE.MeshStandardMaterial({ map: t, roughness: 1 })); m.scale.y = .62;
+  } else if (kind === "lantern") {
+    const st = zMat(0xA9A898, .9), dk = zMat(0x3A3A34, .9);
+    add(new THREE.CylinderGeometry(.2, .24, .08, 8), st, 0, .04); add(new THREE.CylinderGeometry(.07, .09, .3, 12), st, 0, .23);
+    add(new THREE.CylinderGeometry(.16, .14, .05, 8), st, 0, .4); add(new THREE.BoxGeometry(.22, .18, .22), st, 0, .51);
+    add(new THREE.BoxGeometry(.1, .09, .23), dk, 0, .52); add(new THREE.BoxGeometry(.23, .09, .1), dk, 0, .52);
+    const roof = add(new THREE.ConeGeometry(.3, .16, 8), st, 0, .68); roof.rotation.y = Math.PI / 8;
+    add(new THREE.SphereGeometry(.05, 16, 8), st, 0, .8);
+  } else if (kind === "pagoda") {
+    const blue = zMat(0x3E6FB5, .5), gold = zMat(0xC9A055, .6);
+    add(new THREE.BoxGeometry(.32, .12, .32), gold, 0, .06);
+    let y = .12;
+    for (let k = 0; k < 6; k++) {
+      const w = .2 - k * .024; add(new THREE.BoxGeometry(w, .09, w), blue, 0, y + .045);
+      const r = add(new THREE.ConeGeometry(w * .95, .07, 4), blue, 0, y + .12); r.rotation.y = Math.PI / 4; y += .12;
+    }
+    add(new THREE.ConeGeometry(.025, .2, 8), gold, 0, y + .1);
+  } else if (kind === "bridge") {
+    const wood = zMat(0x2F2E33, .7);
+    for (let k = 0; k <= 12; k++) {
+      const t = k / 12, x = (t - .5) * 1.15, y = Math.sin(t * Math.PI) * .2 + .04, a = Math.cos(t * Math.PI) * .55;
+      const s = add(new THREE.BoxGeometry(.1, .04, .42), wood, x, y); s.rotation.z = -a * .6;
+      if (k % 2 === 0) for (const zz of [-.19, .19]) add(new THREE.BoxGeometry(.035, .14, .035), wood, x, y + .08, zz);
+    }
+    for (const zz of [-.19, .19]) {
+      const pts = []; for (let k = 0; k <= 16; k++) { const t = k / 16; pts.push(new THREE.Vector3((t - .5) * 1.15, Math.sin(t * Math.PI) * .2 + .17, zz)); }
+      add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, .02, 6), wood);
+    }
+  } else if (kind === "tree") {
+    const rock = add(lumpy(new THREE.DodecahedronGeometry(.32, 1), R, .15), zMat(0x5A3F2E, .9), 0, .1); rock.scale.set(1.2, .5, .9);
+    const bark = zMat(0x4A3426, .9); let x = 0, y = .22, z = 0;
+    for (let k = 0; k < 4; k++) { const nx = x + (R() - .5) * .1, ny = y + .16, nz = z + (R() - .5) * .1, seg = add(new THREE.CylinderGeometry(.03 - k * .005, .04 - k * .005, .17, 8), bark, (x + nx) / 2, (y + ny) / 2, (z + nz) / 2); seg.lookAt(nx, ny, nz); seg.rotateX(Math.PI / 2); x = nx; y = ny; z = nz; }
+    const pinks = [0xF7A8C4, 0xFFD1E0, 0xE97FA6, 0xFFC0D6], geo = new THREE.IcosahedronGeometry(1, 1);
+    const blos = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: .9 }), 70), m4 = new THREE.Matrix4(), col = new THREE.Color();
+    for (let i = 0; i < 70; i++) {
+      const a = R() * 6.3, d = Math.sqrt(R()) * .26, s = .04 + R() * .04;
+      m4.makeScale(s, s, s).setPosition(x + Math.cos(a) * d, y + (R() - .3) * .2, z + Math.sin(a) * d); blos.setMatrixAt(i, m4); blos.setColorAt(i, col.setHex(pinks[i % 4]));
+    }
+    blos.castShadow = true; g.add(blos);
+  } else if (kind === "incense") {
+    const clay = zMat(0xD9744A, .7);
+    for (let ring = 0; ring < 2; ring++) for (let k = 0; k < 8; k++) {
+      const a = k / 8 * 6.2832 + ring * .4, d = .1 - ring * .05, p = add(new THREE.SphereGeometry(.07 - ring * .015, 16, 8), clay, Math.cos(a) * d, .05 + ring * .03, Math.sin(a) * d);
+      p.scale.set(.6, 1.1, 1); p.lookAt(Math.cos(a) * 2, 1.2, Math.sin(a) * 2);
+    }
+    add(new THREE.CylinderGeometry(.008, .008, 1.1, 6), zMat(0xA0784E), 0, .62);
+    const tip = add(new THREE.SphereGeometry(.012, 8, 6), new THREE.MeshBasicMaterial({ color: 0xFF7A2A }), 0, 1.17); tip.castShadow = false;
+    g.userData.smokeFrom = new THREE.Vector3(0, 1.18, 0);
+  } else if (kind === "statue") {
+    const sil = zMat(0x8C9096, .35, .7);
+    add(new THREE.CylinderGeometry(.2, .22, .06, 24), sil, 0, .03);
+    const legs = add(new THREE.SphereGeometry(.2, 24, 12), sil, 0, .1); legs.scale.set(1, .38, .72);
+    const body = add(new THREE.SphereGeometry(.12, 24, 16), sil, 0, .26); body.scale.set(1, 1.35, .8);
+    add(new THREE.SphereGeometry(.075, 20, 14), sil, 0, .47); add(new THREE.SphereGeometry(.035, 12, 8), sil, 0, .54);
+    for (const s of [-1, 1]) { const arm = add(new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(.03, .12, 4, 8) : new THREE.CylinderGeometry(.03, .03, .16, 8), sil, s * .1, .22, .05); arm.rotation.z = s * .5; arm.rotation.x = -.6; }
+  }
+  g.traverse(o => { if (o.isMesh) o.userData.zitem = g; });
+  return g;
+}
+function zAddItem(kind, x, z, rot, seed, quiet) {
+  const it = { kind, x, z, rot: rot || 0, seed: seed || (Math.random() * 1e9 | 0) };
+  it.obj = zMakeItem(kind, it.seed); it.obj.userData.item = it;
+  it.obj.position.set(x, -.01, z); it.obj.rotation.y = it.rot; Z.scene.add(it.obj); Z.items.push(it);
+  if (it.obj.userData.smokeFrom) zSmokeFor(it);
+  zRingAround(x, z, ZITEMS[kind].r);
+  if (!quiet) { S.thud(.45); buzz(14); zSave(); }
+  return it;
+}
+function zRemoveItem(it) {
+  Z.scene.remove(it.obj); disposeTree(it.obj);
+  Z.items.splice(Z.items.indexOf(it), 1);
+  Z.smoke = Z.smoke.filter(s => { if (s.it === it) { Z.scene.remove(s.spr); return false; } return true; });
+  zSave();
+}
+function zSave() { try { localStorage.setItem("fidget-zen-items", JSON.stringify(Z.items.map(i => [i.kind, +i.x.toFixed(3), +i.z.toFixed(3), +i.rot.toFixed(3), i.seed]))); } catch (e) {} }
+// incense smoke: a handful of soft sprites that rise, drift and fade, then start again
+let zSmokeTex = null;
+function zSmokeFor(it) {
+  if (!zSmokeTex) {
+    const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, "rgba(255,255,255,.9)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    zSmokeTex = new THREE.CanvasTexture(c);
+  }
+  for (let i = 0; i < 18; i++) {
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: zSmokeTex, color: 0xDCDCE0, transparent: true, opacity: 0, depthWrite: false }));
+    Z.scene.add(spr); Z.smoke.push({ it, spr, t: i / 18 });
+  }
+}
+function zSmokeStep(dt) {
+  for (const s of Z.smoke) {
+    s.t = (s.t + dt * .004) % 1;
+    const o = s.it.obj, from = o.userData.smokeFrom, t = s.t;
+    s.spr.position.set(o.position.x + from.x + Math.sin(t * 9 + s.it.seed) * .06 * t, o.position.y + from.y + t * .9, o.position.z + from.z + Math.cos(t * 7) * .04 * t);
+    const sc = .04 + t * .22; s.spr.scale.set(sc, sc, sc); s.spr.material.opacity = Math.sin(t * Math.PI) * .32;
+  }
+}
+
+/* ---- scene ---- */
+function zenSetup() {
+  if (!mount3D(secZen)) return;
+  if (!Z.scene) zenBuild();
+  zenCamera(); Z.W = GL.w;
+}
+function zenBuild() {
+  const sc = new THREE.Scene(); Z.scene = sc;
+  Z.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 80);
+  sc.add(new THREE.HemisphereLight(0xFFFFFF, 0xB8B0A0, .55));
+  const sun = new THREE.DirectionalLight(0xFFF6EA, 1.0); sun.position.set(-4, 9, 3); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -4.5, right: 4.5, top: 4.5, bottom: -4.5, near: 1, far: 30 }); sun.shadow.bias = -.0006; sc.add(sun);
+  const table = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: .22 }));
+  table.rotation.x = -Math.PI / 2; table.position.y = -.32; table.receiveShadow = true; sc.add(table);
+  // black lacquered tray
+  const lac = new THREE.MeshPhysicalMaterial({ color: 0x141416, roughness: .35, clearcoat: .8, clearcoatRoughness: .2, envMap: GL.env }), b = .3;
+  const box = (w, hh, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), lac); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; sc.add(m); };
+  box(ZW + 2 * b, .14, ZD + 2 * b, 0, -.25, 0);
+  box(ZW + 2 * b, .46, b, 0, -.09, -ZD / 2 - b / 2); box(ZW + 2 * b, .46, b, 0, -.09, ZD / 2 + b / 2);
+  box(b, .46, ZD, -ZW / 2 - b / 2, -.09, 0); box(b, .46, ZD, ZW / 2 + b / 2, -.09, 0);
+  // the sand surface
+  const n = ZNX * ZNZ, pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2), idx = [];
+  for (let j = 0; j < ZNZ; j++) for (let i = 0; i < ZNX; i++) {
+    const k = zIdx(i, j); pos[k * 3] = -ZW / 2 + i * ZDX; pos[k * 3 + 2] = -ZD / 2 + j * ZDZ; nor[k * 3 + 1] = 1; uv[k * 2] = i / (ZNX - 1) * 6; uv[k * 2 + 1] = j / (ZNZ - 1) * 4.6;
+    if (i < ZNX - 1 && j < ZNZ - 1) idx.push(k, k + ZNX, k + 1, k + 1, k + ZNX, k + ZNX + 1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
+  geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3).setUsage(THREE.DynamicDrawUsage));
+  geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx);
+  const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
+  x.fillStyle = "#F4F1EA"; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 9000; i++) { const l = 80 + Math.random() * 18; x.fillStyle = `hsla(38,${10 + Math.random() * 14}%,${l}%,.8)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.2, 1.2); }
+  const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
+  Z.sand = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: .96 })); Z.sand.receiveShadow = true; sc.add(Z.sand);
+  Z.h = new Float32Array(n); Z.dirty = [1e9, 1e9, -1, -1]; Z.settle = [1e9, 1e9, -1, -1, 0];
+  Z.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); Z.v = new THREE.Vector3();
+  let saved = null; try { saved = JSON.parse(localStorage.getItem("fidget-zen-items")); } catch (e) {}
+  if (Array.isArray(saved)) saved.forEach(([k, px, pz, r, s]) => { if (ZITEMS[k]) zAddItem(k, px, pz, r, s, true); });
+  else { zStartPattern(); ZSTART.forEach(([k, px, pz, r], i) => zAddItem(k, px, pz, r, 1000 + i * 77, true)); }
+  zMark(0, 0, ZNX - 1, ZNZ - 1); Z.settle[4] = 0;
+}
+function zenCamera() {
+  const asp = GL.w / GL.h, el = 34 * Math.PI / 180, halfW = 4.05 / Z.zoom, halfH = halfW / asp;
+  Object.assign(Z.cam, { left: -halfW, right: halfW, top: halfH * 1.08, bottom: -halfH * .92 });
+  Z.cam.position.set(Math.sin(Z.az) * Math.cos(el) * 20, Math.sin(el) * 20, Math.cos(Z.az) * Math.cos(el) * 20);
+  Z.cam.lookAt(0, 0, 0); Z.cam.updateProjectionMatrix();
+}
+function zenFrame(now) {
+  const dt = clamp((now - (Z.last || now - 16.7)) / 16.67, .25, 2.5); Z.last = now;
+  if (Z.azT !== null) { const d = Z.azT - Z.az; Z.az += d * Math.min(1, .16 * dt); if (Math.abs(d) < .002) { Z.az = Z.azT; Z.azT = null; } zenCamera(); }
+  else if (!Z.twist && Math.abs(Z.azV) > .0005) { Z.az += Z.azV * dt; Z.azV *= Math.pow(.9, dt); zenCamera(); }
+  zRelax(); zUpload();
+  if (Z.smoke.length) zSmokeStep(dt);
+  GL.r.render(Z.scene, Z.cam);
+}
+
+/* ---- input ---- */
+function zGround(e) { const p = rayAt(e, Z.cam).ray.intersectPlane(Z.plane, Z.v); return p ? [p.x, p.z] : null; }
+const zInside = (x, z, m = 0) => Math.abs(x) < ZW / 2 - m && Math.abs(z) < ZD / 2 - m;
+function zItemAt(e) {
+  const hits = rayAt(e, Z.cam).intersectObjects(Z.items.map(i => i.obj), true);
+  for (const h of hits) { let o = h.object; while (o && !o.userData.item) o = o.parent; if (o) return o.userData.item; }
+  return null;
+}
+function zTwistInfo() {
+  const [a, b] = [...Z.ptrs.values()];
+  return { ang: Math.atan2(b.y - a.y, b.x - a.x), dist: Math.hypot(b.x - a.x, b.y - a.y) || 1 };
+}
+const zOverTrash = (x, y) => { if (zTrash.hidden) return false; const r = zTrash.getBoundingClientRect(); return x > r.left - 10 && x < r.right + 10 && y > r.top - 10 && y < r.bottom + 14; };
+on3D(secZen, "pointerdown", e => {
+  if (!Z.scene) return;
+  GL.canvas.setPointerCapture(e.pointerId); ac(); zHint.classList.add("gone"); zCloseItems();
+  Z.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (Z.ptrs.size === 2) {
+    // second finger: this is a turn/zoom gesture, so drop whatever the first finger was doing
+    if (Z.drag) { const it = Z.drag.it; it.obj.position.y = -.01; Z.drag = null; zTrash.hidden = true; zRingAround(it.x, it.z, ZITEMS[it.kind].r); }
+    Z.stroke = null; Z.twist = zTwistInfo(); Z.azT = null; Z.azV = 0; return;
+  }
+  if (Z.ptrs.size > 2) return;
+  const it = zItemAt(e);
+  if (it) {
+    Z.drag = { it, id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false };
+    it.obj.position.y = .12; S.tick(1400, .12, .02); buzz(8); return;
+  }
+  const g = zGround(e); if (!g || !zInside(g[0], g[1])) return;
+  Z.stroke = { id: e.pointerId, x: g[0], z: g[1], hx: 0, hz: 0, nx: undefined, nz: undefined };
+  // touching down leaves a soft dimple
+  if (Z.tool === "smooth") zSmooth(g[0], g[1], .3); else zStamp(g[0], g[1], ZTOOLS[Z.tool].r * 1.2, ZTOOLS[Z.tool].depth * .6);
+  S.sand(.5); buzz(4);
 });
-zcv.addEventListener("pointermove", e => {
+on3D(secZen, "pointermove", e => {
   const p = Z.ptrs.get(e.pointerId); if (!p) return;
-  if (p.st) { p.st.x = clamp(e.offsetX + p.ox, p.st.r, Z.W - p.st.r); p.st.y = clamp(e.offsetY + p.oy, p.st.r + 60, Z.H - p.st.r - 90); Z.dirty = true; return; }
-  const l = rake(p, e.offsetX, e.offsetY), now = performance.now();
-  if (l && now - Z.snd > 70) { Z.snd = now; S.sand(Math.min(1, .3 + l * .06)); }
-  if (l && now - Z.bz > 120) { Z.bz = now; buzz(2); }
+  p.x = e.clientX; p.y = e.clientY;
+  if (Z.twist && Z.ptrs.size >= 2) {
+    const t = zTwistInfo(); let da = t.ang - Z.twist.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
+    Z.az += da; Z.azV = da; Z.zoom = clamp(Z.zoom * t.dist / Z.twist.dist, .8, 2.6); Z.twist = t; zenCamera(); return;
+  }
+  const now = performance.now();
+  if (Z.drag && Z.drag.id === e.pointerId) {
+    const d = Z.drag, it = d.it;
+    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 8) { d.moved = true; zTrash.hidden = false; }
+    const g = zGround(e); if (g) { const m = ZITEMS[it.kind].r * .6; it.x = clamp(g[0], -ZW / 2 + m, ZW / 2 - m); it.z = clamp(g[1], -ZD / 2 + m, ZD / 2 - m); it.obj.position.x = it.x; it.obj.position.z = it.z; }
+    zTrash.classList.toggle("over", zOverTrash(e.clientX, e.clientY));
+    return;
+  }
+  const s = Z.stroke; if (!s || s.id !== e.pointerId) return;
+  const g = zGround(e); if (!g) return;
+  const [x, z] = g, dx = x - s.x, dz = z - s.z, l = Math.hypot(dx, dz);
+  if (l < .02) return;
+  if (Z.tool === "smooth") { const n = Math.ceil(l / .08); for (let k = 1; k <= n; k++) zSmooth(s.x + dx * k / n, s.z + dz * k / n, .3); }
+  else {
+    // a smoothed heading keeps the tines parallel through wobbly finger paths
+    s.hx = s.hx * .55 + dx / l * .45; s.hz = s.hz * .55 + dz / l * .45;
+    const hl = Math.hypot(s.hx, s.hz) || 1;
+    zGroove([[s.x, s.z], [x, z]], Z.tool, -s.hz / hl, s.hx / hl);
+  }
+  s.x = x; s.z = z;
+  if (now - Z.snd > 70) { Z.snd = now; S.sand(Math.min(1, .35 + l * 2)); }
+  if (now - Z.bz > 120) { Z.bz = now; buzz(2); }
 });
 const zEnd = e => {
-  const p = Z.ptrs.get(e.pointerId); if (!p) return; Z.ptrs.delete(e.pointerId);
-  if (p.st) { stoneRings(p.st); Z.dirty = true; S.thud(.45); buzz(16); }
+  if (!Z.ptrs.delete(e.pointerId)) return;
+  if (Z.twist) { if (Z.ptrs.size < 2) Z.twist = null; return; }
+  if (Z.stroke && Z.stroke.id === e.pointerId) Z.stroke = null;
+  const d = Z.drag; if (!d || d.id !== e.pointerId) return;
+  Z.drag = null; const it = d.it; zTrash.hidden = true; zTrash.classList.remove("over");
+  if (zOverTrash(e.clientX, e.clientY)) { zRemoveItem(it); S.whoosh(); buzz(18); return; }
+  it.obj.position.y = -.01;
+  if (!d.moved && performance.now() - d.t0 < 300) { it.rot += Math.PI / 4; it.obj.rotation.y = it.rot; S.clack(.5); buzz(10); zSave(); return; } // a tap turns it
+  zRingAround(it.x, it.z, ZITEMS[it.kind].r); S.thud(.45); buzz(14); zSave();
 };
-zcv.addEventListener("pointerup", zEnd); zcv.addEventListener("pointercancel", zEnd);
-$("#zenSmooth").addEventListener("click", () => { smoothSand(); S.whoosh(); setTimeout(() => S.sand(1), 120); buzz(10); });
+on3D(secZen, "pointerup", zEnd); on3D(secZen, "pointercancel", zEnd);
+secZen.addEventListener("wheel", e => { if (e.target !== GL.canvas) return; e.preventDefault(); Z.zoom = clamp(Z.zoom * (e.deltaY < 0 ? 1.08 : .93), .8, 2.6); zenCamera(); }, { passive: false });
+
+/* ---- toolbar ---- */
+document.querySelectorAll("#mode-zen [data-tool]").forEach(b => b.addEventListener("click", () => {
+  Z.tool = b.dataset.tool; zCloseItems();
+  document.querySelectorAll("#mode-zen [data-tool]").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  S.tick(1800, .1, .03); buzz(8);
+}));
+$("#zenClear").addEventListener("click", () => { if (!Z.scene) return; zCloseItems(); zClearSand(); S.whoosh(); setTimeout(() => S.sand(1), 120); buzz(12); });
+$("#zenL").addEventListener("click", () => { Z.azT = (Z.azT ?? Z.az) - Math.PI / 4; Z.azV = 0; S.tick(1600, .1, .03); buzz(8); });
+$("#zenR").addEventListener("click", () => { Z.azT = (Z.azT ?? Z.az) + Math.PI / 4; Z.azV = 0; S.tick(1600, .1, .03); buzz(8); });
+function zCloseItems() { zItemsBar.hidden = true; zAddBtn.setAttribute("aria-expanded", "false"); }
+zAddBtn.addEventListener("click", () => { const open = zItemsBar.hidden; zItemsBar.hidden = !open; zAddBtn.setAttribute("aria-expanded", open); S.tick(1500, .1, .03); });
+Object.entries(ZITEMS).forEach(([k, v]) => {
+  const b = document.createElement("button"); b.className = "opt"; b.textContent = v.label;
+  b.addEventListener("click", () => {
+    if (!Z.scene) return;
+    // drop it near the middle, nudged so it doesn't land exactly on top of something
+    let x = 0, z = 0;
+    for (let tries = 0; tries < 30; tries++) { x = rnd(-1.6, 1.6); z = rnd(-1.1, 1.1); if (Z.items.every(i => Math.hypot(i.x - x, i.z - z) > ZITEMS[i.kind].r + v.r)) break; }
+    zAddItem(k, x, z, rnd(0, 6.28)); zCloseItems();
+  });
+  zItemsBar.appendChild(b);
+});
 
 /* ================= newton's cradle ================= */
 const ccv = $("#cradlecv"), cctx = ccv.getContext("2d"), cHint = $("#cHint");
@@ -2647,7 +2965,7 @@ const cEnd = e => { const g = NC.grab; if (!g || g.id !== e.pointerId) return; N
 ccv.addEventListener("pointerup", cEnd); ccv.addEventListener("pointercancel", cEnd);
 
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(false); if (mode === "cradle") cradleSetup(false); });
+window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(false); });
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
@@ -2667,7 +2985,7 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, popFrame, spinFrame, 
   if (G.engine && (mode !== "grass" || !G.mower)) { G.engine.g.gain.setTargetAtTime(0, actx.currentTime, .1); G.engine.og.gain.setTargetAtTime(0, actx.currentTime, .1); }
   if (mode === "bubbles") bubblesFrame();
   if (mode === "pop" && P.W) popFrame(now || 0);
-  if (mode === "zen" && Z.W) zenFrame();
+  if (mode === "zen" && Z.W) zenFrame(now || 0);
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
   if (mode === "spin" && SP.W) spinFrame(now || 0);
   else if (SP.bed) { SP.bed.g.gain.setTargetAtTime(0, actx.currentTime, .05); SP.bed.og.gain.setTargetAtTime(0, actx.currentTime, .05); }
