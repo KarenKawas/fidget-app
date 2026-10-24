@@ -99,7 +99,8 @@ button{font:inherit;color:inherit}
 .top-btn svg{width:30px;height:30px;display:block}
 .slime-colors{position:absolute;z-index:4;left:50%;bottom:98px;transform:translateX(-50%);padding:7px 10px;border-radius:999px;
   background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 4px 18px rgba(0,0,0,.2)}
-.slime-colors .sw{width:34px;height:34px;border-color:rgba(255,255,255,.9)}
+.slime-colors{gap:7px;max-width:calc(100% - 24px);overflow-x:auto;scrollbar-width:none}
+.slime-colors .sw{flex:none;width:34px;height:34px;border-color:rgba(255,255,255,.9)}
 .slime-colors .sw[aria-pressed="true"]{border-color:#2A2438;transform:scale(1.1)}
 .pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:6px}
 .pills .pill{margin-left:0}
@@ -222,6 +223,24 @@ button{font:inherit;color:inherit}
   background:var(--fcap-bg);box-shadow:0 6px 0 var(--fcap-side),0 9px 9px rgba(0,0,0,.4)}
 .fader .fcap::after{content:"";position:absolute;left:50%;top:6px;bottom:6px;width:4px;margin-left:-2px;background:var(--fcap-line);border-radius:2px}
 
+.stick-wrap{position:relative;width:140px;height:140px}
+.stick-well{position:absolute;left:50%;top:50%;width:104px;height:104px;margin:-52px 0 0 -52px;border-radius:50%;touch-action:none;cursor:grab;
+  background:radial-gradient(circle,var(--slot-bg) 0 58%,transparent 59%),var(--plate-bg);
+  box-shadow:0 5px 0 var(--plate-edge),0 10px 14px rgba(0,0,0,.25),inset 0 1px 0 var(--plate-hi),0 0 0 1px var(--plate-ring)}
+.stick-well::before{content:"";position:absolute;inset:22px;border-radius:50%;box-shadow:inset 0 4px 7px rgba(0,0,0,.45)}
+.stick-cap{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;pointer-events:none;
+  background:var(--cap-bg);box-shadow:0 7px 0 var(--knob-side),0 11px 10px rgba(0,0,0,.4),inset 0 2px 2px rgba(255,255,255,.25);
+  transform:translate(var(--sx,0px),var(--sy,0px));transition:transform .22s cubic-bezier(.3,1.8,.5,1)}
+.stick-cap::after{content:"";position:absolute;inset:14px;border-radius:50%;background:repeating-radial-gradient(circle,rgba(255,255,255,.12) 0 2px,transparent 2px 4px)}
+.stick-well.held .stick-cap{transition:none}
+.plate.wide{width:92px}
+.rocker{width:58px;height:76px;border:0;border-radius:8px;padding:0;cursor:pointer;position:relative;
+  background:linear-gradient(180deg,var(--rkd),var(--rk) 40%,var(--rk) 60%,var(--rkd));
+  box-shadow:0 6px 6px -2px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.12);
+  transform:perspective(180px) rotateX(-16deg);transition:transform .12s cubic-bezier(.5,1.7,.5,1)}
+.rocker::before,.rocker::after{position:absolute;left:0;right:0;text-align:center;font-weight:600;font-size:1rem;color:rgba(255,255,255,.85);text-shadow:0 1px 1px rgba(0,0,0,.35)}
+.rocker::before{content:"I";top:9px}.rocker::after{content:"O";bottom:8px}
+.rocker[aria-checked="true"]{transform:perspective(180px) rotateX(16deg);box-shadow:0 -5px 6px -2px rgba(0,0,0,.3),inset 0 0 0 1px rgba(0,0,0,.12)}
 .keys{display:flex;justify-content:center;gap:14px}
 .key{width:66px;height:66px;border:0;border-radius:15px;cursor:pointer;touch-action:none;
   background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 60%),var(--k);
@@ -268,6 +287,15 @@ button{font:inherit;color:inherit}
 @keyframes burst{from{transform:scale(.6);opacity:1}to{transform:scale(1.7);opacity:0;border-width:0}}
 .newsheet{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);border:0;border-radius:999px;padding:12px 22px;cursor:pointer;
   font-weight:500;background:rgba(255,255,255,.8);color:#2A2438;box-shadow:0 3px 12px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.bub-bar{position:absolute;z-index:3;left:8px;right:8px;bottom:22px;display:flex;justify-content:center;align-items:center;gap:8px;pointer-events:none}
+.bub-bar>*{pointer-events:auto}
+.bub-bar .newsheet{position:static;transform:none}
+.bub-bar .newsheet.cheer{animation:cheer .5s ease-in-out 2}
+@keyframes cheer{50%{transform:scale(1.15);background:#fff}}
+.bub-count{border-radius:999px;padding:8px 12px;font-size:.85rem;font-weight:500;color:#2A2438;background:rgba(255,255,255,.62);white-space:nowrap;font-variant-numeric:tabular-nums}
+.bub-size{display:flex;padding:3px;gap:2px;border-radius:999px;background:rgba(255,255,255,.62)}
+.bub-size button{border:0;width:34px;height:34px;border-radius:50%;cursor:pointer;font-weight:600;background:transparent;color:#2A2438}
+.bub-size button[aria-pressed="true"]{background:#2A2438;color:#fff}
 
 .ico.dice{border-radius:0;background:linear-gradient(160deg,#FFD27A,#F2A51F 60%,#C47F0A);clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
 .table-rim{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 0 9px #6A3E1E,inset 0 0 0 12px #3A2212,inset 0 0 70px 24px rgba(0,0,0,.5)}
@@ -332,6 +360,11 @@ button{font:inherit;color:inherit}
           <div class="knob-wrap"><div class="ring"></div><div class="knob3d" role="slider" tabindex="0" aria-label="Knob 1" aria-valuemin="0" aria-valuemax="10"><div class="ridges"></div><div class="cap"></div><div class="pointer"></div></div></div>
           <div class="knob-wrap"><div class="ring"></div><div class="knob3d" role="slider" tabindex="0" aria-label="Knob 2" aria-valuemin="0" aria-valuemax="10"><div class="ridges"></div><div class="cap"></div><div class="pointer"></div></div></div>
         </div>
+        <div class="center" style="gap:12px;flex-wrap:wrap">
+          <div class="stick-wrap"><div class="stick-well" id="stick" tabindex="0" role="group" aria-label="Joystick. Use the arrow keys to push it."><div class="stick-cap"></div></div></div>
+          <div class="plate wide"><span class="led"></span><button class="rocker" style="--rk:var(--k2);--rkd:var(--k2d)" role="switch" aria-checked="false" aria-label="Rocker switch 1"></button></div>
+          <div class="plate wide"><span class="led on"></span><button class="rocker" style="--rk:var(--k3);--rkd:var(--k3d)" role="switch" aria-checked="true" aria-label="Rocker switch 2"></button></div>
+        </div>
         <div class="fader" id="fader" role="slider" tabindex="0" aria-label="Fader" aria-valuemin="0" aria-valuemax="15"><div class="track"></div><div class="fcap"></div></div>
         <div class="keys">
           <button class="key" style="--k:var(--k1);--kd:var(--k1d)" aria-label="Button 1"></button>
@@ -345,7 +378,13 @@ button{font:inherit;color:inherit}
 
   <section class="mode" id="mode-bubbles" aria-label="Bubble wrap">
     <div id="sheet" data-theme="wood" tabindex="0" aria-label="Bubble wrap. Press space to pop a bubble."></div>
-    <button class="newsheet" id="newsheet">New sheet</button>
+    <div class="bub-bar">
+      <span class="bub-count" id="bubCount" aria-live="off">0 popped</span>
+      <button class="newsheet" id="newsheet">New sheet</button>
+      <div class="bub-size" role="group" aria-label="Bubble size">
+        <button data-size="S" aria-pressed="false" aria-label="Small bubbles">S</button><button data-size="M" aria-pressed="true" aria-label="Medium bubbles">M</button><button data-size="L" aria-pressed="false" aria-label="Large bubbles">L</button>
+      </div>
+    </div>
     <div class="themes" role="group" aria-label="Bubble wrap style">
         <button class="theme" data-theme="wood" aria-pressed="true"><i style="background:linear-gradient(135deg,#C98B52 50%,#F5402B 50%)"></i>Wood</button>
         <button class="theme" data-theme="cute" aria-pressed="false"><i style="background:linear-gradient(135deg,#FFB0CF 50%,#A8EBD0 50%)"></i>Cute</button>
@@ -362,7 +401,7 @@ button{font:inherit;color:inherit}
     <p class="dice-msg" id="diceMsg" hidden></p>
     <div class="tray" id="tray">
       <div class="row" id="dieBtns"></div>
-      <div class="row"><button class="act" id="rollAll">Roll all</button><button class="act" id="clearDice">Clear table</button></div>
+      <div class="row"><button class="act" id="rollAll">Roll all</button><button class="act" id="clearDice">Clear table</button><button class="act" id="shakeBtn" aria-pressed="false" hidden>Shake: off</button></div>
     </div>
   </section>
 
@@ -531,16 +570,22 @@ const PALETTES = [
   { name: "Lagoon", a: [.12, .58, .95], b: [.72, .95, 1], c: [.1, .35, .8], sw: "#2E9EF2", glit: .45 },
   { name: "Lime", a: [.5, .84, .26], b: [.95, 1, .68], c: [.25, .62, .2], sw: "#85D94D", glit: .25 },
   { name: "Galaxy", a: [.22, .14, .52], b: [.78, .45, 1], c: [.08, .05, .25], sw: "#3D2A8F", glit: 1 },
+  { name: "Glow", a: [.06, .16, .13], b: [.45, 1, .55], c: [.02, .06, .09], sw: "#1E5C3E", glit: .8 },
+  { name: "Butter", a: [1, .84, .42], b: [1, .96, .78], c: [.92, .66, .28], sw: "#FFD36B", glit: 0 },
+  { name: "Clear", a: [.62, .84, .9], b: [.94, 1, 1], c: [.42, .68, .8], sw: "#A9DCE8", glit: .6 },
 ];
 let pal = PALETTES[0];
+try { pal = PALETTES.find(p => p.name === localStorage.getItem("fidget-slime-color")) || pal; } catch (e) {}
+document.documentElement.style.setProperty("--slimebg", pal.sw);
 const swWrap = $("#swatches");
-PALETTES.forEach((p, i) => {
+PALETTES.forEach(p => {
   const b = document.createElement("button");
   b.className = "sw"; b.style.setProperty("--c", p.sw); b.setAttribute("aria-label", p.name + " slime");
-  b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+  b.setAttribute("aria-pressed", p === pal ? "true" : "false");
   b.addEventListener("click", () => {
     pal = p; swWrap.querySelectorAll(".sw").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
     document.documentElement.style.setProperty("--slimebg", p.sw);
+    try { localStorage.setItem("fidget-slime-color", p.name); } catch (e) {}
     if (mode !== "slime") setMode("slime"); else closeDrawer();
     seedDye(); S.squelch();
   });
@@ -872,6 +917,44 @@ document.querySelectorAll(".knob-wrap").forEach((w, wi) => {
   });
 });
 
+document.querySelectorAll(".rocker").forEach(r => r.addEventListener("click", () => {
+  const on = r.getAttribute("aria-checked") !== "true";
+  r.setAttribute("aria-checked", on);
+  r.closest(".plate").querySelector(".led").classList.toggle("on", on);
+  S.tick(on ? 1700 : 1300, .3, .03, "square"); S.knock(.8); buzz(20);
+}));
+
+// joystick: springs back to centre, clicks into 8 directions shown on a ring of lights
+const stick = $("#stick"), sDots = [];
+for (let i = 0; i < 8; i++) {
+  const d = document.createElement("span"), a = i * Math.PI / 4;
+  d.className = "dot";
+  d.style.left = `calc(50% + ${(Math.sin(a) * 64).toFixed(1)}px - 4.5px)`;
+  d.style.top = `calc(50% - ${(Math.cos(a) * 64).toFixed(1)}px - 4.5px)`;
+  stick.parentNode.appendChild(d); sDots.push(d);
+}
+let sDir = -1, sHeld = false;
+function stickTo(dx, dy) {
+  const R = 30, l = Math.hypot(dx, dy), k = l > R ? R / l : 1;
+  stick.style.setProperty("--sx", dx * k + "px"); stick.style.setProperty("--sy", dy * k + "px");
+  const dir = l > R * .6 ? (Math.round(Math.atan2(dx, -dy) / (Math.PI / 4)) + 8) % 8 : -1;
+  if (dir !== sDir) {
+    if (dir >= 0) { S.tick(1300 + dir * 110, .26, .025, "square"); buzz(10); } else S.tick(900, .1, .02);
+    sDir = dir; sDots.forEach((d, i) => d.classList.toggle("on", i === dir));
+  }
+}
+const stickRel = e => { const r = stick.getBoundingClientRect(); return [e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2]; };
+stick.addEventListener("pointerdown", e => { stick.setPointerCapture(e.pointerId); sHeld = true; stick.classList.add("held"); stickTo(...stickRel(e)); });
+stick.addEventListener("pointermove", e => { if (sHeld) stickTo(...stickRel(e)); });
+const stickEnd = () => {
+  if (!sHeld) return; sHeld = false; stick.classList.remove("held");
+  const was = sDir; stickTo(0, 0); if (was >= 0) { S.thunk(); buzz(14); }
+};
+stick.addEventListener("pointerup", stickEnd); stick.addEventListener("pointercancel", stickEnd);
+const SKEYS = { ArrowUp: [0, -1], ArrowRight: [1, 0], ArrowDown: [0, 1], ArrowLeft: [-1, 0] };
+stick.addEventListener("keydown", e => { const v = SKEYS[e.key]; if (!v) return; e.preventDefault(); sHeld = true; stickTo(v[0] * 40, v[1] * 40); });
+stick.addEventListener("keyup", e => { if (SKEYS[e.key]) stickEnd(); });
+
 const fader = $("#fader"); let fv = .3, fl = null, fdrag = false;
 function setF(val, quiet) {
   fv = Math.max(0, Math.min(1, val)); fader.style.setProperty("--v", fv);
@@ -913,11 +996,28 @@ document.querySelectorAll(".key").forEach((key, i) => {
 
 /* ================= bubble wrap ================= */
 const sheet = $("#sheet"); let bubs = [], bW = 0, bH = 0, refillT = null;
+const BSIZE = { S: [8.6, 38, 52], M: [6.6, 48, 66], L: [4.9, 64, 88] }; // [screen widths per bubble, min px, max px]
+let bSize = "M", bPops = 0;
+try { bSize = BSIZE[localStorage.getItem("fidget-bubble-size")] ? localStorage.getItem("fidget-bubble-size") : "M"; bPops = +localStorage.getItem("fidget-bubble-pops") || 0; } catch (e) {}
+const bubCount = $("#bubCount");
+const showPops = () => bubCount.textContent = bPops.toLocaleString() + " popped";
+showPops();
+function setBubbleSize(z) {
+  bSize = z;
+  document.querySelectorAll(".bub-size button").forEach(b => b.setAttribute("aria-pressed", b.dataset.size === z ? "true" : "false"));
+  try { localStorage.setItem("fidget-bubble-size", z); } catch (e) {}
+}
+setBubbleSize(bSize);
+document.querySelectorAll(".bub-size button").forEach(b => b.addEventListener("click", () => {
+  if (b.dataset.size === bSize) return;
+  setBubbleSize(b.dataset.size); layoutBubbles(true); S.tick(2200, .15, .03, "square"); buzz(10);
+}));
 function layoutBubbles(force) {
   const Wd = sheet.clientWidth, Hd = sheet.clientHeight;
   if (!Wd || (!force && Wd === bW && Hd === bH)) return;
   bW = Wd; bH = Hd; bubs.forEach(b => b.remove()); bubs = [];
-  const s = Math.max(48, Math.min(66, Wd / 6.6)), gx = s * 1.1, gy = s * .97;
+  const [per, smin, smax] = BSIZE[bSize];
+  const s = Math.max(smin, Math.min(smax, Wd / per)), gx = s * 1.1, gy = s * .97;
   const cols = Math.floor((Wd - 20 - s - gx / 2) / gx) + 1;
   const top = 74, bottom = 84, rows = Math.floor((Hd - top - bottom - s) / gy) + 1;
   const left0 = (Wd - ((cols - 1) * gx + s + gx / 2)) / 2;
@@ -937,7 +1037,16 @@ function popB(el) {
     b.style.cssText = `left:${el.style.left};top:${el.style.top};width:${el.style.width};height:${el.style.height}`;
     sheet.appendChild(b); setTimeout(() => b.remove(), 380);
   }
-  if (bubs.every(b => b.classList.contains("popped"))) { clearTimeout(refillT); refillT = setTimeout(newSheet, 900); }
+  bPops++; showPops();
+  if (bPops % 10 === 0) try { localStorage.setItem("fidget-bubble-pops", bPops); } catch (e) {}
+  if (bubs.every(b => b.classList.contains("popped"))) {
+    // whole sheet popped: a little fanfare, then a fresh sheet
+    [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => S.blip(f), 140 + i * 90));
+    setTimeout(() => buzz(30), 140);
+    const ns = $("#newsheet"); ns.classList.remove("cheer"); void ns.offsetWidth; ns.classList.add("cheer");
+    try { localStorage.setItem("fidget-bubble-pops", bPops); } catch (e) {}
+    clearTimeout(refillT); refillT = setTimeout(newSheet, 1300);
+  }
 }
 function newSheet() {
   clearTimeout(refillT);
@@ -956,7 +1065,8 @@ sheet.addEventListener("pointerdown", e => {
 });
 sheet.addEventListener("pointermove", e => {
   if (!bDown) return;
-  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  let evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  if (!evs.length) evs = [e];
   for (const ev of evs) { const el = document.elementFromPoint(ev.clientX, ev.clientY); if (el !== squeezed) popB(el); }
 });
 ["pointerup", "pointercancel"].forEach(ev => sheet.addEventListener(ev, () => {
@@ -1151,7 +1261,8 @@ async function initDiceInner() {
   diceResize();
   bindDicePointer(cvs);
   D.ready = true; D.loading = false;
-  addDie("d20"); addDie("d6");
+  let set = ["d20", "d6"]; try { const s = JSON.parse(localStorage.getItem("fidget-dice-set")); if (Array.isArray(s) && s.every(t => DORDER.includes(t))) set = s; } catch (e) {}
+  set.slice(0, 14).forEach(addDie);
 }
 
 function diceResize() {
@@ -1213,6 +1324,7 @@ function addDie(type) {
   const d = { type, def, mesh, body, lastHit: 0 };
   body.addEventListener("collide", e => onHit(d, e));
   D.world.addBody(body); D.dice.push(d);
+  saveDiceSet();
   startRoll();
 }
 function rollBody(b) {
@@ -1341,11 +1453,52 @@ $("#clearDice").addEventListener("click", () => {
   if (!D.ready) return;
   D.dice.forEach(d => { D.scene.remove(d.mesh); D.world.removeBody(d.body); });
   D.dice = []; D.rolling = false; showResults(); S.thud(.5);
+  saveDiceSet();
 });
+function saveDiceSet() { try { localStorage.setItem("fidget-dice-set", JSON.stringify(D.dice.map(d => d.type))); } catch (e) {} }
+
+// shake the phone to roll. iOS asks for motion permission, which must come from a tap.
+const shakeBtn = $("#shakeBtn"), askMotion = typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function";
+let shakeOn = false, motionOK = !askMotion, lastMag = null, lastShake = 0;
+function onMotion(e) {
+  if (mode !== "dice" || !D.ready) return;
+  const a = e.acceleration, g = e.accelerationIncludingGravity;
+  let jolt;
+  if (a && a.x != null) jolt = Math.hypot(a.x, a.y, a.z);
+  else if (g && g.x != null) { const m = Math.hypot(g.x, g.y, g.z); jolt = lastMag === null ? 0 : Math.abs(m - lastMag); lastMag = m; }
+  else return;
+  const now = performance.now();
+  if (jolt < 15 || now - lastShake < 900) return;
+  lastShake = now;
+  if (D.dice.length) rollAll(); else addDie("d6");
+}
+async function askMotionPermission() {
+  if (motionOK) return true;
+  try { motionOK = await DeviceMotionEvent.requestPermission() === "granted"; } catch (e) { motionOK = false; }
+  if (!motionOK) { const m = $("#diceMsg"); m.hidden = false; m.textContent = "Motion access is off, so shaking can’t roll the dice."; setTimeout(() => m.hidden = true, 2200); }
+  return motionOK;
+}
+function setShake(on) {
+  shakeOn = on; shakeBtn.textContent = on ? "Shake: on" : "Shake: off"; shakeBtn.setAttribute("aria-pressed", on);
+  window[on && motionOK ? "addEventListener" : "removeEventListener"]("devicemotion", onMotion);
+  try { localStorage.setItem("fidget-dice-shake", on ? "1" : "0"); } catch (e) {}
+}
+if (typeof DeviceMotionEvent !== "undefined") {
+  shakeBtn.hidden = false;
+  shakeBtn.addEventListener("click", async () => {
+    const on = !shakeOn;
+    if (on && !motionOK && !(await askMotionPermission())) return;
+    setShake(on); buzz(10); S.tick(on ? 2200 : 1600, .15, .03, "square");
+  });
+  let saved = false; try { saved = localStorage.getItem("fidget-dice-shake") === "1"; } catch (e) {}
+  setShake(saved);
+  // on iOS a remembered "on" still needs a tap before motion can be read
+  if (saved && !motionOK) $("#mode-dice").addEventListener("pointerdown", async () => { if (shakeOn && await askMotionPermission()) setShake(true); }, { once: true });
+}
 
 /* ================= touch grass ================= */
 const gcv = $("#grasscv"), gctx = gcv.getContext("2d"), gHint = $("#gHint"), gAct = $("#grassAct"), gSec = $("#mode-grass");
-const G = { W: 0, H: 0, dpr: 1, season: "summer", blades: [], bands: [], parts: [], flakes: [], ptrs: new Map(), t: 0, last: 0, spawn: 0, snd: 0, bz: 0 };
+const G = { W: 0, H: 0, dpr: 1, season: "summer", blades: [], bugs: [], bands: [], parts: [], flakes: [], ptrs: new Map(), t: 0, last: 0, spawn: 0, snd: 0, bz: 0 };
 const SEASONS = {
   spring: { bg: "#4F9A30", ground: ["#3D7F22", "#2C6418"], blades: ["#63C13C", "#82D84B", "#4CA830", "#A2E35E"], dark: "#1E4A10", hmul: 1.2, wmul: 1.05, hint: "Brush the grass, kick up the petals", act: "" },
   summer: { bg: "#3F8226", ground: ["#33701D", "#245414"], blades: ["#4FA62F", "#3C9127", "#6AC03E", "#2F7C20"], dark: "#163A0C", hmul: 1, wmul: 1, hint: "Drag to brush the grass", act: "" },
@@ -1405,7 +1558,7 @@ function grassSetup(force) {
 }
 function buildSeason() {
   const s = G.season, P = SEASONS[s], W = G.W, H = G.H;
-  G.blades = []; G.bands = []; G.parts = []; G.flakes = []; G.branch = null; G.spawn = 0;
+  G.blades = []; G.bands = []; G.parts = []; G.flakes = []; G.bugs = []; G.branch = null; G.spawn = 0;
   gSec.dataset.season = s;
   if (s === "winter") {
     makeStone(); makeSnow();
@@ -1429,6 +1582,76 @@ function buildSeason() {
   }
   if (s === "spring") { makeBranch(); for (let i = 0; i < 50; i++) addPart("petal", rnd(0, W), rnd(H * .2, H), 0, { life: rnd(400, 2600) }); }
   if (s === "autumn") for (let i = 0; i < 70; i++) addPart("leaf", rnd(0, W), rnd(H * .1, H), 0);
+  if (s === "spring" || s === "summer") {
+    for (let i = 0; i < 3; i++) G.bugs.push({ fly: true, x: rnd(40, W - 40), y: rnd(80, H - 160), vx: 0, vy: 0, ang: 0, ph: rnd(0, 6.28), tx: rnd(40, W - 40), ty: rnd(80, H - 160), wt: 0, rest: 0, col: pick(WINGS) });
+    G.bugs.push({ fly: false, x: rnd(40, W - 40), y: rnd(H * .3, H - 140), h: rnd(0, 6.28) });
+  }
+}
+
+// butterflies wander and rest; the ladybug crawls. Both scatter from fingers.
+const WINGS = [["#FFB23F", "#FF7A1A"], ["#8FD0FF", "#3D7BE0"], ["#FFF4B0", "#FFD23F"], ["#FFFFFF", "#DCDCEA"], ["#E9B8FF", "#A45EE5"]];
+function bugsStep(ps, dt) {
+  const W = G.W, H = G.H;
+  for (const b of G.bugs) {
+    let near = null, nd = 1e9;
+    for (const p of ps) { const d = Math.hypot(b.x - p.x, b.y - p.y) || 1; if (d < nd) { nd = d; near = p; } }
+    if (!b.fly) {
+      const scared = near && nd < 70;
+      if (scared) b.h = Math.atan2(b.x - near.x, -(b.y - near.y)); else b.h += rnd(-.09, .09) * dt;
+      const sp = (scared ? 1.8 : .32) * dt;
+      b.x += Math.sin(b.h) * sp; b.y -= Math.cos(b.h) * sp;
+      if (b.x < -10) b.x = W + 10; else if (b.x > W + 10) b.x = -10;
+      if (b.y < -10) b.y = H + 10; else if (b.y > H + 10) b.y = -10;
+      continue;
+    }
+    if (near && nd < 110) {
+      const k = (110 - nd) / 110;
+      b.vx += (b.x - near.x) / nd * .7 * k * dt; b.vy += (b.y - near.y) / nd * .7 * k * dt;
+      if (b.rest > 0) { b.rest = 0; S.rustle(.35); }
+      b.wt = 0;
+    }
+    if (b.rest > 0) { b.rest -= dt; b.vx *= .8; b.vy *= .8; b.ph += .03 * dt; }
+    else {
+      if ((b.wt -= dt) <= 0 || Math.hypot(b.tx - b.x, b.ty - b.y) < 20) {
+        b.tx = rnd(30, W - 30); b.ty = rnd(70, H - 150); b.wt = rnd(120, 400);
+        if (Math.random() < .3) b.rest = rnd(90, 300);
+      }
+      b.vx += ((b.tx - b.x) * .0006 + rnd(-.09, .09)) * dt; b.vy += ((b.ty - b.y) * .0006 + rnd(-.09, .09)) * dt;
+      b.ph += .5 * dt;
+    }
+    const sp = Math.hypot(b.vx, b.vy), cap = near && nd < 110 ? 6 : 2.6;
+    if (sp > cap) { b.vx *= cap / sp; b.vy *= cap / sp; }
+    b.vx *= .985; b.vy *= .985; b.x += b.vx * dt; b.y += b.vy * dt;
+    if (b.x < 12 || b.x > W - 12) { b.vx = -b.vx; b.x = clamp(b.x, 12, W - 12); }
+    if (b.y < 40 || b.y > H - 110) { b.vy = -b.vy; b.y = clamp(b.y, 40, H - 110); }
+    if (sp > .3) { let d = Math.atan2(b.vx, -b.vy) - b.ang; d = Math.atan2(Math.sin(d), Math.cos(d)); b.ang += d * .15; }
+  }
+}
+function drawBugs(c) {
+  for (const b of G.bugs) {
+    c.save(); c.translate(b.x, b.y);
+    if (!b.fly) {
+      c.rotate(b.h); c.scale(1.3, 1.3);
+      c.fillStyle = "rgba(10,30,5,.3)"; c.beginPath(); c.ellipse(1, 2, 6.5, 7, 0, 0, 6.29); c.fill();
+      c.fillStyle = "#1A1A1A"; c.beginPath(); c.arc(0, -5.5, 3.2, 0, 6.29); c.fill();
+      c.fillStyle = "#E8251E"; c.beginPath(); c.ellipse(0, 1, 5.6, 6.4, 0, 0, 6.29); c.fill();
+      c.fillStyle = "#1A1A1A"; c.fillRect(-.5, -5, 1, 12);
+      for (const [x, y] of [[-2.6, -1], [2.6, -1], [-2.8, 3.4], [2.8, 3.4]]) { c.beginPath(); c.arc(x, y, 1.2, 0, 6.29); c.fill(); }
+      c.fillStyle = "rgba(255,255,255,.55)"; c.beginPath(); c.ellipse(-2, -2.5, 1.4, .8, -.5, 0, 6.29); c.fill();
+    } else {
+      c.scale(1.6, 1.6);
+      const f = .22 + .78 * Math.abs(Math.sin(b.ph)), lift = b.rest > 0 ? 6 : 20;
+      c.fillStyle = "rgba(10,30,5,.2)"; c.beginPath(); c.ellipse(5, lift, 9 * f + 1, 3.5, 0, 0, 6.29); c.fill();
+      c.rotate(b.ang);
+      for (const sd of [-1, 1]) {
+        c.fillStyle = b.col[0]; c.beginPath(); c.ellipse(sd * 6.5 * f, -3, 6.5 * f, 6, sd * .5, 0, 6.29); c.fill();
+        c.fillStyle = b.col[1]; c.beginPath(); c.ellipse(sd * 4.5 * f, 4, 4.5 * f, 4.2, -sd * .4, 0, 6.29); c.fill();
+      }
+      c.fillStyle = "#3A2614"; c.beginPath(); c.ellipse(0, 0, 1.5, 6.5, 0, 0, 6.29); c.fill();
+      c.strokeStyle = "#3A2614"; c.lineWidth = .8; c.beginPath(); c.moveTo(0, -6); c.lineTo(-2.8, -10.5); c.moveTo(0, -6); c.lineTo(2.8, -10.5); c.stroke();
+    }
+    c.restore();
+  }
 }
 
 function makeBranch() {
@@ -1612,6 +1835,7 @@ function grassFrame(now) {
   if (G.branch) c.drawImage(G.branch.c, G.branch.x, G.branch.y, G.branch.w, G.branch.h);
   for (const p of G.parts) if (p.z > 0) drawPart(p);
   c.globalAlpha = 1;
+  if (G.bugs.length) { bugsStep(ps, dt); drawBugs(c); }
   if (s === "winter") {
     c.beginPath();
     for (const f of G.flakes) {
@@ -1685,6 +1909,7 @@ let savedMode = null; try { savedMode = localStorage.getItem("fidget-mode"); } c
 if (location.hash.length > 1) savedMode = location.hash.slice(1); // index.html#dice opens a mode directly when previewing in a browser
 // wait for the deferred 3D engine scripts in case the last mode was Dice
 if (savedMode && savedMode !== "slime" && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
+if (location.hash) window.__fidget = { G, D }; // state handle for browser previews and tests
 (function loop(now) {
   if (mode === "slime" && N) { slimeStep(now || 0); slimeRender(now || 0); }
   else if (bed) bed.g.gain.setTargetAtTime(0, actx.currentTime, .05);
