@@ -3966,8 +3966,8 @@ function rkHull(a, b, c) {
 // points on the lower half of the rock (in its own frame), used to find where it would touch down
 function rkSamples(rk) {
   const S2 = [[0, -1, 0]];
-  for (const th of [150, 125, 105]) for (let k = 0; k < 8; k++) {
-    const t = th * Math.PI / 180, f = k / 8 * Math.PI * 2;
+  for (const th of [172, 164, 155, 145, 132, 118, 104]) for (let k = 0; k < 12; k++) {
+    const t = th * Math.PI / 180, f = k / 12 * Math.PI * 2;
     S2.push([Math.sin(t) * Math.cos(f), Math.cos(t), Math.sin(t) * Math.sin(f)]);
   }
   // the top too, so a rock lying upside down still finds its underside
@@ -4070,10 +4070,11 @@ function rkLanding(rk, x, z) {
     pts.push({ x: x + o.x, z: z + o.z, cy, rock: h.rock, ny: h.ny });
     if (cy > land) land = cy;
   }
-  const contacts = pts.filter(p => p.cy >= land - .02), sup = new Set();
+  // rocks settle into each other a few millimetres, so anything that close counts as touching
+  const contacts = pts.filter(p => p.cy >= land - .035), sup = new Set();
   for (const p of contacts) if (p.rock) sup.add(p.rock);
   // balanced if the centre of mass sits over the contact patch (with a little forgiveness), and the surface isn't too steep
-  const tol = .06 * Math.max(rk.a, rk.c) + .015;
+  const tol = .12 * Math.max(rk.a, rk.c) + .02;
   const steep = contacts.length < 3 && contacts.every(p => p.ny < .82);
   const stable = !steep && rkOverPatch(x, z, contacts, tol);
   let ox = 0, oz = 0; for (const p of contacts) { ox += p.x; oz += p.z; }
@@ -4089,7 +4090,8 @@ function rkOverPatch(x, z, cs, tol) {
   for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (hi.length >= 2 && cross(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
   const hull = lo.slice(0, -1).concat(hi.slice(0, -1));
   const segDist = (a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz || 1e-9, t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / l2, 0, 1); return Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t); };
-  if (hull.length < 3) { const a = hull[0], b = hull[1] || hull[0]; return segDist(a, b) <= tol; }
+  // one or two contacts (all the same point collapses the hull to nothing): measure to that point or edge
+  if (hull.length < 3) { const a = hull[0] || P[0], b = hull[1] || a; return segDist(a, b) <= tol; }
   let inside = true, d = 1e9;
   for (let i = 0; i < hull.length; i++) { const a = hull[i], b = hull[(i + 1) % hull.length]; if (cross(a, b, [x, z]) < 0) inside = false; d = Math.min(d, segDist(a, b)); }
   return inside || d <= tol;
@@ -4314,6 +4316,8 @@ function rocksFrame(now) {
   GL.r.render(RK.scene, RK.cam);
 }
 
+// a turn about the vertical axis (cannon 0.6.2's setFromAxisAngle returns nothing, so it can't be chained)
+function rkYaw(angle) { const q = new CANNON.Quaternion(); q.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle); return q; }
 /* ---- input ---- */
 function rkGroundAt(e, y) { return rayAt(e, RK.cam).ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), new THREE.Vector3()); }
 on3D(secRocks, "pointerdown", e => {
@@ -4347,7 +4351,7 @@ on3D(secRocks, "pointermove", e => {
     let da = ang - RK.pinch.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
     if (RK.hold) {
       // second finger twisting: turn the held rock
-      const q = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -da), b2 = RK.hold.rk.body;
+      const q = rkYaw(-da), b2 = RK.hold.rk.body;
       b2.quaternion.copy(q.mult(b2.quaternion)); RK.hold.moved = true;
     } else { RK.zoom = clamp(RK.zoom * d / RK.pinch.d, .55, 2.4); RK.yaw += da; rkCamera(); }
     RK.pinch = { d, ang }; return;
@@ -4371,7 +4375,7 @@ const rkEnd = e => {
   RK.hold = null; rkGhost(null);
   const rk = H.rk, b = rk.body;
   // a tap turns it a little where it lies
-  if (!H.moved && performance.now() - H.t0 < 300) b.quaternion.copy(new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 4).mult(b.quaternion));
+  if (!H.moved && performance.now() - H.t0 < 300) b.quaternion.copy(rkYaw(Math.PI / 4).mult(b.quaternion));
   b.position.x = H.x; b.position.z = H.z;
   const L = rkLanding(rk, H.x, H.z);
   rk.place = { t: 0, y0: b.position.y, y1: L.y, stable: L.stable, sup: L.sup, cx: L.cx, cz: L.cz };
@@ -4552,8 +4556,10 @@ const savedMode = location.hash.length > 1 ? location.hash.slice(1) : null;
 renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
-if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, popFrame, spinFrame, cradleFrame }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
+  // ask for the next frame first, so an error in one mode can never freeze the whole app
+  requestAnimationFrame(loop);
   if (mode === "slime" && N) { slimeStep(now || 0); slimeRender(now || 0); }
   else if (bed) bed.g.gain.setTargetAtTime(0, actx.currentTime, .05);
   if (mode === "dice" && D.ready && !D.failed) { try { diceFrame(now || 0); } catch (e) { diceError(e); } }
@@ -4572,7 +4578,6 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, popFrame, spi
   if (mode === "spin" && SP.W) spinFrame(now || 0);
   else if (SP.bed) { SP.bed.g.gain.setTargetAtTime(0, actx.currentTime, .05); SP.bed.og.gain.setTargetAtTime(0, actx.currentTime, .05); }
   breatheStep(now || 0);
-  requestAnimationFrame(loop);
 })();
 })();
 </script>
