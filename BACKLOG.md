@@ -40,6 +40,10 @@
 - **Pop-it and bubble wrap:** new shapes, textures and sounds.
 - **Newton's cradle:** more or fewer balls, different materials and sounds, slow motion.
 
+## Toy box and look (from round 7)
+- **Sticker packs:** wire up in-app purchases at store-release time, using RevenueCat or the native store plugins. The packs are one-time buys and cosmetic only. Seasonal, Kawaii and Space are already on the shop shelf, marked "Coming soon".
+- **App-wide style switch (Soft / Toon):** add once every mode builds its materials with `lookMat`. Today only the toy box and the beach do.
+
 ## Foldable iPhone support (not started)
 
 **Goal:** DigiFidget should feel at home on Apple's foldable iPhone, both on the narrow cover screen and on the large, nearly square inner screen. Folding or unfolding mid-play must not lose anything.

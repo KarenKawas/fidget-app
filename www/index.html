@@ -153,6 +153,41 @@ html.dark[data-mode="cradle"]{background:linear-gradient(180deg,#2C2824,#141210)
 html.dark[data-mode="cube"]:not(.dodec-night){background:radial-gradient(ellipse at 50% 40%,#3A3150,#1A1626 80%)}
 html.dark #mode-zen .hint,html.dark #mode-cradle .hint,html.dark #mode-cube .hint{color:rgba(235,230,245,.7);text-shadow:none}
 
+/* ---------- toy box home ---------- */
+html[data-mode="home"]{background:radial-gradient(ellipse at 50% 28%,#FFF8EF,#F3E6D6 55%,#E4D1BC)}
+html.dark[data-mode="home"]{background:radial-gradient(ellipse at 50% 28%,#3B3148,#251D30 60%,#17121F)}
+#mode-home .home{display:none;z-index:3}
+#mode-home.list .home{display:block;background:var(--surface);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 90px)}
+#mode-home.list .tb-hint,#mode-home.list .tb-title{display:none}
+#mode-home .home-gear{display:none}
+.tb-title{transition:opacity .4s}
+#mode-home.tb-open .tb-title{opacity:0}
+.tb-title{position:fixed;z-index:4;left:74px;top:calc(env(safe-area-inset-top,0px) + 20px);margin:0;font-size:1.45rem;font-weight:600;color:#6B5240}
+html.dark .tb-title{color:#EADFF5}
+.tb-top{position:fixed;z-index:5;right:14px;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;gap:8px}
+.tb-top button{width:46px;height:46px;border:0;border-radius:16px;cursor:pointer;display:grid;place-items:center;color:#2A2438;
+  background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.tb-top button svg{width:22px;height:22px}
+.tb-top button[aria-pressed="true"]{background:#2A2438;color:#fff}
+html.dark .tb-top button{background:rgba(40,36,56,.78);color:#F1EDF8}
+.tb-hint{bottom:100px;color:rgba(90,70,50,.75);text-shadow:none}
+html.dark .tb-hint{color:rgba(235,228,245,.75)}
+.tb-well{position:fixed;z-index:6;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);margin:0;justify-content:center}
+.tb-well .pill{background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
+.cust-name{width:100%;font:inherit;font-size:16px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:transparent;color:var(--ink);user-select:text;-webkit-user-select:text}
+.cust-row{display:flex;gap:10px;flex-wrap:wrap}
+.cust-sw{width:46px;height:46px}
+.cust-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.cust-sticker{border:0;border-radius:16px;background:var(--line);padding:6px;cursor:pointer;aspect-ratio:1}
+.cust-sticker img{width:100%;height:100%;display:block}
+.cust-sticker:active{transform:scale(.93)}
+.cust-note{margin:0 0 10px}
+.cust-shop{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cust-pack{position:relative;border-radius:16px;padding:14px 10px;text-align:center;background:linear-gradient(160deg,var(--c),rgba(255,255,255,.4));color:#2A2438;opacity:.75}
+.cust-pack b{display:block;font-size:.9rem}.cust-pack small{font-size:.75rem}
+.cust-pack .lock{position:absolute;top:6px;right:8px;font-size:.85rem}
+
 /* ---------- slime ---------- */
 #slime,#dicecv,#grasscv,#popcv,.gl3d{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none}
 .hint{
@@ -459,16 +494,23 @@ html.dark #mode-zen .hint,html.dark #mode-cradle .hint,html.dark #mode-cube .hin
 </head>
 <body>
 <div id="app">
-  <section class="mode active" id="mode-home" aria-label="Home">
+  <section class="mode active" id="mode-home" aria-label="Home: a toy box. Tap it to open, then tap a toy to play. A list of modes is also available.">
+    <h1 class="tb-title">DigiFidget</h1>
+    <div class="tb-top">
+      <button id="tbCustom" aria-label="Customise your box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l5 5L10 19a3 3 0 0 1-4.2 0l-.8-.8a3 3 0 0 1 0-4.2z"/><path d="M4 20c1.5 0 2.5-.6 3-1.5"/></svg></button>
+      <button id="tbList" aria-label="Show modes as a list" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></button>
+      <button id="tbSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg></button>
+    </div>
+    <p class="hint tb-hint" id="tbHint">Tap the box to open it</p>
     <div class="home">
       <header class="home-top"><h1>DigiFidget</h1><button class="home-gear" id="homeGear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></header>
       <button class="home-continue" id="homeContinue" hidden></button>
-      <div class="home-well" role="group" aria-label="Wellbeing">
+      <div class="home-grid" id="homeGrid"></div>
+    </div>
+    <div class="home-well tb-well" role="group" aria-label="Wellbeing">
         <button class="pill" id="homeBreathe" aria-pressed="false">Breathe</button>
         <button class="pill" id="homeFocus">Focus timer</button>
         <button class="pill" id="homeCalm" aria-pressed="false">Calm mode</button>
-      </div>
-      <div class="home-grid" id="homeGrid"></div>
     </div>
   </section>
 
@@ -680,6 +722,21 @@ html.dark #mode-zen .hint,html.dark #mode-cradle .hint,html.dark #mode-cube .hin
   </div>
 </div>
 
+<div class="sheet-wrap" id="customise" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="custTitle">
+    <div class="sheet-head"><h2 id="custTitle">Customise your box</h2><button class="sheet-x" id="custClose" aria-label="Close">✕</button></div>
+    <h3>Name</h3>
+    <input id="custName" class="cust-name" maxlength="16" placeholder="Your name" autocomplete="off" aria-label="Name on the box">
+    <h3>Box</h3>
+    <div class="cust-row" id="custBoxes" role="group" aria-label="Box colour and material"></div>
+    <h3>Stickers</h3>
+    <p class="note cust-note">Tap a sticker to add it. Drag it around the box, pinch to resize, twist to turn, and hold to peel it off.</p>
+    <div class="cust-grid" id="custStickers"></div>
+    <h3>Sticker shop</h3>
+    <div class="cust-shop" id="custShop"></div>
+  </div>
+</div>
+
 <script defer src="vendor/three.min.js"></script>
 <script defer src="vendor/cannon.min.js"></script>
 <script>
@@ -824,7 +881,7 @@ function setMode(m) {
   if (m === "cradle") cradleSetup();
   if (m === "cube") cubeSetup();
   if (m === "rocks") rocksSetup();
-  if (m === "home") renderHome(); else try { localStorage.setItem("fidget-mode", m); } catch (e) {}
+  if (m === "home") { renderHome(); if (!$("#mode-home").classList.contains("list")) tbSetup(); } else try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
 }
 document.querySelectorAll(".mode-btn").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
@@ -4977,8 +5034,408 @@ fPill.addEventListener("click", () => {
 });
 $("#homeFocus").addEventListener("click", () => openSettings(true));
 
+/* ================= toy box home (3D) ================= */
+// The home screen is a wooden crate on a table. Tap the lid and it swings open; one small toy per mode tumbles in.
+// Tap a toy to play it. The crate carries your name and stickers you place, move, resize, turn and peel off.
+const secHome = $("#mode-home"), tbHint = $("#tbHint");
+const TB = { W: 0, scene: null, cam: null, world: null, box: null, lid: null, lidA: 0, lidV: 0, open: false, toys: [], faces: [], ptrs: new Map(),
+  yaw: .32, pitch: .72, zoom: 1, dist: 9, drag: null, pinch: null, pick: null, stickers: [], sel: null, last: 0, wiggleT: 3, failed: false, labelTex: null };
+const TB_W = 3.2, TB_D = 2.2, TB_H = 1.45, TB_T = .1; // crate size and wall thickness
+const TB_STYLES = {
+  white: { label: "White wood", base: "#F4F1EA", grain: "rgba(180,170,150,.18)", rough: .75, sw: "#F4F1EA" },
+  natural: { label: "Natural wood", base: "#C8935E", grain: "rgba(110,65,30,.28)", rough: .8, sw: "#C8935E" },
+  pink: { label: "Pastel pink", base: "#F8C8DA", grain: "rgba(200,120,150,.16)", rough: .7, sw: "#F8C8DA" },
+  blue: { label: "Pastel blue", base: "#BFDDF3", grain: "rgba(100,150,190,.16)", rough: .7, sw: "#BFDDF3" },
+  glitter: { label: "Glitter", base: "#E9DFF7", grain: "rgba(160,130,200,.12)", rough: .35, sw: "linear-gradient(135deg,#F3D7FF,#C8E9FF,#FFE9B8)", glitter: true },
+};
+TB.style = pref("fidget-box-style", "white"); if (!TB_STYLES[TB.style]) TB.style = "white";
+TB.name = pref("fidget-box-name", ""); if (TB.name === "My") TB.name = "";
+try { TB.stickers = JSON.parse(pref("fidget-box-stickers", "[]")) || []; } catch (e) { TB.stickers = []; }
+
+/* ---- textures ---- */
+function tbCanvas(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; }
+function tbWoodTex(st) {
+  return tbCanvas(512, 512, (x, w, h) => {
+    x.fillStyle = st.base; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 70; i++) { x.strokeStyle = st.grain; x.lineWidth = 1 + Math.random() * 2.5; const y = Math.random() * h; x.beginPath(); for (let px = 0; px <= w; px += 16) x.lineTo(px, y + Math.sin(px * .02 + i) * 4); x.stroke(); }
+    // plank seams
+    for (let k = 1; k < 4; k++) { x.fillStyle = "rgba(0,0,0,.08)"; x.fillRect(0, k * h / 4 - 2, w, 3); x.fillStyle = "rgba(255,255,255,.18)"; x.fillRect(0, k * h / 4 + 1, w, 1); }
+    if (st.glitter) for (let i = 0; i < 4000; i++) { x.fillStyle = `hsla(${Math.random() * 360},80%,${75 + Math.random() * 20}%,${(.4 + Math.random() * .6).toFixed(2)})`; x.fillRect(Math.random() * w, Math.random() * h, 1.6, 1.6); }
+  });
+}
+// the name across the front, in playful pink letters with polka dots (like a personalised toy crate)
+function tbLabelTex() {
+  const name = (TB.name || "").trim(), line1 = name ? (/s$/i.test(name) ? name + "'" : name + "'s") : "My", line2 = "Fidgets";
+  return tbCanvas(1024, 512, (x, w, h) => {
+    x.clearRect(0, 0, w, h);
+    const dots = ["#F06FA5", "#8B5CF6", "#FF9EC4", "#5B4BB0"];
+    for (let i = 0; i < 26; i++) { x.fillStyle = dots[i % 4]; x.globalAlpha = .85; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 8 + Math.random() * 12, 0, 6.3); x.fill(); }
+    x.globalAlpha = 1; x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round";
+    const draw = (t, y, size) => { x.font = `600 ${size}px Fredoka, sans-serif`; x.lineWidth = size * .16; x.strokeStyle = "#FFFFFF"; x.strokeText(t, w / 2, y); x.fillStyle = "#EC5C9A"; x.fillText(t, w / 2, y); };
+    draw(line1.slice(0, 16), h * .32, line1.length > 10 ? 110 : 150); draw(line2, h * .74, 150);
+  });
+}
+const TB_STICKERS = [
+  { id: "heart", label: "Heart" }, { id: "star", label: "Star" }, { id: "rainbow", label: "Rainbow" }, { id: "smile", label: "Smiley" },
+  { id: "flower", label: "Flower" }, { id: "popit", label: "I love pop it" }, { id: "cloud", label: "Cloud" }, { id: "bolt", label: "Lightning" },
+];
+const TB_PACKS = [{ label: "Seasonal", c: "#FFB36B" }, { label: "Kawaii", c: "#FF8FB8" }, { label: "Space", c: "#7C8CFF" }];
+const tbStickerCache = {};
+// each sticker: a shape with a white die-cut border, a soft shadow and a little sheen
+function tbStickerCanvas(id) {
+  if (tbStickerCache[id]) return tbStickerCache[id];
+  const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
+  const shape = () => {
+    x.beginPath();
+    if (id === "heart") { x.moveTo(128, 210); x.bezierCurveTo(30, 150, 20, 70, 80, 55); x.bezierCurveTo(110, 48, 125, 70, 128, 85); x.bezierCurveTo(131, 70, 146, 48, 176, 55); x.bezierCurveTo(236, 70, 226, 150, 128, 210); }
+    else if (id === "star") { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 46 : 100; x.lineTo(128 + Math.cos(a) * r, 135 + Math.sin(a) * r); } x.closePath(); }
+    else if (id === "rainbow") { x.arc(128, 170, 100, Math.PI, 0); x.lineTo(196, 170); x.arc(128, 170, 52, 0, Math.PI, true); x.closePath(); }
+    else if (id === "smile" || id === "flower") { x.arc(128, 128, id === "smile" ? 92 : 64, 0, 6.3); if (id === "flower") for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; x.moveTo(128 + Math.cos(a) * 64 + 44, 128 + Math.sin(a) * 64); x.arc(128 + Math.cos(a) * 64, 128 + Math.sin(a) * 64, 44, 0, 6.3); } }
+    else if (id === "popit") { const r = 30; x.moveTo(40 + r, 60); x.arcTo(216, 60, 216, 196, r); x.arcTo(216, 196, 40, 196, r); x.arcTo(40, 196, 40, 60, r); x.arcTo(40, 60, 216, 60, r); }
+    else if (id === "cloud") { for (const [cx, cy, r] of [[85, 145, 45], [128, 115, 60], [175, 140, 48], [128, 160, 50]]) { x.moveTo(cx + r, cy); x.arc(cx, cy, r, 0, 6.3); } }
+    else if (id === "bolt") { x.moveTo(150, 25); x.lineTo(70, 140); x.lineTo(122, 140); x.lineTo(100, 232); x.lineTo(190, 106); x.lineTo(136, 106); x.closePath(); }
+  };
+  x.shadowColor = "rgba(0,0,0,.25)"; x.shadowBlur = 8; x.shadowOffsetY = 3;
+  shape(); x.lineWidth = 22; x.lineJoin = "round"; x.strokeStyle = "#FFFFFF"; x.stroke(); x.fillStyle = "#FFFFFF"; x.fill();
+  x.shadowColor = "transparent";
+  shape(); x.save(); x.clip();
+  const fills = { heart: ["#FF5C8A", "#FF8FB0"], star: ["#FFC93C", "#FFE27A"], smile: ["#FFD23F", "#FFE680"], flower: ["#FF8FB8", "#FFB3CF"], popit: ["#A78BFA", "#F0ABFC"], cloud: ["#E8F1FF", "#FFFFFF"], bolt: ["#7C5CFF", "#A78BFA"] };
+  if (id === "rainbow") { ["#FF5C5C", "#FFA94D", "#FFD43B", "#69DB7C", "#4DABF7", "#9775FA"].forEach((col, i) => { x.strokeStyle = col; x.lineWidth = 9; x.beginPath(); x.arc(128, 170, 96 - i * 8.5, Math.PI, 0); x.stroke(); }); }
+  else { const g = x.createLinearGradient(0, 30, 0, 230); g.addColorStop(0, fills[id][1]); g.addColorStop(1, fills[id][0]); x.fillStyle = g; x.fillRect(0, 0, 256, 256); }
+  if (id === "smile") { x.fillStyle = "#3A2A1A"; x.beginPath(); x.arc(98, 110, 10, 0, 6.3); x.arc(158, 110, 10, 0, 6.3); x.fill(); x.lineWidth = 9; x.strokeStyle = "#3A2A1A"; x.beginPath(); x.arc(128, 135, 42, .25, Math.PI - .25); x.stroke(); }
+  if (id === "flower") { x.fillStyle = "#FFD23F"; x.beginPath(); x.arc(128, 128, 30, 0, 6.3); x.fill(); }
+  if (id === "popit") { x.fillStyle = "#FFFFFF"; x.font = "600 40px Fredoka, sans-serif"; x.textAlign = "center"; x.fillText("I", 74, 142); x.fillText("POP IT", 128, 180); x.fillStyle = "#FF5C8A"; x.font = "52px sans-serif"; x.fillText("♥", 128, 140); }
+  if (id === "cloud") { x.fillStyle = "#7FB2FF"; x.beginPath(); x.arc(110, 135, 6, 0, 6.3); x.arc(146, 135, 6, 0, 6.3); x.fill(); }
+  // a soft glossy sheen across the top
+  const sh = x.createLinearGradient(0, 0, 256, 256); sh.addColorStop(0, "rgba(255,255,255,.45)"); sh.addColorStop(.35, "rgba(255,255,255,0)"); x.fillStyle = sh; x.fillRect(0, 0, 256, 256);
+  x.restore();
+  return tbStickerCache[id] = c;
+}
+
+/* ---- the little toys, one per mode ---- */
+function tbToy(mode) {
+  const g = new THREE.Group(), R = mulberry(mode.length * 97 + mode.charCodeAt(0));
+  const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+  const soft = (color, o = {}) => lookMat(Object.assign({ color, rough: .55, envI: .45 }, o));
+  let shape = { box: [.28, .1, .28] };
+  if (mode === "slime") {
+    const m = add(lumpy(new THREE.IcosahedronGeometry(.28, 3), R, .08), new THREE.MeshPhysicalMaterial({ color: 0xFF6FA8, roughness: .25, clearcoat: 1, clearcoatRoughness: .1, envMap: GL.env })); m.scale.y = .7; rkSmoothNormals(m.geometry);
+    shape = { sphere: .24 };
+  } else if (mode === "board") {
+    add(new THREE.BoxGeometry(.7, .08, .5), soft(0xC48650, { map: tbWoodTex(TB_STYLES.natural) }));
+    add(zcyl(.11, .08, 24).rotateX(-Math.PI / 2), soft(0xE8301E, { rough: .35 }), -.15, .07, 0);
+    for (const k of [0, 1]) add(new THREE.BoxGeometry(.06, .05, .12), soft(0xF4F1EA), .12 + k * .14, .065, -.05);
+    shape = { box: [.35, .06, .25] };
+  } else if (mode === "bubbles") {
+    add(new THREE.BoxGeometry(.6, .02, .6), lookMat({ color: 0xD9ECF7, transparent: true, opacity: .75, rough: .3 }));
+    const bub = new THREE.SphereGeometry(.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), bm = lookMat({ color: 0xEAF6FF, transparent: true, opacity: .7, rough: .15, envI: .8 });
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) add(bub, bm, (i - 1) * .18, .01, (j - 1) * .18);
+    shape = { box: [.3, .04, .3] };
+  } else if (mode === "dice") {
+    add(new THREE.IcosahedronGeometry(.22, 0), soft(0xF2A51F, { rough: .35 })); shape = { sphere: .2 };
+  } else if (mode === "grass") {
+    add(zcyl(.22, .08, 20).rotateX(-Math.PI / 2), soft(0x8A6A44, { rough: 1 }));
+    const bm = soft(0x5DB534, { rough: .9, side: THREE.DoubleSide });
+    for (let i = 0; i < 16; i++) { const b = add(new THREE.ConeGeometry(.025, .3 + R() * .15, 4), bm, (R() - .5) * .3, .2, (R() - .5) * .3); b.rotation.set((R() - .5) * .5, 0, (R() - .5) * .5); }
+    shape = { box: [.22, .2, .22] };
+  } else if (mode === "pop") {
+    const cols = [0xFF6B8A, 0xFFB13C, 0xFFE14D, 0x5CD27A, 0x4AA8FF, 0xB57BFF];
+    for (let r = 0; r < 4; r++) {
+      add(new THREE.BoxGeometry(.6, .06, .15), soft(cols[r], { rough: .6 }), 0, 0, (r - 1.5) * .15);
+      for (let c = 0; c < 4; c++) add(new THREE.SphereGeometry(.05, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), soft(cols[r], { rough: .5 }), (c - 1.5) * .15, .03, (r - 1.5) * .15);
+    }
+    shape = { box: [.3, .05, .3] };
+  } else if (mode === "spin") {
+    const sh = spinShape(3, .64, .38, .26), geo = extrudeGeo(sh, .2); geo.rotateX(-Math.PI / 2); geo.scale(.33, .33, .33);
+    add(geo, new THREE.MeshPhysicalMaterial({ color: 0x6D4BEA, roughness: .3, clearcoat: 1, envMap: GL.env }));
+    for (let k = 0; k < 3; k++) { const a = Math.PI / 2 + k * 2 * Math.PI / 3; add(zcyl(.07, .07, 16).rotateX(-Math.PI / 2), chromeMat(), Math.cos(a) * .21, 0, -Math.sin(a) * .21); }
+    add(zcyl(.075, .09, 20).rotateX(-Math.PI / 2), soft(0xF2B21C, { rough: .3 }));
+    shape = { box: [.33, .05, .33] };
+  } else if (mode === "zen") {
+    add(new THREE.BoxGeometry(.7, .1, .5), soft(0x1A1A1E, { rough: .35 }));
+    add(new THREE.BoxGeometry(.62, .02, .42), soft(0xF1ECE2, { rough: 1 }), 0, .05, 0);
+    add(lumpy(new THREE.IcosahedronGeometry(.07, 2), R, .1), soft(0x5A5752), .15, .09, .05).scale.y = .7;
+    shape = { box: [.35, .06, .25] };
+  } else if (mode === "cradle") {
+    add(new THREE.BoxGeometry(.62, .05, .32), soft(0x4A2E1C, { rough: .5 }));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(new THREE.CylinderGeometry(.012, .012, .5, 8), chromeMat(), sx * .28, .27, sz * .13);
+    for (const sz of [-1, 1]) add(new THREE.CylinderGeometry(.012, .012, .58, 8).rotateZ(Math.PI / 2), chromeMat(), 0, .52, sz * .13);
+    for (let i = 0; i < 5; i++) add(new THREE.SphereGeometry(.055, 16, 10), chromeMat(), (i - 2) * .112, .14, 0);
+    shape = { box: [.31, .27, .16] };
+  } else if (mode === "cube") {
+    const d = add(new THREE.DodecahedronGeometry(.24, 0), new THREE.MeshPhysicalMaterial({ color: 0x8B4FD8, roughness: .45, clearcoat: .35, flatShading: true, envMap: GL.env, envMapIntensity: .45 }));
+    const face = tbCanvas(128, 128, x => { x.clearRect(0, 0, 128, 128); x.fillStyle = "#1E1A26"; x.beginPath(); x.arc(42, 58, 11, 0, 6.3); x.arc(86, 58, 11, 0, 6.3); x.fill(); x.fillStyle = "rgba(255,120,165,.85)"; x.beginPath(); x.arc(28, 78, 8, 0, 6.3); x.arc(100, 78, 8, 0, 6.3); x.fill(); x.lineWidth = 5; x.strokeStyle = "#1E1A26"; x.beginPath(); x.arc(58, 78, 7, 0, Math.PI); x.arc(72, 78, 7, 0, Math.PI); x.stroke(); });
+    const fm = new THREE.Mesh(new THREE.CircleGeometry(.11, 24), new THREE.MeshBasicMaterial({ map: face, transparent: true })); fm.position.set(0, 0, .2); d.add(fm);
+    shape = { sphere: .22 };
+  } else if (mode === "rocks") {
+    const greys = [0x8E8A84, 0xB3A99B, 0x6F6B66];
+    [[.2, .08, .16, 0], [.15, .07, .12, .14], [.1, .06, .08, .26]].forEach(([a, b, c, y], i) => { const m = add(rkSmoothNormalsGeo(lumpy(new THREE.IcosahedronGeometry(1, 3), R, .05), a, b, c), soft(greys[i], { map: rkGranite(), rough: .85 }), 0, y + b, 0); });
+    shape = { box: [.2, .2, .16] };
+  }
+  g.traverse(o => { if (o.isMesh) o.userData.toy = mode; });
+  g.userData = { mode, shape };
+  return g;
+}
+function rkSmoothNormalsGeo(geo, a, b, c) { geo.scale(a, b, c); rkSmoothNormals(geo); return geo; }
+
+/* ---- the crate ---- */
+function tbBuildBox() {
+  const st = TB_STYLES[TB.style], tex = tbWoodTex(st);
+  const wood = lookMat({ map: tex, rough: st.rough, envI: st.glitter ? .9 : .3, metal: st.glitter ? .15 : 0 });
+  const inner = lookMat({ map: tex, color: 0xD8D0C4, rough: .9 });
+  const box = new THREE.Group(); TB.box = box; TB.wood = wood;
+  const add = (geo, mat, x, y, z, face) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; box.add(m); if (face) { m.userData.face = face; TB.faces.push(m); } return m; };
+  add(new THREE.BoxGeometry(TB_W, TB_T, TB_D), inner, 0, TB_T / 2, 0);
+  add(new THREE.BoxGeometry(TB_W, TB_H, TB_T), [wood, wood, wood, wood, wood, inner], 0, TB_H / 2, TB_D / 2 - TB_T / 2, "front");
+  add(new THREE.BoxGeometry(TB_W, TB_H, TB_T), [wood, wood, wood, wood, inner, wood], 0, TB_H / 2, -TB_D / 2 + TB_T / 2, "back");
+  add(new THREE.BoxGeometry(TB_T, TB_H, TB_D - 2 * TB_T), [inner, wood, wood, wood, wood, wood], -TB_W / 2 + TB_T / 2, TB_H / 2, 0, "left");
+  add(new THREE.BoxGeometry(TB_T, TB_H, TB_D - 2 * TB_T), [wood, inner, wood, wood, wood, wood], TB_W / 2 - TB_T / 2, TB_H / 2, 0, "right");
+  // the name label on the front
+  TB.label = new THREE.Mesh(new THREE.PlaneGeometry(TB_W * .92, TB_H * .8), new THREE.MeshStandardMaterial({ map: tbLabelTex(), transparent: true, roughness: .6, polygonOffset: true, polygonOffsetFactor: -1 }));
+  TB.label.position.set(0, TB_H / 2, TB_D / 2 + .002); box.add(TB.label);
+  // the lid hinges along the back top edge
+  TB.lid = new THREE.Group(); TB.lid.position.set(0, TB_H, -TB_D / 2); box.add(TB.lid);
+  const lidTop = new THREE.Mesh(new THREE.BoxGeometry(TB_W + .08, TB_T, TB_D + .06), [wood, wood, wood, inner, wood, wood]);
+  lidTop.position.set(0, TB_T / 2, TB_D / 2); lidTop.castShadow = lidTop.receiveShadow = true; lidTop.userData.face = "lid"; lidTop.userData.lid = true; TB.lid.add(lidTop); TB.faces.push(lidTop);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.09, 16, 10), lookMat({ color: 0xEC5C9A, rough: .4 })); knob.position.set(0, TB_T + .05, TB_D - .12); knob.userData.lid = true; TB.lid.add(knob);
+  TB.scene.add(box);
+}
+function tbRestyle() {
+  const st = TB_STYLES[TB.style], tex = tbWoodTex(st);
+  TB.box.traverse(o => { if (o.isMesh && o.material) for (const m of [].concat(o.material)) if (m.map && m !== TB.label.material && !o.userData.toyPart) { m.map = tex; m.needsUpdate = true; } });
+  TB.wood.roughness = st.rough; TB.wood.metalness = st.glitter ? .15 : 0; TB.wood.envMapIntensity = st.glitter ? .9 : .3;
+}
+function tbRelabel() { TB.label.material.map.dispose(); TB.label.material.map = tbLabelTex(); TB.label.material.needsUpdate = true; }
+
+/* ---- stickers on the crate ---- */
+// each face's frame in the crate's (or lid's) own coordinates: centre, right, up, normal, half sizes
+function tbFaceFrame(face) {
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  if (face === "front") return { parent: TB.box, c: V(0, TB_H / 2, TB_D / 2 + .004), r: V(1, 0, 0), u: V(0, 1, 0), n: V(0, 0, 1), hw: TB_W / 2, hh: TB_H / 2 };
+  if (face === "back") return { parent: TB.box, c: V(0, TB_H / 2, -TB_D / 2 - .004), r: V(-1, 0, 0), u: V(0, 1, 0), n: V(0, 0, -1), hw: TB_W / 2, hh: TB_H / 2 };
+  if (face === "left") return { parent: TB.box, c: V(-TB_W / 2 - .004, TB_H / 2, 0), r: V(0, 0, 1), u: V(0, 1, 0), n: V(-1, 0, 0), hw: TB_D / 2, hh: TB_H / 2 };
+  if (face === "right") return { parent: TB.box, c: V(TB_W / 2 + .004, TB_H / 2, 0), r: V(0, 0, -1), u: V(0, 1, 0), n: V(1, 0, 0), hw: TB_D / 2, hh: TB_H / 2 };
+  return { parent: TB.lid, c: V(0, TB_T + .004, TB_D / 2), r: V(1, 0, 0), u: V(0, 0, -1), n: V(0, 1, 0), hw: (TB_W + .08) / 2, hh: (TB_D + .06) / 2 };
+}
+const tbStickerTex = {};
+function tbStickerMesh(s) {
+  if (!tbStickerTex[s.id]) { const t = new THREE.CanvasTexture(tbStickerCanvas(s.id)); t.encoding = THREE.sRGBEncoding; tbStickerTex[s.id] = t; }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({ map: tbStickerTex[s.id], transparent: true, roughness: .35, polygonOffset: true, polygonOffsetFactor: -2, depthWrite: false }));
+  m.userData.sticker = s; m.renderOrder = 2; s.mesh = m; tbPlaceSticker(s); return m;
+}
+function tbPlaceSticker(s) {
+  const F = tbFaceFrame(s.face), m = s.mesh, size = .28 + s.s * .5;
+  s.u = clamp(s.u, -F.hw + size * .3, F.hw - size * .3); s.v = clamp(s.v, -F.hh + size * .3, F.hh - size * .3);
+  if (m.parent !== F.parent) F.parent.add(m);
+  m.position.copy(F.c).addScaledVector(F.r, s.u).addScaledVector(F.u, s.v);
+  const basis = new THREE.Matrix4().makeBasis(F.r, F.u, F.n), q = new THREE.Quaternion().setFromRotationMatrix(basis);
+  m.quaternion.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), s.rot));
+  m.scale.set(size, size, 1);
+}
+function tbSaveStickers() { savePref("fidget-box-stickers", JSON.stringify(TB.stickers.map(({ id, face, u, v, s, rot }) => ({ id, face, u: +u.toFixed(3), v: +v.toFixed(3), s: +s.toFixed(3), rot: +rot.toFixed(3) })))); }
+function tbAddSticker(id) {
+  // new stickers go on the front, scattered a little so they don't stack exactly
+  const s = { id, face: "front", u: rnd(-.9, .9), v: rnd(-.4, .4), s: .4, rot: rnd(-.4, .4) };
+  TB.stickers.push(s); tbStickerMesh(s); tbSelect(s); tbSaveStickers();
+  const a = ac(); if (a && soundOn) nz(a, "lowpass", 900, 300, 1, .25, .07); buzz(10);
+}
+function tbSelect(s) {
+  if (TB.sel && TB.sel.mesh) TB.sel.mesh.material.emissive.setHex(0);
+  TB.sel = s; if (s && s.mesh) s.mesh.material.emissive.setHex(0x332233);
+}
+function tbPeel(s) {
+  s.mesh.parent.remove(s.mesh); s.mesh.geometry.dispose(); s.mesh.material.dispose();
+  TB.stickers = TB.stickers.filter(x => x !== s); if (TB.sel === s) TB.sel = null; tbSaveStickers();
+  const a = ac(); if (a && soundOn) nz(a, "highpass", 1500, 5000, .7, .12, .25, 0, .05); buzz(14);
+}
+// convert a ray hit on a face into that face's (u, v)
+function tbFaceUV(face, point) {
+  const F = tbFaceFrame(face), local = F.parent.worldToLocal(point.clone()).sub(F.c);
+  return [local.dot(F.r), local.dot(F.u)];
+}
+
+/* ---- scene ---- */
+function tbSetup() {
+  if (TB.failed) return tbList(true);
+  if (typeof CANNON === "undefined" || !mount3D(secHome)) { TB.failed = true; return tbList(true); }
+  if (!TB.scene) tbBuild();
+  TB.cam.aspect = GL.w / GL.h;
+  TB.dist = Math.max(8, 2.4 / (Math.tan(20 * Math.PI / 180) * Math.min(1, TB.cam.aspect)));
+  tbTheme(); tbCamera(); TB.W = GL.w;
+}
+// the room follows the app theme: a warm cream room by day, a dusky violet one in dark mode
+function tbTheme() {
+  const dk = document.documentElement.classList.contains("dark"), bg = new THREE.Color(dk ? 0x2A2136 : 0xF1E4D3);
+  // r128 clears with the raw colour but fog runs through the sRGB output, so the fog colour is linearised to match
+  TB.dk = dk; TB.scene.background = bg; TB.scene.fog = new THREE.Fog(bg.clone().convertSRGBToLinear(), TB.dist * 1.3, TB.dist * 3.2);
+  TB.table.material.color.set(dk ? 0x463C58 : 0xFFFFFF);
+}
+function tbCamera() {
+  // once the lid is up the view tips forward to look down into the box (peek eases 0 to 1)
+  const k = TB.peek || 0, pitch = TB.pitch + k * .32, d = TB.dist / TB.zoom * (1 - k * .1), cp = Math.cos(pitch);
+  TB.cam.position.set(Math.sin(TB.yaw) * cp * d, .9 + Math.sin(pitch) * d, Math.cos(TB.yaw) * cp * d);
+  TB.cam.lookAt(0, .75 - k * .4, 0); TB.cam.updateProjectionMatrix(); TB.cam.updateMatrixWorld();
+}
+function tbBuild() {
+  const sc = new THREE.Scene(); TB.scene = sc;
+  TB.cam = new THREE.PerspectiveCamera(40, 1, .1, 100);
+  const L = lookLights(sc, { keyPos: [-4, 9, 6], keyI: 1.05, hemi: .65 });
+  Object.assign(L.key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 30 });
+  // a soft tabletop
+  const table = new THREE.Mesh(new THREE.CircleGeometry(40, 64), lookMat({ map: tbCanvas(512, 512, (x, w, h) => { x.fillStyle = "#EDE3D6"; x.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { x.fillStyle = `rgba(150,120,90,${(Math.random() * .08).toFixed(3)})`; x.fillRect(Math.random() * w, Math.random() * h, 2, 2); } }), rough: 1, envI: .15 }));
+  table.rotation.x = -Math.PI / 2; table.receiveShadow = true; sc.add(table); TB.table = table;
+  // light physics: toys tumble into the crate and settle
+  const w = new CANNON.World(); w.gravity.set(0, -16, 0); w.broadphase = new CANNON.NaiveBroadphase(); w.solver.iterations = 12; w.allowSleep = true; TB.world = w;
+  const mat = new CANNON.Material("toy"); w.addContactMaterial(new CANNON.ContactMaterial(mat, mat, { friction: .6, restitution: .25 })); TB.mat = mat;
+  const wall = (hx, hy, hz, x, y, z) => { const b = new CANNON.Body({ mass: 0, material: mat }); b.addShape(new CANNON.Box(new CANNON.Vec3(hx, hy, hz))); b.position.set(x, y, z); w.addBody(b); };
+  wall(TB_W / 2, TB_T / 2, TB_D / 2, 0, TB_T / 2, 0);
+  wall(TB_W / 2, TB_H * 2, TB_T / 2, 0, TB_H, TB_D / 2 - TB_T / 2); wall(TB_W / 2, TB_H * 2, TB_T / 2, 0, TB_H, -TB_D / 2 + TB_T / 2);
+  wall(TB_T / 2, TB_H * 2, TB_D / 2, -TB_W / 2 + TB_T / 2, TB_H, 0); wall(TB_T / 2, TB_H * 2, TB_D / 2, TB_W / 2 - TB_T / 2, TB_H, 0);
+  tbBuildBox();
+  for (const s of TB.stickers) tbStickerMesh(s);
+  // one toy per mode
+  for (const mode of Object.keys(MODE_INFO)) {
+    const g = tbToy(mode), sh = g.userData.shape, body = new CANNON.Body({ mass: 1, material: mat });
+    body.addShape(sh.sphere ? new CANNON.Sphere(sh.sphere) : new CANNON.Box(new CANNON.Vec3(...sh.box)));
+    body.linearDamping = .2; body.angularDamping = .3; body.allowSleep = true; body.sleepSpeedLimit = .15; body.sleepTimeLimit = .4;
+    let lastHit = 0;
+    body.addEventListener("collide", e => {
+      const now = performance.now(); let iv = 0; try { iv = Math.abs(e.contact.getImpactVelocityAlongNormal()); } catch (_) {}
+      if (iv < 1.2 || now - lastHit < 80 || !TB.open) return; lastHit = now;
+      const v = Math.min(1, iv / 7), a = ac(); if (a && soundOn) { tone(a, "sine", 300 + Math.random() * 200, 200, .12 * v, .06); nz(a, "bandpass", 1400, 900, 2, .1 * v, .04); }
+      if (v > .3) buzz(Math.round(3 + v * 8));
+    });
+    sc.add(g); w.addBody(body); TB.toys.push({ g, body, mode });
+  }
+  tbStow();
+}
+// toys rest neatly at the bottom while the lid is shut (so they're there when it opens)
+function tbStow() {
+  TB.toys.forEach((t, i) => { const col = i % 4, row = Math.floor(i / 4); t.body.position.set((col - 1.5) * .7, .3 + row * .1, (row - 1) * .55); t.body.velocity.setZero(); t.body.angularVelocity.setZero(); t.body.quaternion.setFromEuler(0, rnd(0, 6.28), 0); t.body.sleep(); });
+}
+// opening: the toys tumble in from above, the last one you played landing on top
+function tbOpen() {
+  if (TB.open) return; TB.open = true; TB.lidV = -6; tbHint.classList.add("gone"); secHome.classList.add("tb-open");
+  const last = pref("fidget-mode", ""), order = TB.toys.slice().sort((a, b) => (a.mode === last) - (b.mode === last));
+  order.forEach((t, i) => {
+    const b = t.body; b.wakeUp();
+    b.position.set(rnd(-1.1, 1.1), TB_H + 1.2 + i * .35, rnd(-.6, .6)); b.quaternion.setFromEuler(rnd(0, 6.28), rnd(0, 6.28), rnd(0, 6.28));
+    b.velocity.set(rnd(-.5, .5), 0, rnd(-.5, .5)); b.angularVelocity.set(rnd(-4, 4), rnd(-4, 4), rnd(-4, 4));
+  });
+  const a = ac(); if (a && soundOn) { nz(a, "bandpass", 300, 900, 4, .12, .5, 0, .2); setTimeout(() => { tone(a, "sine", 120, 70, .4, .18); nz(a, "lowpass", 600, 150, 1, .25, .1); buzz(18); }, 380); }
+  buzz(8);
+}
+function tbClose() {
+  if (!TB.open) return; TB.open = false; TB.lidV = 6; secHome.classList.remove("tb-open");
+  const a = ac(); if (a && soundOn) { nz(a, "bandpass", 900, 300, 4, .1, .4, 0, .15); setTimeout(() => { tone(a, "sine", 110, 60, .45, .2); buzz(20); }, 330); }
+}
+function tbFrame(now) {
+  if (document.documentElement.classList.contains("dark") !== TB.dk) tbTheme();
+  const dt = clamp((now - (TB.last || now - 16.7)) / 1000, .004, .05); TB.last = now;
+  // a springy lid
+  const target = TB.open ? -1.95 : 0;
+  TB.lidV += ((target - TB.lidA) * 90 - TB.lidV * 11) * dt; TB.lidA += TB.lidV * dt;
+  if (!TB.open && TB.lidA > 0) { TB.lidA = 0; TB.lidV = -TB.lidV * .25; }
+  TB.lid.rotation.x = TB.lidA;
+  const peek = TB.open ? 1 : 0;
+  if (Math.abs(peek - (TB.peek || 0)) > .001) { TB.peek = (TB.peek || 0) + (peek - (TB.peek || 0)) * Math.min(1, dt * 3.5); tbCamera(); }
+  if (TB.open) {
+    TB.world.step(1 / 60, dt, 3);
+    // every few seconds a toy gives a little hop
+    if ((TB.wiggleT -= dt) <= 0) { TB.wiggleT = rnd(3, 6); const t = pick(TB.toys); if (t && t !== (TB.pick && TB.pick.t)) { t.body.wakeUp(); t.body.velocity.set(rnd(-.3, .3), rnd(1.6, 2.6), rnd(-.3, .3)); t.body.angularVelocity.set(rnd(-3, 3), rnd(-3, 3), rnd(-3, 3)); } }
+  }
+  const P = TB.pick;
+  for (const t of TB.toys) {
+    if (P && P.t === t) continue;
+    const p = t.body.position, q = t.body.quaternion; t.g.position.set(p.x, p.y, p.z); t.g.quaternion.set(q.x, q.y, q.z, q.w);
+    t.g.visible = TB.open || TB.lidA < -.05;
+  }
+  // a picked toy flies up to the camera with a spin, then its mode opens
+  if (P) {
+    P.k = Math.min(1, P.k + dt / .45);
+    const e = 1 - Math.pow(1 - P.k, 3), dest = TB.cam.position.clone().lerp(new THREE.Vector3(0, .9, 0), .45);
+    P.t.g.position.copy(P.from).lerp(dest, e); P.t.g.rotation.y += dt * 9; P.t.g.scale.setScalar(1 + e * .8);
+    if (P.k >= 1) { const m = P.t.mode; P.t.g.scale.setScalar(1); TB.pick = null; setMode(m); }
+  }
+  GL.r.render(TB.scene, TB.cam);
+}
+
+/* ---- input: open the lid, play a toy, turn the box, place and edit stickers ---- */
+function tbHit(e, list) { return rayAt(e, TB.cam).intersectObjects(list, true)[0] || null; }
+on3D(secHome, "pointerdown", e => {
+  if (!TB.scene || TB.pick) return;
+  GL.canvas.setPointerCapture(e.pointerId); ac();
+  TB.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now() });
+  if (TB.ptrs.size === 2) {
+    const [a, b] = [...TB.ptrs.values()]; TB.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x) }; TB.drag = null; return;
+  }
+  // a sticker? (it can be moved, and peeled off with a long press)
+  const sh = tbHit(e, TB.stickers.map(s => s.mesh));
+  if (sh) { const s = sh.object.userData.sticker; tbSelect(s); TB.drag = { kind: "sticker", s, id: e.pointerId }; clearTimeout(TB.peelT); TB.peelT = setTimeout(() => { if (TB.drag && TB.drag.s === s && !TB.drag.moved) { TB.drag = null; tbPeel(s); } }, 550); return; }
+  TB.drag = { kind: "turn", id: e.pointerId };
+});
+on3D(secHome, "pointermove", e => {
+  const p = TB.ptrs.get(e.pointerId); if (!p) return;
+  const px = p.x, py = p.y; p.x = e.clientX; p.y = e.clientY;
+  if (TB.pinch && TB.ptrs.size >= 2) {
+    const [a, b] = [...TB.ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, ang = Math.atan2(b.y - a.y, b.x - a.x);
+    let da = ang - TB.pinch.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
+    if (TB.sel) { TB.sel.s = clamp(TB.sel.s * d / TB.pinch.d, .1, 1.6); TB.sel.rot -= da; tbPlaceSticker(TB.sel); }
+    else { TB.zoom = clamp(TB.zoom * d / TB.pinch.d, .8, 1.35); tbCamera(); }
+    TB.pinch = { d, ang }; return;
+  }
+  const D = TB.drag; if (!D || D.id !== e.pointerId) return;
+  if (Math.hypot(e.clientX - p.x0, e.clientY - p.y0) > 8) D.moved = true;
+  if (D.kind === "sticker" && D.moved) {
+    // slide it across the crate, hopping from face to face
+    const h = tbHit(e, TB.faces); if (!h) return;
+    const s = D.s, face = h.object.userData.face; s.face = face; [s.u, s.v] = tbFaceUV(face, h.point); tbPlaceSticker(s); return;
+  }
+  if (D.kind === "turn" && D.moved) { TB.yaw = clamp(TB.yaw - (e.clientX - px) * .006, -.6, .6); tbCamera(); }
+});
+const tbEnd = e => {
+  const p = TB.ptrs.get(e.pointerId); if (!p) return; TB.ptrs.delete(e.pointerId);
+  if (TB.pinch) { if (TB.ptrs.size < 2) { TB.pinch = null; if (TB.sel) tbSaveStickers(); } return; }
+  const D = TB.drag; TB.drag = null; clearTimeout(TB.peelT);
+  if (D && D.kind === "sticker") { if (D.moved) { tbSaveStickers(); const a = ac(); if (a && soundOn) nz(a, "lowpass", 700, 250, 1, .2, .06); buzz(6); } return; }
+  const tap = Math.hypot(e.clientX - p.x0, e.clientY - p.y0) < 10 && performance.now() - p.t0 < 350;
+  if (!tap) return;
+  tbSelect(null);
+  // tap the lid to open or close it; tap a toy to play
+  const lid = tbHit(e, [TB.lid]);
+  if (!TB.open) { if (lid || tbHit(e, [TB.box])) tbOpen(); return; }
+  const toy = tbHit(e, TB.toys.map(t => t.g));
+  if (toy) { const t = TB.toys.find(x => x.mode === toy.object.userData.toy); TB.pick = { t, k: 0, from: t.g.position.clone() }; S.blip(880); buzz(10); return; }
+  if (lid) tbClose();
+};
+on3D(secHome, "pointerup", tbEnd); on3D(secHome, "pointercancel", tbEnd);
+secHome.addEventListener("wheel", e => { if (e.target !== GL.canvas) return; e.preventDefault(); TB.zoom = clamp(TB.zoom * (e.deltaY < 0 ? 1.06 : .94), .8, 1.35); tbCamera(); }, { passive: false });
+
+/* ---- list view, and the Customise sheet ---- */
+function tbList(on) {
+  secHome.classList.toggle("list", on);
+  $("#tbList").setAttribute("aria-pressed", on);
+  if (on && GL.canvas && GL.canvas.parentNode === secHome) GL.canvas.style.visibility = "hidden"; else if (GL.canvas) GL.canvas.style.visibility = "";
+}
+$("#tbList").addEventListener("click", () => { const on = !secHome.classList.contains("list"); tbList(on); if (!on) tbSetup(); S.tick(1500, .06, .03, "sine"); });
+const custSheet = $("#customise");
+function openCustomise() {
+  const box = $("#custBoxes"), stk = $("#custStickers"), shop = $("#custShop");
+  $("#custName").value = TB.name === "My" ? "" : TB.name;
+  box.innerHTML = ""; for (const [k, st] of Object.entries(TB_STYLES)) { const b = document.createElement("button"); b.className = "sw cust-sw"; b.style.setProperty("--c", st.sw); b.style.background = st.sw; b.setAttribute("aria-label", st.label); b.setAttribute("aria-pressed", k === TB.style); b.onclick = () => { TB.style = k; savePref("fidget-box-style", k); if (TB.scene) tbRestyle(); openCustomise(); buzz(6); }; box.append(b); }
+  stk.innerHTML = ""; for (const st of TB_STICKERS) { const b = document.createElement("button"); b.className = "cust-sticker"; b.setAttribute("aria-label", "Add " + st.label + " sticker"); const img = new Image(); img.src = tbStickerCanvas(st.id).toDataURL(); img.alt = ""; b.append(img); b.onclick = () => { if (!TB.scene) return; tbAddSticker(st.id); closeCustomise(); }; stk.append(b); }
+  shop.innerHTML = ""; for (const p of TB_PACKS) { const d = document.createElement("div"); d.className = "cust-pack"; d.style.setProperty("--c", p.c); d.innerHTML = `<span class="lock" aria-hidden="true">🔒</span><b></b><small>Coming soon</small>`; d.querySelector("b").textContent = p.label + " pack"; shop.append(d); }
+  custSheet.hidden = false; closeDrawer();
+}
+function closeCustomise() { custSheet.hidden = true; }
+$("#tbCustom").addEventListener("click", openCustomise);
+$("#custClose").addEventListener("click", closeCustomise);
+custSheet.addEventListener("click", e => { if (e.target === custSheet) closeCustomise(); });
+$("#custName").addEventListener("input", e => { TB.name = e.target.value.slice(0, 16); savePref("fidget-box-name", TB.name); if (TB.scene) tbRelabel(); });
+$("#tbSettings").addEventListener("click", () => openSettings());
+
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); });
+window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); });
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
@@ -4990,7 +5447,8 @@ const savedMode = location.hash.length > 1 ? location.hash.slice(1) : null;
 renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
-if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, tbFrame, tbOpen, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
@@ -5006,6 +5464,7 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, popFrame, spi
   if (mode !== "zen" && Z.bed) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .1);
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
   if (mode === "cube" && CB.W) cubeFrame(now || 0);
+  if (mode === "home" && TB.W && !secHome.classList.contains("list")) tbFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
   if (mode !== "cube" && CB.ballBed) CB.ballBed.gn.gain.setTargetAtTime(0, actx.currentTime, .05);
