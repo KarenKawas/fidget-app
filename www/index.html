@@ -417,6 +417,9 @@ html.dark #mode-zen .hint,html.dark #mode-cradle .hint,html.dark #mode-cube .hin
 #mode-rocks .hint{color:rgba(70,50,30,.75);text-shadow:0 1px 4px rgba(255,255,255,.6)}
 #mode-rocks .hint{bottom:140px}
 .rock-time{top:auto;bottom:84px;left:12px;right:12px;justify-content:center;z-index:3}
+.rock-center{position:fixed;z-index:4;left:14px;top:calc(env(safe-area-inset-top,0px) + 72px);width:48px;height:48px;border:0;border-radius:16px;cursor:pointer;
+  display:grid;place-items:center;background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.rock-center svg{width:24px;height:24px}
 .rock-new{position:fixed;z-index:4;right:14px;top:calc(env(safe-area-inset-top,0px) + 96px);margin:0;padding:6px 12px;border-radius:999px;font-weight:600;font-size:.85rem;color:#2A2438;background:#FFE27A;box-shadow:0 3px 10px rgba(0,0,0,.2)}
 .rock-new.show{animation:rocknew 2.6s ease-out forwards}
 @keyframes rocknew{0%{transform:scale(.6);opacity:0}12%{transform:scale(1.12);opacity:1}20%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
@@ -613,6 +616,7 @@ html.dark #mode-zen .hint,html.dark #mode-cradle .hint,html.dark #mode-cube .hin
   <section class="mode" id="mode-rocks" aria-label="Rock piling on a beach. Drag a rock to pick it up and set it on another; twist with a second finger to turn it; drag the sand to look around.">
     <div class="spin-hud rock-hud" aria-live="off"><span class="lbl">Height</span><span class="total"><span id="rkHeight">0</span><small> cm</small></span><span class="best" id="rkBest"></span></div>
     <p class="rock-new" id="rkNew" hidden>New best!</p>
+    <button class="rock-center" id="rkCenter" aria-label="Recenter on your stack"><svg viewBox="0 0 24 24" fill="none" stroke="#2A2438" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="#2A2438"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg></button>
     <div class="themes rock-time" role="group" aria-label="Time of day">
       <button class="opt" data-time="day" aria-pressed="true"><i style="background:linear-gradient(180deg,#7FB6DE,#E9F1F3)"></i>Day</button>
       <button class="opt" data-time="sunset" aria-pressed="false"><i style="background:linear-gradient(180deg,#F08A5D,#FFD29A)"></i>Sunset</button>
@@ -2512,6 +2516,35 @@ function extrudeGeo(shape, depth, bevel = .03) {
 function chromeMat() { return GL.mats.chrome || (GL.mats.chrome = new THREE.MeshStandardMaterial({ color: 0xE9ECF1, metalness: 1, roughness: .14, envMap: GL.env })); }
 function disposeTree(o) { o.traverse(n => { if (n.geometry) n.geometry.dispose(); }); }
 
+/* ---- the look: one place that decides how surfaces feel. "soft" (rounded, cosy, gently lit toy plastic and wood)
+   is the default; "toon" (stepped light bands plus optional outlines) is ready for a later style switch ---- */
+const LOOK = { kind: "soft", ramp: null };
+function lookMat(o = {}) {
+  if (LOOK.kind === "toon") {
+    if (!LOOK.ramp) {
+      LOOK.ramp = new THREE.DataTexture(new Uint8Array([95, 175, 255]), 3, 1, THREE.LuminanceFormat);
+      LOOK.ramp.minFilter = LOOK.ramp.magFilter = THREE.NearestFilter; LOOK.ramp.needsUpdate = true;
+    }
+    return new THREE.MeshToonMaterial({ color: o.color ?? 0xFFFFFF, map: o.map || null, gradientMap: LOOK.ramp, vertexColors: !!o.vertexColors,
+      transparent: !!o.transparent, opacity: o.opacity ?? 1, side: o.side ?? THREE.FrontSide });
+  }
+  return new THREE.MeshStandardMaterial({ color: o.color ?? 0xFFFFFF, map: o.map || null, bumpMap: o.bump || null, bumpScale: o.bumpScale ?? .01,
+    roughness: o.rough ?? .8, metalness: o.metal ?? 0, envMap: o.env === false ? null : GL.env, envMapIntensity: o.envI ?? .35,
+    vertexColors: !!o.vertexColors, transparent: !!o.transparent, opacity: o.opacity ?? 1, side: o.side ?? THREE.FrontSide });
+}
+// soft toy-like lighting: a warm key light with soft shadows, a cool fill from the other side, and sky/ground bounce
+function lookLights(scene, o = {}) {
+  const hemi = new THREE.HemisphereLight(o.sky ?? 0xFFF4E8, o.ground ?? 0xC9B49A, o.hemi ?? .7); scene.add(hemi);
+  const key = new THREE.DirectionalLight(o.key ?? 0xFFE9D0, o.keyI ?? 1.0); key.position.set(...(o.keyPos || [-4, 9, 6])); key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.0006; scene.add(key); scene.add(key.target);
+  const fill = new THREE.DirectionalLight(o.fill ?? 0xC8D8FF, o.fillI ?? .3); fill.position.set(...(o.fillPos || [5, 4, -3])); scene.add(fill);
+  return { hemi, key, fill };
+}
+// a dark back-face shell around a mesh: the outline for the toon look
+function lookOutline(mesh, w = .035, color = 0x2A2438) {
+  const m = new THREE.Mesh(mesh.geometry, new THREE.MeshBasicMaterial({ color, side: THREE.BackSide })); m.scale.setScalar(1 + w); mesh.add(m); return m;
+}
+
 /* ================= fidget spinner ================= */
 const secSpin = $("#mode-spin"), sHint = $("#sHint"), spinRpm = $("#spinRpm"), spinBest = $("#spinBest");
 const SP = { W: 0, design: "classic", th: 0, om: 0, grab: null, last: 0, lobe: 0, tk: 0, bz: 0, shown: -1, best: 0, bed: null, scene: null, cam: null, root: null, blur: null };
@@ -3904,7 +3937,7 @@ on3D(secCradle, "pointerup", cEnd); on3D(secCradle, "pointercancel", cEnd);
 // lets the stack fall with real physics. Fallen rocks lock again once they come to rest.
 const secRocks = $("#mode-rocks"), rkHint = $("#rkHint"), rkHeight = $("#rkHeight"), rkBest = $("#rkBest"), rkBreeze = $("#rkBreeze"), rkNew = $("#rkNew");
 const RK = { W: 0, scene: null, cam: null, world: null, rocks: [], ptrs: new Map(), hold: null, orbit: null, pinch: null,
-  yaw: .35, pitch: .64, zoom: 1, dist: 10, tx: 0, tz: 0, last: 0, breeze: false, gust: 0, gustCheck: 0, best: 0, shownH: -1, dirty: false, saveT: 0,
+  yaw: .35, pitch: .44, zoom: 1, dist: 10, tx: 0, tz: 0, ty: .8, camGoal: null, last: 0, breeze: false, gust: 0, gustCheck: 0, best: 0, shownH: -1, dirty: false, saveT: 0,
   clack: 0, bed: null, foam: null, sun: null, hemi: null, waveT: 0, ghost: null, line: null, time: "day", sky: null, skyC: null, moon: null, stars: null, sea: null, sand: null,
   tex: {}, wave: null, puffs: [], dents: [], grains: null, grass: null };
 const RK_SEA = -.5, RK_SHORE_Z = -3.2; // water level, and where the beach starts sloping down to it
@@ -3921,11 +3954,11 @@ const RK_GLASS = [0x8FD9C4, 0x7FC3E0, 0xA8E6B0, 0x9BCFE8];
 const RK_MAX = 44;
 const RK_TIMES = {
   day: { sky: ["#6FAEDC", "#BFDCEE", "#E9F1F3"], fog: 0xDCE8EE, fogR: [42, 118], sun: 0xFFF1DA, si: 1.2, sp: [-6, 14, 5], hemi: [0xDDEEFF, 0xC8A878, .7],
-    deep: 0x2C7FA6, shallow: 0x58C3C0, foam: 0xFFFFFF, fo: .85, sand: 0xFFFFFF, grass: 0x9DB35A, grains: .5 },
-  sunset: { sky: ["#3E4C8A", "#F08A5D", "#FFD29A"], fog: 0xF2C9A0, fogR: [38, 112], sun: 0xFF9E5E, si: 1.0, sp: [-12, 4, -6], hemi: [0xFFC8A0, 0xB08A6A, .55],
-    deep: 0x34587E, shallow: 0x6E95A8, foam: 0xFFE6D0, fo: .75, sand: 0xFFDCC0, grass: 0x9C8F4E, grains: .45 },
+    deep: 0x2C7FA6, shallow: 0x58C3C0, foam: 0xFFFFFF, fo: .85, sand: 0xFFFFFF, grass: 0x9DB35A, grains: .5, exp: 1.0, cloud: [0xFFFFFF, .92], glit: .2 },
+  sunset: { sky: ["#3E4C8A", "#F08A5D", "#FFD29A"], fog: 0xF2C9A0, fogR: [38, 112], sun: 0xFF9E5E, si: 1.0, sp: [-5, 3, -14], hemi: [0xFFC8A0, 0xB08A6A, .55],
+    deep: 0x34587E, shallow: 0x6E95A8, foam: 0xFFE6D0, fo: .75, sand: 0xFFDCC0, grass: 0x9C8F4E, grains: .45, exp: 1.12, cloud: [0xFFB49A, .95], glit: .7 },
   night: { sky: ["#05071A", "#141B3D", "#2A3560"], fog: 0x141B3D, fogR: [28, 95], sun: 0x9FB4FF, si: .45, sp: [-6, 14, -4], hemi: [0x6070C0, 0x2A2A38, .28],
-    deep: 0x0B1D36, shallow: 0x1D4565, foam: 0xC9D6FF, fo: .45, sand: 0x8A90B0, grass: 0x3E4A3A, grains: .25 },
+    deep: 0x0B1D36, shallow: 0x1D4565, foam: 0xC9D6FF, fo: .45, sand: 0x8A90B0, grass: 0x3E4A3A, grains: .25, exp: 1.0, cloud: [0x3A4470, .45], glit: .3 },
 };
 
 /* ---- rock looks: every style has a texture and a matching bump map for surface relief ---- */
@@ -4022,6 +4055,9 @@ function rkMake(spec) {
   body.addEventListener("collide", e => rkHit(rk, e));
   // anything that comes to rest locks in place again
   body.addEventListener("sleep", () => { if (!rk.locked && RK.hold?.rk !== rk && !rk.place) rkLockAtRest(rk); });
+  // a soft contact shadow on the sand, shown while the rock sits on (or near) the ground
+  if (!RK.blobMat) RK.blobMat = new THREE.MeshBasicMaterial({ map: rkCanvasTex("blob", x => { const g = x.createRadialGradient(128, 128, 0, 128, 128, 128); g.addColorStop(0, "rgba(40,28,15,.55)"); g.addColorStop(.6, "rgba(40,28,15,.25)"); g.addColorStop(1, "rgba(40,28,15,0)"); x.clearRect(0, 0, 256, 256); x.fillStyle = g; x.fillRect(0, 0, 256, 256); }), transparent: true, depthWrite: false });
+  rk.blob = new THREE.Mesh(new THREE.CircleGeometry(1, 24), RK.blobMat); rk.blob.rotation.x = -Math.PI / 2; rk.blob.renderOrder = 1; RK.scene.add(rk.blob);
   RK.world.addBody(body); RK.rocks.push(rk);
   rkSync(rk);
   return rk;
@@ -4029,6 +4065,7 @@ function rkMake(spec) {
 function rkSync(rk) {
   const p = rk.body.position, q = rk.body.quaternion;
   rk.mesh.position.set(p.x, p.y, p.z); rk.mesh.quaternion.set(q.x, q.y, q.z, q.w); rk.mesh.updateMatrixWorld();
+  if (rk.blob) { const lift = p.y - rkHalfH(rk); rk.blob.visible = lift < .25; rk.blob.position.set(p.x + .08, .004, p.z + .06); rk.blob.scale.setScalar(Math.max(rk.a, rk.c) * 1.25 * (1 + lift)); rk.blob.material.opacity = 1; }
 }
 function rkSpec(type, x, z) {
   const T = RK_TYPES[type], [s, fb] = T.s(), a = s * T.k[0], b = fb || s * T.k[1], c = s * T.k[2];
@@ -4055,6 +4092,7 @@ function rkScatter(n) {
   RK.dirty = true;
 }
 function rkClearAll() {
+  for (const r of RK.rocks) if (r.blob) { RK.scene.remove(r.blob); r.blob.geometry.dispose(); }
   for (const r of RK.rocks) { RK.scene.remove(r.mesh); r.mesh.geometry.dispose(); r.probe.geometry.dispose(); r.mesh.material.dispose(); RK.world.removeBody(r.body); }
   RK.rocks = []; RK.hold = null; rkGhost(null);
 }
@@ -4201,12 +4239,28 @@ function rkMagnet(rk, x, z) {
 }
 function rkGhost(rk) {
   if (!RK.ghost) {
-    RK.ghost = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x6BE38A, transparent: true, opacity: .38, depthWrite: false }));
-    RK.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: .55 }));
-    RK.scene.add(RK.ghost); RK.scene.add(RK.line);
+    RK.ghost = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x6BE38A, transparent: true, opacity: .5, depthWrite: false }));
+    RK.ghostRim = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x6BE38A, transparent: true, opacity: .6, side: THREE.BackSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    RK.ghost.add(RK.ghostRim); RK.ghostRim.scale.setScalar(1.09);
+    RK.ring = new THREE.Mesh(new THREE.RingGeometry(.82, 1, 48), new THREE.MeshBasicMaterial({ color: 0x6BE38A, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide }));
+    RK.ring.rotation.x = -Math.PI / 2; RK.ring.renderOrder = 3;
+    RK.dots = new THREE.InstancedMesh(new THREE.SphereGeometry(.035, 8, 6), new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: .85 }), 10);
+    RK.line = new THREE.Object3D(); // kept for older code paths
+    RK.scene.add(RK.ghost); RK.scene.add(RK.ring); RK.scene.add(RK.dots);
   }
-  RK.ghost.visible = RK.line.visible = !!rk;
-  if (rk) RK.ghost.geometry = rk.mesh.geometry;
+  RK.ghost.visible = RK.ring.visible = RK.dots.visible = !!rk;
+  if (rk) { RK.ghost.geometry = rk.mesh.geometry; RK.ghostRim.geometry = rk.mesh.geometry; }
+}
+// place the ring under the ghost and a line of dots from the carried rock down to it; everything pulses gently
+function rkGhostDraw(rk, b, x, y, z, ok) {
+  const col = ok ? 0x6BE38A : 0xFF9A4A, pulse = .5 + .5 * Math.sin(performance.now() / 180);
+  RK.ghost.material.color.setHex(col); RK.ghostRim.material.color.setHex(col);
+  RK.ghost.material.opacity = .42 + .12 * pulse; RK.ghostRim.material.opacity = .35 + .35 * pulse;
+  const hh = rkHalfH(rk), r = Math.max(rk.a, rk.c);
+  RK.ring.material.color.setHex(col); RK.ring.position.set(x, y - hh + .02, z); RK.ring.scale.setScalar(r * (1.05 + .12 * pulse));
+  const top = b.position.y - hh, bot = y + hh, m4 = new THREE.Matrix4();
+  for (let i = 0; i < 10; i++) { const t = (i + .5) / 10; m4.makeTranslation(b.position.x + (x - b.position.x) * t, top + (bot - top) * t, b.position.z + (z - b.position.z) * t); RK.dots.setMatrixAt(i, m4); }
+  RK.dots.instanceMatrix.needsUpdate = true;
 }
 
 /* ---- sound ---- */
@@ -4256,9 +4310,21 @@ function rocksSetup() {
 }
 function rkCamera() {
   const d = RK.dist / RK.zoom, cp = Math.cos(RK.pitch);
-  RK.cam.position.set(RK.tx + Math.sin(RK.yaw) * cp * d, .8 + Math.sin(RK.pitch) * d, RK.tz + Math.cos(RK.yaw) * cp * d);
-  RK.cam.lookAt(RK.tx, .8, RK.tz); RK.cam.updateProjectionMatrix(); RK.cam.updateMatrixWorld();
+  RK.cam.position.set(RK.tx + Math.sin(RK.yaw) * cp * d, RK.ty + Math.sin(RK.pitch) * d, RK.tz + Math.cos(RK.yaw) * cp * d);
+  RK.cam.lookAt(RK.tx, RK.ty, RK.tz); RK.cam.updateProjectionMatrix(); RK.cam.updateMatrixWorld();
   if (RK.sun) { const sp = RK_TIMES[RK.time].sp; RK.sun.position.set(RK.tx + sp[0], sp[1], RK.tz + sp[2]); RK.sun.target.position.set(RK.tx, 0, RK.tz); }
+}
+// ease the view to frame a stack: its base, and a little up its height
+function rkFocusOn(r) {
+  let top = r.body.position.y + rkHalfH(r);
+  RK.camGoal = { x: r.body.position.x, z: r.body.position.z, y: clamp(.8 + (top - 1) * .5, .8, 3) };
+}
+function rkTallest() { let best = null, by = -1; for (const r of RK.rocks) if (r.locked && r.sup.size) { const t = r.body.position.y + rkHalfH(r); if (t > by) { by = t; best = r; } } return best; }
+function rkCamStep(dt) {
+  const G = RK.camGoal; if (!G) return;
+  const k = 1 - Math.exp(-dt / .3);
+  RK.tx += (G.x - RK.tx) * k; RK.tz += (G.z - RK.tz) * k; RK.ty += (G.y - RK.ty) * k; rkCamera();
+  if (Math.abs(G.x - RK.tx) + Math.abs(G.z - RK.tz) + Math.abs(G.y - RK.ty) < .005) RK.camGoal = null;
 }
 function rkSetTime(name) {
   const T = RK_TIMES[name]; if (!T) return;
@@ -4278,6 +4344,7 @@ function rkSetTime(name) {
   RK.swash.material.color.setHex(T.shallow); RK.foam.material.color.setHex(T.foam);
   RK.grass.material.color.setHex(T.grass);
   RK.moon.visible = RK.stars.visible = name === "night";
+  rkSkyTime(T, name);
   rkCamera();
 }
 
@@ -4329,9 +4396,18 @@ function rkBeachBuild(sc) {
     x.putImageData(img, 0, 0);
   }, false);
   nm.repeat.set(36, 18); RK.waterNormal = nm;
-  const wg = new THREE.PlaneGeometry(240, 112, 48, 28); wg.rotateX(-Math.PI / 2); wg.translate(0, RK_SEA, RK_WATER_Z - 54);
+  const wg = new THREE.PlaneGeometry(240, 112, 120, 56); wg.rotateX(-Math.PI / 2); wg.translate(0, RK_SEA, RK_WATER_Z - 54);
   wg.setAttribute("color", new THREE.BufferAttribute(new Float32Array(wg.attributes.position.count * 3), 3));
   RK.sea = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ vertexColors: true, normalMap: nm, normalScale: new THREE.Vector2(.45, .45), roughness: .3, metalness: 0, envMap: GL.env, envMapIntensity: .15, transparent: true, opacity: .97, fog: false }));
+  // two ripple layers at different scales and directions, and slow swells offshore, so the water never looks tiled
+  RK.seaU = { uTime: { value: 0 }, uOff2: { value: new THREE.Vector2() }, uShore: { value: RK_WATER_Z } };
+  RK.sea.material.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, RK.seaU);
+    sh.vertexShader = "uniform float uTime;\nuniform float uShore;\n" + sh.vertexShader.replace("#include <begin_vertex>",
+      "#include <begin_vertex>\n  float swf = smoothstep(0.0, 7.0, uShore - transformed.z);\n  transformed.y += swf * (sin(transformed.x * .18 + uTime * .9) * .06 + sin(transformed.z * .23 - uTime * 1.1) * .08 + sin((transformed.x + transformed.z) * .41 + uTime * 1.7) * .03);");
+    sh.fragmentShader = "uniform vec2 uOff2;\n" + sh.fragmentShader.replace("#include <normal_fragment_maps>",
+      "#ifdef TANGENTSPACE_NORMALMAP\n  vec3 mapN = texture2D( normalMap, vUv ).xyz * 2.0 - 1.0;\n  vec3 mapN2 = texture2D( normalMap, mat2(0.8, -0.6, 0.6, 0.8) * vUv * 0.37 + uOff2 ).xyz * 2.0 - 1.0;\n  mapN = normalize( vec3( mapN.xy + mapN2.xy * 1.3, mapN.z * mapN2.z ) );\n  mapN.xy *= normalScale;\n  normal = perturbNormal2Arb( -vViewPosition, normal, mapN, faceDirection );\n#endif");
+  };
   sc.add(RK.sea);
   // the wash: a thin sheet of water and a foam edge that run up the slope and slide back, and the wet shine they leave
   const NX = 96, strip = rows => { const geo = new THREE.BufferGeometry(), pos = new Float32Array(NX * rows * 3), uv = new Float32Array(NX * rows * 2), idx = [];
@@ -4381,9 +4457,80 @@ function rkSkyEnv(T) {
 function rkSeaColors(T) {
   const c = RK.sea.geometry.attributes.color, p = RK.sea.geometry.attributes.position, sh = new THREE.Color(T.shallow), dp = new THREE.Color(T.deep), tmp = new THREE.Color();
   // vertex colours are linear light, so convert from the sRGB palette or the sea comes out pale and grey
-  for (let i = 0; i < c.count; i++) { tmp.copy(sh).lerp(dp, smooth01(0, 14, RK_WATER_Z - p.getZ(i))).convertSRGBToLinear(); c.setXYZ(i, tmp.r, tmp.g, tmp.b); }
+  for (let i = 0; i < c.count; i++) { tmp.copy(sh).lerp(dp, smooth01(0, 14, RK_WATER_Z - p.getZ(i))).multiplyScalar(1 + .09 * Math.sin(p.getX(i) * .07) * Math.sin(p.getZ(i) * .05 + 1)).convertSRGBToLinear(); c.setXYZ(i, tmp.r, tmp.g, tmp.b); }
   c.needsUpdate = true;
 }
+/* ---- the sky: drifting clouds, the setting sun, the Milky Way, and a glitter path on the water ---- */
+function rkSoftSprite(key, draw, size = 256) {
+  if (RK.tex[key]) return RK.tex[key];
+  const c = document.createElement("canvas"); c.width = c.height = size; draw(c.getContext("2d"), size);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return RK.tex[key] = t;
+}
+function rkCloudTex(i) {
+  return rkSoftSprite("cloud" + i, (x, N) => {
+    const R = mulberry(77 + i * 13), puffs = 7 + (R() * 5 | 0);
+    x.clearRect(0, 0, N, N);
+    for (let k = 0; k < puffs; k++) {
+      const px = N * (.18 + R() * .64), py = N * (.5 + (R() - .5) * .18) - Math.sin((px / N) * Math.PI) * N * .08, r = N * (.1 + R() * .12);
+      const g = x.createRadialGradient(px, py - r * .3, r * .1, px, py, r);
+      g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(.6, "rgba(245,245,250,.9)"); g.addColorStop(1, "rgba(220,225,235,0)");
+      x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, 6.3); x.fill();
+    }
+    // a soft shaded underside
+    const u = x.createLinearGradient(0, N * .45, 0, N * .7); u.addColorStop(0, "rgba(0,0,0,0)"); u.addColorStop(1, "rgba(120,130,150,.25)");
+    x.globalCompositeOperation = "source-atop"; x.fillStyle = u; x.fillRect(0, 0, N, N);
+  });
+}
+function rkSkyBuild(sc) {
+  RK.clouds = [];
+  for (let i = 0; i < 12; i++) {
+    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: rkCloudTex(i % 5), transparent: true, depthWrite: false, fog: false }));
+    const az = rnd(-1.9, 1.9) + Math.PI, el = rnd(.06, .32), r = 100, w = rnd(22, 40);
+    m.position.set(Math.sin(az) * Math.cos(el) * r, Math.sin(el) * r, Math.cos(az) * Math.cos(el) * r); m.scale.set(w, w * .5, 1);
+    m.userData = { az, el, r, sp: rnd(.004, .01) * (Math.random() < .5 ? -1 : 1) }; sc.add(m); RK.clouds.push(m);
+  }
+  RK.sunDisc = new THREE.Sprite(new THREE.SpriteMaterial({ map: rkSoftSprite("sundisc", (x, N) => {
+    const g = x.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2);
+    g.addColorStop(0, "rgba(255,248,225,1)"); g.addColorStop(.16, "rgba(255,236,190,1)"); g.addColorStop(.2, "rgba(255,200,140,.75)"); g.addColorStop(.5, "rgba(255,160,110,.25)"); g.addColorStop(1, "rgba(255,140,100,0)");
+    x.fillStyle = g; x.fillRect(0, 0, N, N);
+  }), transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+  RK.sunDisc.scale.setScalar(46); sc.add(RK.sunDisc);
+  RK.milky = new THREE.Mesh(new THREE.PlaneGeometry(260, 46), new THREE.MeshBasicMaterial({ map: rkSoftSprite("milky", (x, N) => {
+    x.clearRect(0, 0, N, N);
+    const g = x.createLinearGradient(0, 0, 0, N); g.addColorStop(0, "rgba(180,190,255,0)"); g.addColorStop(.5, "rgba(200,205,255,.35)"); g.addColorStop(1, "rgba(180,190,255,0)");
+    x.fillStyle = g; x.fillRect(0, 0, N, N);
+    for (let i = 0; i < 2600; i++) { const y = N / 2 + (Math.random() - .5) * N * .5 * Math.random(); x.fillStyle = `rgba(255,255,255,${(Math.random() * .7).toFixed(2)})`; x.fillRect(Math.random() * N, y, 1, 1); }
+  }), transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  RK.milky.position.set(-10, 60, -80); RK.milky.rotation.set(-.55, .25, .5); sc.add(RK.milky);
+  // glitter: a strip of sparkles on the water running toward the sun (or moon)
+  const gt = rkSoftSprite("glitter", (x, N) => {
+    x.clearRect(0, 0, N, N);
+    for (let i = 0; i < 900; i++) { const px = N / 2 + (Math.random() - .5) * N * Math.pow(Math.random(), 1.5), py = Math.random() * N, l = 1 + Math.random() * 4; x.fillStyle = `rgba(255,250,235,${(.3 + Math.random() * .7).toFixed(2)})`; x.fillRect(px, py, l, 1); }
+  });
+  gt.wrapS = gt.wrapT = THREE.RepeatWrapping; gt.repeat.set(1, 6);
+  RK.glitter = new THREE.Mesh(new THREE.PlaneGeometry(9, 110), new THREE.MeshBasicMaterial({ map: gt, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: .3 }));
+  RK.glitter.rotation.x = -Math.PI / 2; RK.glitter.renderOrder = 1; sc.add(RK.glitter);
+}
+function rkSkyTime(T, name) {
+  for (const c of RK.clouds) { c.material.color.setHex(T.cloud[0]); c.material.opacity = T.cloud[1]; }
+  RK.sunDisc.visible = name === "sunset";
+  RK.milky.visible = name === "night";
+  RK.glitter.material.color.setHex(name === "sunset" ? 0xFFB070 : name === "night" ? 0xBFD0FF : 0xFFFFFF);
+}
+function rkSkyStep(dt) {
+  const T = RK_TIMES[RK.time];
+  for (const c of RK.clouds) { const u = c.userData; u.az += u.sp * dt * .05; c.position.set(Math.sin(u.az) * Math.cos(u.el) * u.r, Math.sin(u.el) * u.r, Math.cos(u.az) * Math.cos(u.el) * u.r); }
+  // the sun (or moon) sits low behind the sea; the glitter runs from the shore toward it
+  const lightDir = RK.time === "night" ? new THREE.Vector3(-30, 38, -90).normalize() : new THREE.Vector3(...T.sp).normalize();
+  if (RK.time === "sunset") { const d = new THREE.Vector3(lightDir.x, .05, lightDir.z).normalize(); RK.sunDisc.position.copy(d.multiplyScalar(105)); }
+  const hx = lightDir.x, hz = lightDir.z, hl = Math.hypot(hx, hz) || 1, ang = Math.atan2(hx / hl, -hz / hl);
+  const mid = 55;
+  RK.glitter.position.set(RK.tx + (hx / hl) * mid, RK_SEA + .03, RK_WATER_Z + (hz / hl) * mid);
+  RK.glitter.rotation.set(-Math.PI / 2, 0, -ang);
+  RK.glitter.material.map.offset.y -= dt * .05;
+  RK.glitter.material.opacity = T.glit * (.75 + .25 * Math.sin(performance.now() / 700));
+}
+
 // one wave cycle: the water runs up the slope, slows, slides back, and the wet sand slowly dries
 function rkBeachStep(dt) {
   const W = RK.wave, T = RK_TIMES[RK.time];
@@ -4392,6 +4539,7 @@ function rkBeachStep(dt) {
   const p = W.t / W.dur, up = .42;
   const w = p < up ? 1 - Math.pow(1 - p / up, 3) : 1 - Math.pow((p - up) / (1 - up), 2) * 1.12;
   RK.waterNormal.offset.x += dt * .012; RK.waterNormal.offset.y += dt * .02;
+  RK.seaU.uTime.value += dt; RK.seaU.uOff2.value.x -= dt * .006; RK.seaU.uOff2.value.y += dt * .009;
   const NX = 96, sp = RK.swash.geometry.attributes.position.array, fp = RK.foam.geometry.attributes.position.array, wp = RK.wet.geometry.attributes.position.array;
   if (W.wetZ.length !== NX) W.wetZ = new Array(NX).fill(RK_WATER_Z);
   const t = performance.now() / 1000;
@@ -4437,7 +4585,7 @@ function rkBeachStep(dt) {
 }
 function rocksBuild() {
   const sc = new THREE.Scene(); RK.scene = sc;
-  RK.cam = new THREE.PerspectiveCamera(45, 1, .1, 200);
+  RK.cam = new THREE.PerspectiveCamera(54, 1, .1, 200);
   sc.fog = new THREE.Fog(0xDCE8EE, 22, 70);
   // sky dome, redrawn for day, sunset and night
   RK.skyC = document.createElement("canvas"); RK.skyC.width = 4; RK.skyC.height = 256;
@@ -4454,6 +4602,8 @@ function rocksBuild() {
   const sun = new THREE.DirectionalLight(0xFFF1DA, 1.15); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 40 }); sun.shadow.bias = -.0006; sun.shadow.radius = 3;
   sc.add(sun); sc.add(sun.target); RK.sun = sun;
+  RK.fill = new THREE.DirectionalLight(0xC0D2FF, .3); RK.fill.position.set(8, 5, -4); sc.add(RK.fill);
+  rkSkyBuild(sc);
   rkBeachBuild(sc);
   // physics, tuned for calm falls: even weights, soft contacts, no bounce, small steps
   const w = new CANNON.World(); w.gravity.set(0, -14, 0); w.broadphase = new CANNON.NaiveBroadphase(); w.solver.iterations = 25; w.allowSleep = true; RK.world = w;
@@ -4510,8 +4660,7 @@ function rocksFrame(now) {
     b.position.set(b.position.x + (H.x - b.position.x) * k, b.position.y + (H.ly + .45 - b.position.y) * Math.min(1, dt * 12), b.position.z + (H.z - b.position.z) * k);
     b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0);
     RK.ghost.position.set(H.x, H.ly, H.z); RK.ghost.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
-    RK.ghost.material.color.setHex(H.verdict ? 0x6BE38A : 0xFF9A4A);
-    const lp = RK.line.geometry.attributes.position; lp.setXYZ(0, b.position.x, b.position.y - rkHalfH(rk), b.position.z); lp.setXYZ(1, H.x, H.ly + rkHalfH(rk), H.z); lp.needsUpdate = true;
+    rkGhostDraw(rk, b, H.x, H.ly, H.z, H.verdict);
   }
   // a just-released rock eases down onto its landing spot before it locks or tips
   for (const r of RK.rocks) if (r.place) {
@@ -4522,6 +4671,7 @@ function rocksFrame(now) {
       if (P.stable) {
         // it seats: a little rock back and forth, a click, a note one step higher for each level, a double tap
         rkLock(r, P.sup); rkWobble(r, P.dx, P.dz);
+        if (P.sup.size) rkFocusOn(r);
         rkStone(.35, r.a); rkChime(rkLevel(r)); buzz(10); setTimeout(() => buzz(6), 90);
         if (!P.sup.size) { rkPuff(r.body.position.x, r.body.position.z, 18, .5 + r.a * .6); rkDent(r.body.position.x, r.body.position.z, Math.max(r.a, r.c) * 1.05); }
       } else {
@@ -4578,13 +4728,15 @@ function rocksFrame(now) {
   rkBest.textContent = RK.best ? "Best " + RK.best + " cm" : "";
   // the beach: waves washing up and back (with their sounds), ripples, blowing sand, swaying grass, sand puffs
   rkBeachStep(dt); rkFxStep(dt);
+  rkSkyStep(dt);
+  rkCamStep(dt);
   if (RK.bed) {
     const t = actx.currentTime, amb = soundOn && ambienceOn;
     RK.bed.sea.g.gain.setTargetAtTime(amb ? .05 : 0, t, .5);
     RK.bed.wind.g.gain.setTargetAtTime(amb && RK.breeze ? .03 + Math.max(0, Math.sin(RK.gust * .9)) * .05 : 0, t, .4);
   }
   if (RK.dirty && !H && now - RK.saveT > 2500) { RK.saveT = now; rkSave(); }
-  GL.r.render(RK.scene, RK.cam);
+  GL.r.toneMappingExposure = RK_TIMES[RK.time].exp; GL.r.render(RK.scene, RK.cam); GL.r.toneMappingExposure = 1.05;
 }
 
 // a turn about the vertical axis (cannon 0.6.2's setFromAxisAngle returns nothing, so it can't be chained)
@@ -4673,9 +4825,14 @@ $("#rkTopple").addEventListener("click", () => {
   }
   S.whoosh(); buzz(30); RK.dirty = true;
 });
+$("#rkCenter").addEventListener("click", () => {
+  if (!RK.scene) return;
+  const r = rkTallest(); RK.camGoal = r ? null : { x: 0, z: 0, y: .8 }; if (r) rkFocusOn(r);
+  S.tick(1500, .08, .03, "sine"); buzz(6);
+});
 $("#rkReset").addEventListener("click", () => {
   if (!RK.scene) return;
-  rkClearAll(); RK.tx = RK.tz = 0; rkCamera();
+  rkClearAll(); RK.tx = RK.tz = 0; RK.ty = .8; RK.camGoal = null; rkCamera();
   const base = rkMake(rkSpec("boulder", .2, .1)); rkLock(base, new Set()); rkScatter(22); rkSave();
   S.whoosh(); buzz(12);
 });
