@@ -222,6 +222,11 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 
 /* ---------- board ---------- */
 #mode-board{overflow:hidden}
+html[data-mode="twisty"]{background:var(--twbg,#2E2A36)}
+#mode-twisty .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-twisty .tw-reset{bottom:74px;z-index:3}
+#mode-twisty .hint{bottom:128px}
+#mode-twisty.light .hint{color:#5A4E6A;text-shadow:none}
 #mode-board .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
 /* the original controls stay for screen readers and keyboards, out of sight behind the 3D board */
 .board-a11y{position:absolute!important;width:1px;height:1px;padding:0!important;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;min-height:0!important}
@@ -688,6 +693,17 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
       <button class="top-btn" id="rkReset"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15a9 9 0 1 0 3-6.7"/><path d="M6 4v5h5"/></svg>New beach</button>
     </div>
   </section>
+
+  <section class="mode" id="mode-twisty" aria-label="Twisty: a chain of clicky links. Drag a link to twist it a quarter turn at a time, or tap it for one notch. Pull a link well away to pop it off, bring a socket to a loose peg to connect, drag the first link of a piece to move it, and drag empty space to look around.">
+    <p class="hint" id="twHint">Drag a link to twist it · pull hard to pop it off</p>
+    <button class="newsheet tw-reset" id="twReset">Tip out a new one</button>
+    <div class="themes" role="group" aria-label="Twisty colours">
+      <button class="theme" data-tw="mint" aria-pressed="true"><i style="background:linear-gradient(135deg,#B9E8C8 50%,#7CC4F0 50%)"></i>Mint</button>
+      <button class="theme" data-tw="rainbow" aria-pressed="false"><i style="background:conic-gradient(#FF8FA3,#FFC36B,#FFE577,#8FE0A5,#86C9FF,#B79CFF,#FF8FA3)"></i>Rainbow</button>
+      <button class="theme" data-tw="sunset" aria-pressed="false"><i style="background:linear-gradient(135deg,#FFB58F 50%,#C8A2E8 50%)"></i>Sunset</button>
+      <button class="theme" data-tw="glow" aria-pressed="false"><i style="background:linear-gradient(135deg,#2C2F5A 50%,#7CFFB2 50%)"></i>Night glow</button>
+    </div>
+  </section>
 </div>
 
 <button class="fab" id="menuBtn"
@@ -710,6 +726,7 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
   <button class="mode-btn" data-mode="zen" aria-current="false"><span class="ico zen"></span>Zen garden</button>
   <button class="mode-btn" data-mode="cradle" aria-current="false"><span class="ico cradle"><svg viewBox="0 0 36 36" fill="none" stroke-linecap="round"><path d="M5 7h26" stroke="#8C939E" stroke-width="2.5"/><path d="M6 24V7M12 24V7M18 24V7M24 24V7M30 24V7" stroke="#9AA0A8" stroke-width=".9"/><g fill="#B9BEC6" stroke="#6E7580" stroke-width=".8"><circle cx="6" cy="26" r="3.2"/><circle cx="12" cy="26" r="3.2"/><circle cx="18" cy="26" r="3.2"/><circle cx="24" cy="26" r="3.2"/><circle cx="30" cy="26" r="3.2"/></g></svg></span>Newton's cradle</button>
   <button class="mode-btn" data-mode="cube" aria-current="false"><span class="ico cube"><svg viewBox="0 0 36 36"><path d="M18 3l13 9.5-5 15.5H10L5 12.5z" fill="#8B4FD8" stroke="#5E2FA8" stroke-width="1.2" stroke-linejoin="round"/><path d="M18 9l7.6 5.5-2.9 9H13.3l-2.9-9z" fill="#A574E6"/><path d="M14 15l4 3.5M22 15l-4 3.5" stroke="#2B2B30" stroke-width="2" stroke-linecap="round"/><path d="M18 18.5V22" stroke="#F9C74F" stroke-width="2.4" stroke-linecap="round"/><circle cx="29" cy="8" r="3.2" fill="#F5A623"/></svg></span>Dodec</button>
+  <button class="mode-btn" data-mode="twisty" aria-current="false"><span class="ico twisty"><svg viewBox="0 0 36 36" fill="none" stroke-linecap="round" stroke-width="5.5"><path d="M6 26a8 8 0 0 1 8-8" stroke="#B9E8C8"/><path d="M14 18a8 8 0 0 0 8-8" stroke="#7CC4F0"/><path d="M22 10a8 8 0 0 1 8 8" stroke="#B9E8C8"/><path d="M30 18v6" stroke="#7CC4F0"/></svg></span>Twisty</button>
   <button class="mode-btn" data-mode="rocks" aria-current="false"><span class="ico rocks"><svg viewBox="0 0 36 36"><ellipse cx="18" cy="30" rx="11" ry="4" fill="#7D776E"/><ellipse cx="18" cy="23.5" rx="8" ry="3.6" fill="#A49C90"/><ellipse cx="17" cy="17.5" rx="6.5" ry="3" fill="#8E8A84"/><ellipse cx="18.5" cy="12" rx="5" ry="2.8" fill="#B3A99B"/><ellipse cx="18" cy="7" rx="3.4" ry="2.4" fill="#6F6B66"/></svg></span>Rock piling</button>
   </div>
   <div class="pills"><button class="pill" id="drawerSettings">Settings</button><button class="pill" id="drawerBreathe" aria-pressed="false">Breathe</button></div>
@@ -900,6 +917,7 @@ function setMode(m) {
   if (m === "cube") cubeSetup();
   if (m === "rocks") rocksSetup();
   if (m === "board") boardSetup();
+  if (m === "twisty") twistySetup();
   if (m === "home") { renderHome(); if (!$("#mode-home").classList.contains("list")) tbSetup(); } else try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
 }
@@ -2947,6 +2965,241 @@ const bdEnd = e => {
   else if (c.t === "fader") bdFader(Math.round(BD.fader * 15) / 15, true);
 };
 on3D(secBoard, "pointerup", bdEnd); on3D(secBoard, "pointercancel", bdEnd);
+
+/* ================= twisty ================= */
+// A chain of quarter-circle links like the classic twisty fidget. Each joint turns about the chain in clicky quarter
+// turns; pull a link well away and it pops off with everything after it; bring a socket to a loose peg and it snaps on.
+// The first link of any piece is its handle: drag it to move the whole piece.
+const secTw = $("#mode-twisty"), twHint = $("#twHint");
+const TW = { W: 0, scene: null, cam: null, pieces: [], ptrs: new Map(), drag: null, orbit: null, pinch: null, yaw: .55, pitch: .9, zoom: 1.05, last: 0,
+  style: pref("fidget-twisty-style", "mint"), lastTap: 0, saveT: 0, dirty: false };
+const TW_R = 1, TW_T = .3, Q = Math.PI / 2; // arc radius, tube radius, a quarter turn
+const TW_STYLES = {
+  mint: { bg: "#2E2A36", mat: "#3E3850", cols: ["#B9E8C8", "#7CC4F0"], glitter: [false, true] },
+  rainbow: { bg: "#F4ECF7", mat: "#E5D8EA", cols: ["#FF8FA3", "#FFC36B", "#FFE577", "#8FE0A5", "#86C9FF", "#B79CFF"] },
+  sunset: { bg: "#FBE7DD", mat: "#F1D2C2", cols: ["#FFB58F", "#FF8A80", "#C8A2E8"] },
+  glow: { bg: "#121226", mat: "#1C1C36", cols: ["#2C2F5A", "#3A2C5E"], glow: ["#7CFFB2", "#FF8BD8"] },
+};
+if (!TW_STYLES[TW.style]) TW.style = "mint";
+// each link's own frame: it starts at the origin heading +x and curves up to (R, R, 0), heading +y
+let TW_E = null;
+function twEnd() { return TW_E || (TW_E = new THREE.Matrix4().makeTranslation(TW_R, TW_R, 0).multiply(new THREE.Matrix4().makeRotationZ(Q))); }
+// a joint shows a little resistance between notches, so turning it feels clicky
+const twShow = th => th - Math.sin(4 * th) / 4 * .45;
+function twFrames(p) {
+  const out = [], M = p.root.clone(), R = new THREE.Matrix4();
+  p.segs.forEach((s, i) => { if (i) M.multiply(twEnd()).multiply(R.makeRotationX(twShow(s.th))); out.push(M.clone()); });
+  return out;
+}
+function twEndFrame(p) { const F = twFrames(p); return F[F.length - 1].clone().multiply(twEnd()); }
+
+/* ---- the links ---- */
+function twTex(kind, col, glow) {
+  return tbCanvas(256, 64, (x, w, h) => {
+    x.fillStyle = col; x.fillRect(0, 0, w, h);
+    if (kind === "glitter") for (let i = 0; i < 700; i++) { x.fillStyle = `rgba(255,255,255,${(.2 + Math.random() * .7).toFixed(2)})`; const s = Math.random() < .1 ? 2.5 : 1.2; x.fillRect(Math.random() * w, Math.random() * h, s, s); }
+    if (kind === "glow") { x.fillStyle = glow; for (let k = 0; k < 3; k++) x.fillRect(w * (.15 + k * .3), 0, w * .06, h); }
+  });
+}
+function twLink(gi) {
+  const T = TW_STYLES[TW.style], k = gi % T.cols.length, col = T.cols[k], g = new THREE.Group();
+  if (!TW.geo) {
+    TW.geo = new THREE.TorusGeometry(TW_R, TW_T, 14, 22, Q).rotateZ(-Q).translate(0, TW_R, 0);
+    TW.pegGeo = new THREE.CylinderGeometry(.12, .12, .3, 12);
+    TW.seamGeo = new THREE.TorusGeometry(TW_T * 1.01, .028, 6, 24).rotateY(Q);
+  }
+  const kind = T.glow ? "glow" : T.glitter && T.glitter[k] ? "glitter" : "plain";
+  const mat = tbT(0xFFFFFF, { map: kind === "plain" ? null : twTex(kind, col, T.glow && T.glow[k]) });
+  if (kind === "plain") mat.color.set(col).convertSRGBToLinear();
+  if (kind === "glow") { mat.emissiveMap = mat.map; mat.emissive = new THREE.Color(.55, .55, .55); }
+  const arc = new THREE.Mesh(TW.geo, mat); arc.castShadow = arc.receiveShadow = true; g.add(arc);
+  const peg = new THREE.Mesh(TW.pegGeo, mat); peg.position.set(TW_R, TW_R + .12, 0); g.add(peg);
+  const seam = new THREE.Mesh(TW.seamGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color(0x2A2438).convertSRGBToLinear() })); seam.userData.noInk = true; g.add(seam);
+  tbToonify(g, .03);
+  g.matrixAutoUpdate = false; arc.userData.link = true; TW.scene.add(g);
+  return g;
+}
+function twPiece(root, ths, gi0 = 0) {
+  const p = { root, segs: ths.map((th, i) => ({ th, tt: th, g: null })) };
+  p.segs.forEach((s, i) => { s.g = twLink(gi0 + i); s.g.children[0].userData.tw = { p, i }; });
+  TW.pieces.push(p); return p;
+}
+function twClear() { for (const p of TW.pieces) for (const s of p.segs) { TW.scene.remove(s.g); } TW.pieces = []; }
+function twLayout() {
+  twClear();
+  // a wiggly snake, plus a few loose links to connect, like a twisty tipped out on the table
+  const snake = [0, 1, 3, 1, 3, 0, 1, 3, 1, 3, 2, 1, 3].map(n => n * Q);
+  const p = twPiece(new THREE.Matrix4(), snake);
+  // centre the snake over the mat
+  const F = twFrames(p), c = new THREE.Vector3(); F.forEach(M => c.add(new THREE.Vector3().setFromMatrixPosition(M))); c.divideScalar(F.length);
+  p.root.makeTranslation(-c.x, 1.6 - c.y, -c.z);
+  twPiece(new THREE.Matrix4().makeRotationY(.6).setPosition(2.9, .9, .3), [0, Q], 13);
+  twPiece(new THREE.Matrix4().makeRotationY(-1.2).setPosition(-3.1, .9, -.4), [0], 15);
+  twPiece(new THREE.Matrix4().makeRotationY(2.2).setPosition(1.6, .9, -3.2), [0], 16);
+  TW.dirty = true;
+}
+function twSave() {
+  try { localStorage.setItem("fidget-twisty", JSON.stringify(TW.pieces.map(p => ({ r: p.root.elements.map(v => +v.toFixed(4)), t: p.segs.map(s => +s.tt.toFixed(4)) })))); } catch (e) {}
+  TW.dirty = false;
+}
+function twLoad() {
+  let saved = null; try { saved = JSON.parse(localStorage.getItem("fidget-twisty")); } catch (e) {}
+  if (!Array.isArray(saved) || !saved.length) return twLayout();
+  twClear(); let gi = 0;
+  for (const s of saved) { const p = twPiece(new THREE.Matrix4().fromArray(s.r), s.t, gi); gi += s.t.length; }
+}
+function twRestyle(st) {
+  TW.style = st; savePref("fidget-twisty-style", st);
+  secTw.querySelectorAll(".theme").forEach(b => b.setAttribute("aria-pressed", b.dataset.tw === st ? "true" : "false"));
+  document.documentElement.style.setProperty("--twbg", TW_STYLES[st].bg);
+  secTw.classList.toggle("light", st === "rainbow" || st === "sunset");
+  if (!TW.scene) return;
+  TW.scene.background.set(TW_STYLES[st].bg); TW.mat.material.color.set(TW_STYLES[st].mat).convertSRGBToLinear();
+  const keep = TW.pieces.map(p => ({ r: p.root.clone(), t: p.segs.map(s => s.tt) })); twClear(); let gi = 0;
+  for (const k of keep) { twPiece(k.r, k.t, gi); gi += k.t.length; }
+}
+
+/* ---- scene ---- */
+function twBuild() {
+  const sc = TW.scene = new THREE.Scene(); sc.background = new THREE.Color(TW_STYLES[TW.style].bg);
+  TW.cam = new THREE.PerspectiveCamera(40, 1, .1, 100);
+  const L = lookLights(sc, { keyPos: [-5, 11, 6], keyI: .75, hemi: .55, fillI: .25 });
+  Object.assign(L.key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 });
+  // a soft round play mat
+  TW.mat = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, .3, 64), tbT(TW_STYLES[TW.style].mat)); TW.mat.position.y = -.15; TW.mat.receiveShadow = true; sc.add(TW.mat);
+  twLoad();
+}
+function twCamera() {
+  const d = (TW.W && TW.cam.aspect < 1 ? 15 / TW.cam.aspect * .62 : 15) / TW.zoom, cp = Math.cos(TW.pitch);
+  TW.cam.position.set(Math.sin(TW.yaw) * cp * d, 1 + Math.sin(TW.pitch) * d, Math.cos(TW.yaw) * cp * d);
+  TW.cam.lookAt(0, 1, 0); TW.cam.updateProjectionMatrix(); TW.cam.updateMatrixWorld();
+}
+function twistySetup() {
+  if (typeof THREE === "undefined" || !mount3D(secTw)) return;
+  if (!TW.scene) twBuild();
+  TW.cam.aspect = GL.w / GL.h; TW.W = GL.w; twCamera();
+}
+function twistyFrame(now) {
+  const dt = clamp((now - (TW.last || now - 16.7)) / 1000, .004, .05); TW.last = now;
+  // joints that were let go ease into their notch
+  for (const p of TW.pieces) for (const s of p.segs) if (s.th !== s.tt && !(TW.drag && TW.drag.p === p && TW.drag.s === s)) { s.th += (s.tt - s.th) * Math.min(1, dt * 14); if (Math.abs(s.tt - s.th) < 1e-3) s.th = s.tt; }
+  for (const p of TW.pieces) { const F = twFrames(p); p.segs.forEach((s, i) => { s.g.matrix.copy(F[i]); s.g.matrixWorldNeedsUpdate = true; }); }
+  if (TW.dirty && now - TW.saveT > 1500 && !TW.drag) { TW.saveT = now; twSave(); }
+  const tm = GL.r.toneMapping; GL.r.toneMapping = THREE.NoToneMapping; GL.r.render(TW.scene, TW.cam); GL.r.toneMapping = tm;
+}
+
+/* ---- sounds ---- */
+function twClick(k = 1) { S.tick(2300 + Math.random() * 400, .22 * k, .014, "square"); const a = ac(); if (a && soundOn) nz(a, "highpass", 3000, 5000, 2, .05 * k, .02); buzz(7); }
+function twPop() { const a = ac(); if (a && soundOn) { tone(a, "sine", 900, 260, .2, .09); nz(a, "bandpass", 2400, 900, 2, .12, .06); } buzz(22); }
+function twSnap() { twClick(1.3); setTimeout(() => twClick(1), 70); buzz(18); }
+
+/* ---- touch ---- */
+function twScreen(v) { const p = v.clone().project(TW.cam), r = GL.canvas.getBoundingClientRect(); return new THREE.Vector2(r.left + (p.x + 1) / 2 * r.width, r.top + (1 - p.y) / 2 * r.height); }
+function twLinkMid(F) { return new THREE.Vector3(TW_R * Math.SQRT1_2, TW_R * (1 - Math.SQRT1_2), 0).applyMatrix4(F); }
+function twStartCarry(p, e) {
+  const o = new THREE.Vector3().setFromMatrixPosition(p.root), n = TW.cam.getWorldDirection(new THREE.Vector3());
+  const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(n, o), hit = rayAt(e, TW.cam).ray.intersectPlane(plane, new THREE.Vector3()) || o.clone();
+  return { kind: "carry", p, plane, off: o.clone().sub(hit) };
+}
+// where a carried piece could join: its socket onto another piece's free peg, or its free peg into another's socket
+function twJoinFor(p) {
+  const myStart = new THREE.Vector3().setFromMatrixPosition(p.root), myEnd = new THREE.Vector3().setFromMatrixPosition(twEndFrame(p));
+  let best = null;
+  for (const q of TW.pieces) {
+    if (q === p) continue;
+    const qEnd = new THREE.Vector3().setFromMatrixPosition(twEndFrame(q)), qStart = new THREE.Vector3().setFromMatrixPosition(q.root);
+    const d1 = myStart.distanceTo(qEnd), d2 = myEnd.distanceTo(qStart);
+    if (d1 < .9 && (!best || d1 < best.d)) best = { d: d1, head: q, tail: p };
+    if (d2 < .9 && (!best || d2 < best.d)) best = { d: d2, head: p, tail: q };
+  }
+  return best;
+}
+function twJoin(J) {
+  // the tail hangs off the head's peg, at whichever notch is closest to how it was held
+  const E = twEndFrame(J.head), want = new THREE.Vector3(0, 1, 0).transformDirection(J.tail.root);
+  let bestK = 0, bd = -2;
+  for (let k = 0; k < 4; k++) { const M = E.clone().multiply(new THREE.Matrix4().makeRotationX(k * Q)), y = new THREE.Vector3(0, 1, 0).transformDirection(M), d = y.dot(want); if (d > bd) { bd = d; bestK = k; } }
+  J.tail.segs[0].th = J.tail.segs[0].tt = bestK * Q;
+  J.head.segs.push(...J.tail.segs);
+  J.head.segs.forEach((s, i) => s.g.children[0].userData.tw = { p: J.head, i });
+  TW.pieces = TW.pieces.filter(q => q !== J.tail); TW.dirty = true; twSnap();
+}
+function twSplit(p, i) {
+  // pop the chain apart at link i: the links from i on become their own piece, right where they were
+  const F = twFrames(p), q = { root: F[i].clone(), segs: p.segs.splice(i) };
+  q.segs[0].th = q.segs[0].tt = 0;
+  q.segs.forEach((s, k) => s.g.children[0].userData.tw = { p: q, i: k });
+  TW.pieces.push(q); TW.dirty = true; twPop(); return q;
+}
+on3D(secTw, "pointerdown", e => {
+  if (!TW.scene) return;
+  GL.canvas.setPointerCapture(e.pointerId); ac(); twHint.classList.add("gone");
+  TW.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now() });
+  if (TW.ptrs.size === 2) { const [a, b] = [...TW.ptrs.values()]; TW.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x) }; TW.orbit = null; return; }
+  if (TW.drag) return;
+  const links = []; for (const p of TW.pieces) for (const s of p.segs) links.push(s.g.children[0]);
+  const h = rayAt(e, TW.cam).intersectObjects(links, false)[0];
+  if (!h) { TW.orbit = { id: e.pointerId }; return; }
+  const { p, i } = h.object.userData.tw;
+  if (i === 0) { TW.drag = Object.assign(twStartCarry(p, e), { id: e.pointerId }); S.tick(1400, .12, .02); buzz(5); return; }
+  // twisting link i about its joint: work out which way on screen turns it forward
+  const F = twFrames(p), J = F[i - 1].clone().multiply(twEnd()), O = new THREE.Vector3().setFromMatrixPosition(J), A = new THREE.Vector3(1, 0, 0).transformDirection(J);
+  const mid = twLinkMid(F[i]), turned = mid.clone().sub(O).applyAxisAngle(A, .1).add(O), s0 = twScreen(mid), s1 = twScreen(turned);
+  TW.drag = { kind: "twist", id: e.pointerId, p, s: p.segs[i], i, dir: s1.sub(s0).divideScalar(.1), notch: Math.round(p.segs[i].th / Q), moved: false };
+});
+on3D(secTw, "pointermove", e => {
+  const pt = TW.ptrs.get(e.pointerId); if (!pt) return;
+  const px = pt.x, py = pt.y; pt.x = e.clientX; pt.y = e.clientY;
+  if (TW.pinch && TW.ptrs.size >= 2) {
+    const [a, b] = [...TW.ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, ang = Math.atan2(b.y - a.y, b.x - a.x);
+    let da = ang - TW.pinch.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
+    TW.zoom = clamp(TW.zoom * d / TW.pinch.d, .6, 2.2); TW.yaw += da; TW.pinch = { d, ang }; twCamera(); return;
+  }
+  if (TW.orbit && TW.orbit.id === e.pointerId) { TW.yaw -= (e.clientX - px) * .007; TW.pitch = clamp(TW.pitch + (e.clientY - py) * .005, .2, 1.45); twCamera(); return; }
+  const D = TW.drag; if (!D || D.id !== e.pointerId) return;
+  if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) > 8) D.moved = true;
+  if (D.kind === "twist") {
+    const l2 = D.dir.lengthSq() || 1, dth = ((e.clientX - px) * D.dir.x + (e.clientY - py) * D.dir.y) / l2;
+    D.s.th += clamp(dth, -.4, .4);
+    const n = Math.round(D.s.th / Q); if (n !== D.notch) { D.notch = n; twClick(); }
+    // pulled well away from the link: it pops off and you carry the loose part
+    const F = twFrames(D.p), at = twScreen(twLinkMid(F[D.i]));
+    if (Math.hypot(e.clientX - at.x, e.clientY - at.y) > 120) {
+      D.s.th = D.s.tt = Math.round(D.s.th / Q) * Q;
+      const q = twSplit(D.p, D.i); TW.drag = Object.assign(twStartCarry(q, e), { id: e.pointerId, moved: true });
+    }
+    return;
+  }
+  if (D.kind === "carry") {
+    const hit = rayAt(e, TW.cam).ray.intersectPlane(D.plane, new THREE.Vector3()); if (!hit) return;
+    const pos = hit.add(D.off); pos.y = Math.max(.6, pos.y);
+    D.p.root.setPosition(pos);
+    const J = twJoinFor(D.p); if (!!J !== !!D.near) { D.near = J; if (J) { twClick(.6); buzz(4); } }
+  }
+});
+const twEndPtr = e => {
+  const pt = TW.ptrs.get(e.pointerId); if (!pt) return; TW.ptrs.delete(e.pointerId);
+  if (TW.pinch) { if (TW.ptrs.size < 2) TW.pinch = null; return; }
+  if (TW.orbit && TW.orbit.id === e.pointerId) {
+    TW.orbit = null;
+    // a double-tap on empty space eases back to the starting view
+    if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 10) { const now = performance.now(); if (now - TW.lastTap < 330) { TW.yaw = .55; TW.pitch = .9; TW.zoom = 1.05; twCamera(); buzz(6); TW.lastTap = 0; } else TW.lastTap = now; }
+    return;
+  }
+  const D = TW.drag; if (!D || D.id !== e.pointerId) return; TW.drag = null;
+  if (D.kind === "twist") {
+    // a tap turns it one notch; a drag settles into the nearest notch
+    if (!D.moved && performance.now() - pt.t0 < 300) { D.s.tt = (Math.round(D.s.th / Q) + 1) * Q; twClick(1.2); }
+    else D.s.tt = Math.round(D.s.th / Q) * Q;
+    TW.dirty = true; return;
+  }
+  if (D.kind === "carry") { const J = twJoinFor(D.p); if (J) twJoin(J); else { S.tick(900, .1, .02); buzz(4); } TW.dirty = true; }
+};
+on3D(secTw, "pointerup", twEndPtr); on3D(secTw, "pointercancel", twEndPtr);
+secTw.addEventListener("wheel", e => { if (e.target !== GL.canvas) return; e.preventDefault(); TW.zoom = clamp(TW.zoom * (e.deltaY < 0 ? 1.08 : .93), .6, 2.2); twCamera(); }, { passive: false });
+secTw.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { twRestyle(b.dataset.tw); S.tick(2200, .15, .03, "square"); buzz(10); }));
+$("#twReset").addEventListener("click", () => { if (!TW.scene) return; twLayout(); S.whoosh(); buzz(12); });
+twRestyle(TW.style);
 
 /* ================= fidget spinner ================= */
 const secSpin = $("#mode-spin"), sHint = $("#sHint"), spinRpm = $("#spinRpm"), spinBest = $("#spinBest");
@@ -5154,7 +5407,10 @@ function rocksFrame(now) {
     if (H.moved) { const mg = rkMagnet(rk, tx, tz); if (mg) { tx += (mg.x - tx) * mg.k; tz += (mg.z - tz) * mg.k; } }
     H.x += (tx - H.x) * Math.min(1, dt * 18); H.z += (tz - H.z) * Math.min(1, dt * 18);
     const L = rkLanding(rk, H.x, H.z, H.verdict ? 1.15 : 1);
-    H.cy += (L.y - H.cy) * k1; H.ly += (L.y - H.ly) * k2;
+    // the hover height only moves to a new landing once it has held for a moment, so a finger resting over a stone's
+    // edge (where two landings alternate) can't make the rock flutter
+    if (H.ty === undefined || Math.abs(L.y - H.ty) < .03) { H.ty = L.y; H.tyT = 0; } else if ((H.tyT += dt) > .12) { H.ty = L.y; H.tyT = 0; }
+    H.cy += (H.ty - H.cy) * k1; H.ly += (H.ty - H.ly) * k2;
     if (H.verdict === null) H.verdict = L.stable;
     else if (L.stable !== H.verdict) { H.pendT += dt; if (H.pendT > .15) { H.verdict = L.stable; H.pendT = 0; } }
     else H.pendT = 0;
@@ -5379,7 +5635,7 @@ const MODE_INFO = {
   slime: "Squish, swirl and stretch", board: "Buttons, switches, knobs and a joystick", bubbles: "Endless bubble wrap",
   dice: "Roll real 3D dice", grass: "Brush the grass through the seasons", pop: "Press the bubbles, flip it over",
   spin: "Flick a fidget spinner", zen: "Rake a tabletop sand garden", cradle: "Swing Newton's cradle",
-  cube: "A twelve-sided fidget toy", rocks: "Stack rocks into cairns",
+  cube: "A twelve-sided fidget toy", rocks: "Stack rocks into cairns", twisty: "Twist, click and connect the links",
 };
 const MODE_NAME = {};
 document.querySelectorAll(".mode-btn").forEach(b => { if (b.dataset.mode !== "home") MODE_NAME[b.dataset.mode] = b.textContent.trim(); });
@@ -5592,7 +5848,7 @@ function tbToonify(root, w = .014) {
 // tint: the toy's colour, used for the fade into its mode. show: how it turns to face you when picked (Euler in camera space)
 const TB_TOY = {
   slime: { tint: "#FF6FA8", show: [.5, 0, 0] }, board: { tint: "#E8301E", show: [1.0, 0, 0] }, bubbles: { tint: "#8FCBEF", show: [1.05, 0, 0] },
-  dice: { tint: "#E5484D", show: [.5, .45, 0] }, grass: { tint: "#5DB534", show: [.3, 0, 0] }, pop: { tint: "#FFB13C", show: [1.05, 0, 0] },
+  dice: { tint: "#E5484D", show: [.5, .45, 0] }, twisty: { tint: "#7CC4F0", show: [.7, .3, 0] }, grass: { tint: "#5DB534", show: [.3, 0, 0] }, pop: { tint: "#FFB13C", show: [1.05, 0, 0] },
   spin: { tint: "#6D4BEA", show: [1.1, 0, 0] }, zen: { tint: "#D9CDB8", show: [1.0, 0, 0] }, cradle: { tint: "#8E9AAE", show: [.3, 0, 0] },
   cube: { tint: "#8B4FD8", show: [.15, 0, 0] }, rocks: { tint: "#A99F92", show: [.3, 0, 0] },
 };
@@ -5676,6 +5932,13 @@ function tbToy(mode) {
     const up = N.map(n => n.clone().applyQuaternion(q)).filter(n => n.z < .9).sort((a, b) => b.y - a.y)[0];
     const btn = add(zcyl(.06, .05, 20).rotateX(-Math.PI / 2), soft(0xF0352A)); btn.position.copy(up).multiplyScalar(.24 * .7947 + .02); btn.quaternion.setFromUnitVectors(V3(0, 1, 0), up);
     shape = { sphere: .22 };
+  } else if (mode === "twisty") {
+    // five real twisty links, chained with the same joint maths as the full toy, mint and glitter blue
+    const arc = new THREE.TorusGeometry(1, .3, 10, 14, Math.PI / 2).rotateZ(-Math.PI / 2).translate(0, 1, 0), M = new THREE.Matrix4().makeScale(.15, .15, .15);
+    [0, 1, 3, 1, 2].forEach((n, i) => {
+      if (i) M.multiply(twEnd()).multiply(new THREE.Matrix4().makeRotationX(n * Math.PI / 2));
+      const m = add(arc, soft(i % 2 ? 0x7CC4F0 : 0xB9E8C8)); m.matrix.copy(M); m.matrix.decompose(m.position, m.quaternion, m.scale);
+    });
   } else if (mode === "rocks") {
     const greys = [0x8E8A84, 0xB3A99B, 0x6F6B66];
     [[.2, .08, .16, 0], [.15, .07, .12, .14], [.1, .06, .08, .26]].forEach(([a, b, c, y], i) => add(rkSmoothNormalsGeo(lumpy(new THREE.IcosahedronGeometry(1, 3), R, .05), a, b, c), soft(greys[i], { map: rkGranite() }), 0, y + b, 0));
@@ -6296,7 +6559,7 @@ $("#custName").addEventListener("input", e => { TB.name = e.target.value.slice(0
 $("#tbSettings").addEventListener("click", () => openSettings());
 
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); });
+window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); if (mode === "twisty") twistySetup(); });
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
@@ -6309,7 +6572,7 @@ renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
-if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, bdFrame, grassFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
@@ -6326,6 +6589,7 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, bdFra
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
   if (mode === "cube" && CB.W) cubeFrame(now || 0);
   if (mode === "board" && BD.W) bdFrame(now || 0);
+  if (mode === "twisty" && TW.W) twistyFrame(now || 0);
   if (mode === "home" && TB.W && !secHome.classList.contains("list")) tbFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.rain.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
