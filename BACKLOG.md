@@ -42,7 +42,8 @@
 
 ## Toy box and look (from round 7)
 - **Sticker packs:** wire up in-app purchases at store-release time, using RevenueCat or the native store plugins. The packs are one-time buys and cosmetic only. Seasonal, Kawaii and Space are already on the shop shelf, marked "Coming soon".
-- **App-wide style switch (Soft / Toon):** add once every mode builds its materials with `lookMat`. Today only the toy box and the beach do.
+- **Toon look:** every mode is now toon (3D modes through `lookToon`, 2D modes restyled by hand). A Soft/Toon switch could come later if people ask for it.
+- **Twisty packs:** more colourways (glitter, metallic, pastel marble) as paid packs, alongside stickers and slime toppings.
 
 ## Foldable iPhone support (not started)
 
