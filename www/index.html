@@ -554,7 +554,7 @@ html[data-mode="stones"]{background:var(--stbg,#DCE3E6)}
     </div>
   </section>
 
-  <section class="mode" id="mode-board" aria-label="Fidget board: a big button, light switches, two knobs, a joystick, rocker switches, a fader and four keys">
+  <section class="mode" id="mode-board" aria-label="Fidget board: a big button, light switches, two knobs, a joystick, rocker switches, a fader and four keys, and a MUSIC switch that turns it into an instrument">
     <div class="themes" role="group" aria-label="Board style">
       <button class="theme" data-theme="wood" aria-pressed="true"><i style="background:linear-gradient(135deg,#C8935E 50%,#E8301E 50%)"></i>Cosy wood</button>
       <button class="theme" data-theme="candy" aria-pressed="false"><i style="background:linear-gradient(135deg,#FFB6D2 50%,#C9F2DF 50%)"></i>Candy</button>
@@ -563,6 +563,7 @@ html[data-mode="stones"]{background:var(--stbg,#DCE3E6)}
       <button class="theme" data-theme="retro" aria-pressed="false"><i style="background:linear-gradient(135deg,#DDD5C2 50%,#5CFF6B 50%)"></i>Retro PC</button>
     </div>
     <div class="plank board-a11y">
+      <button class="music-sw" role="switch" aria-checked="false" aria-label="Music: turns the board into an instrument. The fader sets the volume, knob 1 the tempo, knob 2 the tone, the light switches the drums, bass and chords, and the keys and joystick play notes.">Music</button>
       <div class="grid">
         <div class="center"><div class="bezel"><button class="red" id="red" aria-label="Big red button"></button></div></div>
         <div class="center" style="gap:26px;padding-top:12px">
@@ -2797,7 +2798,7 @@ const BD_NOTES = [523, 659, 784, 1047];
 /* ---- state changes, with their sounds ---- */
 function bdRed(down) {
   if (down === BD.red) return; BD.red = down;
-  if (down) { S.thunk(); S.boop(); buzz(30); } else { S.tick(2600, .12, .02); buzz(6); }
+  if (down) { if (BM.on && actx) { const t = actx.currentTime + .01; bmKick(actx, t); bmNoise(actx, t, "highpass", 5000, .5, .22, 1.3); } else { S.thunk(); S.boop(); } buzz(30); } else { S.tick(2600, .12, .02); buzz(6); }
   $("#red").classList.toggle("down", down);
 }
 function bdLever(i) {
@@ -2821,7 +2822,7 @@ function bdStickTo(dx, dy) {
   const R = 34, l = Math.hypot(dx, dy), k = l > R ? R / l : 1, St = BD.stick;
   St.x = dx * k / R; St.y = dy * k / R;
   const dir = l > R * .6 ? (Math.round(Math.atan2(dx, -dy) / (Math.PI / 4)) + 8) % 8 : -1;
-  if (dir !== St.dir) { if (dir >= 0) { S.tick(1300 + dir * 110, .26, .025, "square"); buzz(10); } else S.tick(900, .1, .02); St.dir = dir; }
+  if (dir !== St.dir) { if (dir >= 0) { if (BM.on) bmNote(BM_SCALE[dir], .13); else S.tick(1300 + dir * 110, .26, .025, "square"); buzz(10); } else if (!BM.on) S.tick(900, .1, .02); St.dir = dir; }
 }
 function bdStickEnd() { const was = BD.stick.dir; BD.stick.held = false; bdStickTo(0, 0); if (was >= 0) { S.thunk(); buzz(14); } }
 function bdFader(v, quiet) {
@@ -2830,10 +2831,79 @@ function bdFader(v, quiet) {
 }
 function bdKey(i, down) {
   if (BD.keys[i] === down) return; BD.keys[i] = down;
-  if (down) { S.blip(BD_NOTES[i]); buzz(12); } else S.tick(2800, .1, .015);
+  if (down) { if (BM.on) bmNote(bmChord()[i] + 24); else S.blip(BD_NOTES[i]); buzz(12); } else S.tick(2800, .1, .015);
+}
+
+/* ---- music mode: flip the MUSIC switch and the board becomes a little lo-fi instrument. The fader is the volume,
+   knob 1 the tempo, knob 2 the tone, the light switches the drums, bass and chords, the keys and joystick play notes that
+   always fit, the rockers add vinyl crackle and swing, and the big button crashes. ---- */
+const BM_PROG = [[48, 52, 55, 59], [45, 48, 52, 55], [41, 45, 48, 52], [43, 47, 50, 53]]; // Cmaj7, Am7, Fmaj7, G7
+const BM_SCALE = [72, 74, 76, 79, 81, 84, 86, 88];
+const mf = n => 440 * Math.pow(2, (n - 69) / 12);
+const BM = { on: false, bus: null, filt: null, next: 0, step: 0, timer: null, t0: 0 };
+function bmBus() {
+  const a = ac(); if (!a) return null;
+  if (!BM.bus) { BM.bus = a.createGain(); BM.filt = a.createBiquadFilter(); BM.filt.type = "lowpass"; BM.filt.Q.value = .5; BM.bus.gain.value = 0; BM.bus.connect(BM.filt).connect(out(a)); }
+  return a;
+}
+function bmVoice(a, t, type, f, vol, att, dec, detune = 0) {
+  const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = f; o.detune.value = detune;
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.exponentialRampToValueAtTime(.0001, t + att + dec);
+  o.connect(g).connect(BM.bus); o.start(t); o.stop(t + att + dec + .05);
+}
+function bmNoise(a, t, type, f, q, vol, dec) {
+  const s = a.createBufferSource(), fl = a.createBiquadFilter(), g = a.createGain(); s.buffer = noise(a); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dec); s.connect(fl).connect(g).connect(BM.bus); s.start(t, Math.random()); s.stop(t + dec + .05);
+}
+function bmKick(a, t) {
+  const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + .18);
+  g.gain.setValueAtTime(.55, t); g.gain.exponentialRampToValueAtTime(.0001, t + .32); o.connect(g).connect(BM.bus); o.start(t); o.stop(t + .35);
+}
+const bmBpm = () => 70 + BD.kStep[0] * 4, bmChord = () => BM_PROG[Math.floor(BM.step / 16) % 4];
+// a small look-ahead scheduler: sixteenth notes are queued a little before they're due
+function bmSchedule() {
+  const a = actx; if (!a || !BM.on || mode !== "board") return;
+  if (BM.next < a.currentTime - .05) { BM.next = a.currentTime + .05; BM.t0 = BM.next - (BM.step % 4) * 15 / bmBpm(); }
+  const s16 = 15 / bmBpm();
+  while (BM.next < a.currentTime + .12) {
+    const st = BM.step % 16, t = BM.next + (BD.rockers[1] && st % 2 ? s16 * .33 : 0), ch = bmChord();
+    if (st === 0 && BM.step % 64 === 0) BM.t0 = BM.next;
+    if (BD.levers[0]) {
+      if (st === 0 || st === 8 || st === 10) bmKick(a, t);
+      if (st === 4 || st === 12) { bmNoise(a, t, "bandpass", 1900, .8, .26, .16); bmVoice(a, t, "triangle", 190, .1, .002, .08); }
+      if (st % 2 === 0) bmNoise(a, t, "highpass", 7500, .7, st % 4 ? .04 : .08, .04);
+    }
+    if (BD.levers[1] && (st === 0 || st === 6 || st === 8 || st === 14)) bmVoice(a, t, "triangle", mf(ch[0] - 12 + (st === 14 ? 7 : 0)), .3, .01, s16 * 3);
+    if (BD.levers[2] && st === 0) ch.forEach((n, i) => { bmVoice(a, t + i * .012, "sine", mf(n + 12), .07, .03, s16 * 14, i * 3 - 4); bmVoice(a, t + i * .012, "triangle", mf(n + 12), .022, .05, s16 * 12, 6); });
+    if (BD.rockers[0] && Math.random() < .35) bmNoise(a, t + Math.random() * s16, "highpass", 3000 + Math.random() * 3000, 2, .015 + Math.random() * .03, .01);
+    BM.next += s16; BM.step++;
+  }
+}
+function bmLevels() {
+  if (!BM.bus) return; const t = actx.currentTime;
+  BM.bus.gain.setTargetAtTime(BM.on && soundOn && mode === "board" ? .12 + BD.fader * 1.05 : 0, t, .08);
+  BM.filt.frequency.setTargetAtTime(500 * Math.pow(2, BD.kStep[1] * .5), t, .1);
+}
+function bdMusic(on) {
+  if (on === BM.on) return; const a = bmBus(); BM.on = on;
+  S.tick(on ? 2000 : 1400, .3, .03, "square"); buzz(18);
+  $(".music-sw").setAttribute("aria-checked", on);
+  if (on && a) {
+    // everything plays to begin with; flick the light switches to drop parts out
+    BD.levers = [true, true, true]; boardA11y.querySelectorAll(".lever").forEach(l => l.setAttribute("aria-checked", "true"));
+    BM.step = 0; BM.next = BM.t0 = a.currentTime + .08;
+    if (!BM.timer) BM.timer = setInterval(() => { bmSchedule(); bmLevels(); }, 25);
+  } else { bmLevels(); setTimeout(() => { if (!BM.on) { clearInterval(BM.timer); BM.timer = null; } }, 800); }
+}
+// a note that fits the music, landing on the next sixteenth
+function bmNote(n, vol = .16) {
+  const a = actx; if (!a || !BM.bus) return;
+  const s16 = 15 / bmBpm(), t = Math.max(a.currentTime + .01, BM.next - s16 * Math.floor((BM.next - a.currentTime) / s16));
+  bmVoice(a, t, "sine", mf(n), vol, .005, .55); bmVoice(a, t, "triangle", mf(n + 12), vol * .22, .005, .22);
 }
 
 /* ---- the hidden accessible controls drive the same state ---- */
+$(".music-sw").addEventListener("click", () => bdMusic(!BM.on));
 {
   const red = $("#red");
   red.addEventListener("pointerdown", e => { red.setPointerCapture(e.pointerId); bdRed(true); });
@@ -2889,6 +2959,7 @@ function bdPlankTex(t) {
   const T = BD_THEMES[t];
   return tbCanvas(512, 1024, (x, w, h) => {
     x.fillStyle = T.plank; x.fillRect(0, 0, w, h);
+    x.save(); x.font = "600 24px Fredoka, sans-serif"; x.textAlign = "center"; x.fillStyle = t === "arcade" || t === "space" ? "#FFFFFF" : "#2A2438"; x.globalAlpha = .75; x.fillText("MUSIC", 68, 38); x.restore();
     const R = mulberry(t.length * 31);
     if (t === "wood") { for (let i = 0; i < 90; i++) { x.strokeStyle = "rgba(110,62,26,.16)"; x.lineWidth = 1 + R() * 3; const px = R() * w; x.beginPath(); for (let y = 0; y <= h; y += 24) x.lineTo(px + Math.sin(y * .01 + i) * 6, y); x.stroke(); } for (let k = 0; k < 3; k++) { x.fillStyle = "rgba(90,48,18,.22)"; x.beginPath(); x.ellipse(R() * w, R() * h, 14, 34, R(), 0, 6.3); x.fill(); } }
     if (t === "candy") { const cs = ["#FFFFFF", "#FFE27A", "#9FE3C4", "#A9D8FF", "#C9A8FF"]; for (let i = 0; i < 260; i++) { x.save(); x.translate(R() * w, R() * h); x.rotate(R() * 6.3); x.fillStyle = cs[i % 5]; x.beginPath(); x.roundRect ? x.roundRect(-7, -2.5, 14, 5, 2.5) : x.rect(-7, -2.5, 14, 5); x.fill(); x.restore(); } }
@@ -2896,7 +2967,7 @@ function bdPlankTex(t) {
     if (t === "space") { for (let i = 0; i < 380; i++) { x.fillStyle = `rgba(255,255,255,${(.25 + R() * .75).toFixed(2)})`; const s = R() < .08 ? 3 : 1.5; x.fillRect(R() * w, R() * h, s, s); } x.fillStyle = "rgba(124,140,255,.25)"; x.beginPath(); x.arc(w * .8, h * .12, 40, 0, 6.3); x.fill(); }
     if (t === "retro") {
       x.fillStyle = "rgba(0,0,0,.06)"; for (let i = 0; i < 5000; i++) x.fillRect(R() * w, R() * h, 1, 1);
-      x.fillStyle = "rgba(60,54,44,.55)"; for (let k = 0; k < 7; k++) x.fillRect(40 + k * 18, 40, 9, 70);
+      x.fillStyle = "rgba(60,54,44,.55)"; for (let k = 0; k < 7; k++) x.fillRect(w - 170 + k * 18, h - 110, 9, 70);
       x.font = "600 26px Fredoka, sans-serif"; x.fillStyle = "#5A5448"; x.textAlign = "left"; x.fillText("TURBO", w - 150, 70); x.fillText("POWER", w / 2 - 44, 300);
       x.strokeStyle = "#5A5448"; x.lineWidth = 3; x.strokeRect(w - 160, 36, 130, 50);
     }
@@ -2933,6 +3004,12 @@ function bdBuildBoard() {
     hit(add(new THREE.CylinderGeometry(.95, .98, .5, 40), T.red, 0, .25, 0, P.red), { t: "red" });
     hit(add(new THREE.SphereGeometry(.95, 32, 12, 0, Math.PI * 2, 0, .5), T.red, 0, .48, 0, P.red), { t: "red" }).scale.y = .45;
   }
+  // the MUSIC slide switch, top left
+  const mBase = add(new THREE.BoxGeometry(1.05, .1, .6), T.bezel, -2.35, .05, -4.95);
+  add(new THREE.BoxGeometry(.72, .04, .14), T.track, -2.35, .11, -4.95);
+  P.music = grp(-2.35, .12, -4.95); hit(add(new THREE.BoxGeometry(.32, .26, .42), T.red, 0, .13, 0, P.music), { t: "music" });
+  hit(mBase, { t: "music" });
+  P.leds.push({ ...led(-1.7, .14, -4.95, .085), on: () => BM.on });
   // 2: three light switches
   for (let i = 0; i < 3; i++) {
     const x = (i - 1) * 1.85, z = -1.95;
@@ -3018,7 +3095,10 @@ function bdFrame(now) {
   P.rockers.forEach((pv, i) => ease(pv.rotation, "x", BD.rockers[i] ? -.22 : .22));
   ease(P.fader.position, "x", -2.3 + BD.fader * 4.6);
   P.keys.forEach((c, i) => ease(c.position, "y", (BD.keys[i] ? .02 : .14) - (BD_THEMES[BD.theme].keyStyle === "keycap" ? .04 : 0)));
-  for (const L of P.leds) { const on = L.on(); L.s.material.opacity += ((on ? .9 : 0) - L.s.material.opacity) * k; if (on !== L.was) { L.was = on; L.m.material.color.set(on ? BD_THEMES[BD.theme].led : BD_THEMES[BD.theme].ledOff).convertSRGBToLinear(); L.m.material.emissive.set(on ? BD_THEMES[BD.theme].led : 0x000000).convertSRGBToLinear(); } }
+  ease(P.music.position, "x", BM.on ? -2.17 : -2.53);
+  // lit lights pulse on every beat while the music plays
+  const spb = 60 / bmBpm(), ph = BM.on && actx ? ((actx.currentTime - BM.t0) % spb + spb) % spb : 0, pulse = BM.on ? .55 + .45 * Math.exp(-ph * 7) : 1;
+  for (const L of P.leds) { const on = L.on(); L.s.material.opacity += ((on ? .9 * pulse : 0) - L.s.material.opacity) * Math.min(1, dt * 30); if (on !== L.was) { L.was = on; L.m.material.color.set(on ? BD_THEMES[BD.theme].led : BD_THEMES[BD.theme].ledOff).convertSRGBToLinear(); L.m.material.emissive.set(on ? BD_THEMES[BD.theme].led : 0x000000).convertSRGBToLinear(); } }
   // the board dips a touch toward wherever you press, then floats back
   BD.tilt.x *= Math.exp(-dt * 6); BD.tilt.z *= Math.exp(-dt * 6);
   ease(BD.board.rotation, "x", BD.tilt.x); ease(BD.board.rotation, "z", BD.tilt.z);
@@ -3037,6 +3117,7 @@ on3D(secBoard, "pointerdown", e => {
   if (c.t === "red") bdRed(true);
   else if (c.t === "lever") bdLever(c.i);
   else if (c.t === "rocker") bdRocker(c.i);
+  else if (c.t === "music") bdMusic(!BM.on);
   else if (c.t === "key") bdKey(c.i, true);
   else if (c.t === "knob") { const [cx, cy] = bdScreen(BD.parts.knobs[c.i]); Pt.cx = cx; Pt.cy = cy; Pt.a = Math.atan2(e.clientX - cx, -(e.clientY - cy)) * 180 / Math.PI; }
   else if (c.t === "stick") { BD.stick.held = true; }
