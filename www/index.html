@@ -3904,8 +3904,10 @@ on3D(secCradle, "pointerup", cEnd); on3D(secCradle, "pointercancel", cEnd);
 // lets the stack fall with real physics. Fallen rocks lock again once they come to rest.
 const secRocks = $("#mode-rocks"), rkHint = $("#rkHint"), rkHeight = $("#rkHeight"), rkBest = $("#rkBest"), rkBreeze = $("#rkBreeze"), rkNew = $("#rkNew");
 const RK = { W: 0, scene: null, cam: null, world: null, rocks: [], ptrs: new Map(), hold: null, orbit: null, pinch: null,
-  yaw: .35, pitch: .5, zoom: 1, dist: 10, tx: 0, tz: 0, last: 0, breeze: false, gust: 0, gustCheck: 0, best: 0, shownH: -1, dirty: false, saveT: 0,
-  clack: 0, bed: null, foam: null, sun: null, hemi: null, granite: null, waveT: 0, ghost: null, line: null, time: "day", sky: null, skyC: null, moon: null, stars: null, sea: null, sand: null };
+  yaw: .35, pitch: .64, zoom: 1, dist: 10, tx: 0, tz: 0, last: 0, breeze: false, gust: 0, gustCheck: 0, best: 0, shownH: -1, dirty: false, saveT: 0,
+  clack: 0, bed: null, foam: null, sun: null, hemi: null, waveT: 0, ghost: null, line: null, time: "day", sky: null, skyC: null, moon: null, stars: null, sea: null, sand: null,
+  tex: {}, wave: null, puffs: [], dents: [], grains: null, grass: null };
+const RK_SEA = -.5, RK_SHORE_Z = -3.2; // water level, and where the beach starts sloping down to it
 try { RK.best = +localStorage.getItem("fidget-rocks-best") || 0; RK.time = localStorage.getItem("fidget-rocks-time") || "day"; } catch (e) {}
 const RK_TYPES = {
   flat: { w: 34, s: () => [rnd(.45, .8), rnd(.13, .2), 0], k: [1, 1, .82] },
@@ -3918,33 +3920,56 @@ const RK_COLS = [0x8E8A84, 0x6F6B66, 0xA49C90, 0x7D6F64, 0x5B5754, 0xB3A99B, 0x8
 const RK_GLASS = [0x8FD9C4, 0x7FC3E0, 0xA8E6B0, 0x9BCFE8];
 const RK_MAX = 44;
 const RK_TIMES = {
-  day: { sky: ["#7FB6DE", "#BFDCEE", "#E9F1F3"], fog: 0xDCE8EE, sun: 0xFFF1DA, si: 1.15, sp: [-6, 14, 5], hemi: [0xDDEEFF, 0xC8A878, .75], sea: 0x4F9DBF, sand: 0xFFFFFF, foam: .6 },
-  sunset: { sky: ["#3E4C8A", "#F08A5D", "#FFD29A"], fog: 0xF2C9A0, sun: 0xFF9E5E, si: 1.0, sp: [-12, 4, -6], hemi: [0xFFC8A0, 0xB08A6A, .55], sea: 0x5C7FA8, sand: 0xFFE0C0, foam: .5 },
-  night: { sky: ["#05071A", "#141B3D", "#2A3560"], fog: 0x141B3D, sun: 0x9FB4FF, si: .45, sp: [-6, 14, -4], hemi: [0x6070C0, 0x2A2A38, .28], sea: 0x1C3150, sand: 0x8A90B0, foam: .25 },
+  day: { sky: ["#6FAEDC", "#BFDCEE", "#E9F1F3"], fog: 0xDCE8EE, fogR: [42, 118], sun: 0xFFF1DA, si: 1.2, sp: [-6, 14, 5], hemi: [0xDDEEFF, 0xC8A878, .7],
+    deep: 0x2C7FA6, shallow: 0x58C3C0, foam: 0xFFFFFF, fo: .85, sand: 0xFFFFFF, grass: 0x9DB35A, grains: .5 },
+  sunset: { sky: ["#3E4C8A", "#F08A5D", "#FFD29A"], fog: 0xF2C9A0, fogR: [38, 112], sun: 0xFF9E5E, si: 1.0, sp: [-12, 4, -6], hemi: [0xFFC8A0, 0xB08A6A, .55],
+    deep: 0x34587E, shallow: 0x6E95A8, foam: 0xFFE6D0, fo: .75, sand: 0xFFDCC0, grass: 0x9C8F4E, grains: .45 },
+  night: { sky: ["#05071A", "#141B3D", "#2A3560"], fog: 0x141B3D, fogR: [28, 95], sun: 0x9FB4FF, si: .45, sp: [-6, 14, -4], hemi: [0x6070C0, 0x2A2A38, .28],
+    deep: 0x0B1D36, shallow: 0x1D4565, foam: 0xC9D6FF, fo: .45, sand: 0x8A90B0, grass: 0x3E4A3A, grains: .25 },
 };
 
-/* ---- rock looks ---- */
-function rkGranite() {
-  if (RK.granite) return RK.granite;
-  const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
-  x.fillStyle = "#D8D4CE"; x.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 14000; i++) { const l = 45 + Math.random() * 50; x.fillStyle = `hsla(${20 + Math.random() * 20},${Math.random() * 18}%,${l}%,.55)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.5, 1.5); }
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return RK.granite = t;
+/* ---- rock looks: every style has a texture and a matching bump map for surface relief ---- */
+function rkCanvasTex(key, draw, color = true) {
+  if (RK.tex[key]) return RK.tex[key];
+  const c = document.createElement("canvas"); c.width = c.height = 256; draw(c.getContext("2d"));
+  const t = new THREE.CanvasTexture(c); if (color) t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return RK.tex[key] = t;
 }
+const rkSpeckle = (x, base, n, hue, sat, l0, l1, size = 1.5) => {
+  x.fillStyle = base; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < n; i++) { x.fillStyle = `hsla(${hue + Math.random() * 20},${Math.random() * sat}%,${l0 + Math.random() * (l1 - l0)}%,.55)`; x.fillRect(Math.random() * 256, Math.random() * 256, size, size); }
+  // soft blotches give the stone some variation and the bump map some lumps
+  for (let i = 0; i < 30; i++) { const px = Math.random() * 256, py = Math.random() * 256, r = 10 + Math.random() * 40, g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, `rgba(0,0,0,${(Math.random() * .12).toFixed(2)})`); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2); }
+};
+function rkGranite() { return rkCanvasTex("granite", x => rkSpeckle(x, "#D8D4CE", 14000, 20, 18, 45, 95)); }
+function rkBasalt() { return rkCanvasTex("basalt", x => rkSpeckle(x, "#55565A", 12000, 210, 6, 18, 48, 1.3)); }
 function rkQuartz() {
-  if (RK.quartz) return RK.quartz;
-  const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
-  x.fillStyle = "#F2F0EC"; x.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 14; i++) { x.strokeStyle = `rgba(120,118,115,${(.15 + Math.random() * .3).toFixed(2)})`; x.lineWidth = .8 + Math.random() * 2; x.beginPath(); let px = Math.random() * 256, py = Math.random() * 256; x.moveTo(px, py); for (let k = 0; k < 8; k++) { px += rnd(-40, 40); py += rnd(-40, 40); x.lineTo(px, py); } x.stroke(); }
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return RK.quartz = t;
+  return rkCanvasTex("quartz", x => {
+    rkSpeckle(x, "#F2F0EC", 5000, 30, 8, 82, 98, 1.2);
+    for (let i = 0; i < 14; i++) { x.strokeStyle = `rgba(120,118,115,${(.15 + Math.random() * .3).toFixed(2)})`; x.lineWidth = .8 + Math.random() * 2; x.beginPath(); let px = Math.random() * 256, py = Math.random() * 256; x.moveTo(px, py); for (let k = 0; k < 8; k++) { px += rnd(-40, 40); py += rnd(-40, 40); x.lineTo(px, py); } x.stroke(); }
+  });
 }
+function rkFrost() { return rkCanvasTex("frost", x => rkSpeckle(x, "#9A9A9A", 16000, 0, 0, 40, 90, 1.4), false); }
 function rkMaterial(spec) {
-  if (spec.style === "glass") return new THREE.MeshPhysicalMaterial({ color: RK_GLASS[spec.col % RK_GLASS.length], roughness: .35, clearcoat: .8, transparent: true, opacity: .82, envMap: GL.env, envMapIntensity: .9 });
-  if (spec.style === "quartz") return new THREE.MeshStandardMaterial({ map: rkQuartz(), color: 0xFFFFFF, roughness: .55, envMap: GL.env, envMapIntensity: .4 });
-  if (spec.style === "black") return new THREE.MeshStandardMaterial({ color: 0x232327, roughness: .35, envMap: GL.env, envMapIntensity: .6 });
-  return new THREE.MeshStandardMaterial({ color: RK_COLS[spec.col % RK_COLS.length], map: rkGranite(), roughness: spec.type === "flat" ? .7 : .85, envMap: GL.env, envMapIntensity: .35 });
+  const env = { envMap: GL.env, vertexColors: true };
+  if (spec.style === "glass") return new THREE.MeshPhysicalMaterial(Object.assign({ color: RK_GLASS[spec.col % RK_GLASS.length], roughness: .5, roughnessMap: rkFrost(), bumpMap: rkFrost(), bumpScale: .006, clearcoat: .6, transparent: true, opacity: .9, envMapIntensity: .9 }, env));
+  if (spec.style === "quartz") return new THREE.MeshStandardMaterial(Object.assign({ map: rkQuartz(), bumpMap: rkQuartz(), bumpScale: .008, color: 0xFFFFFF, roughness: .55, envMapIntensity: .4 }, env));
+  if (spec.style === "black") return new THREE.MeshStandardMaterial(Object.assign({ map: rkBasalt(), bumpMap: rkBasalt(), bumpScale: .01, color: 0x8A8A90, roughness: .45, envMapIntensity: .6 }, env));
+  return new THREE.MeshStandardMaterial(Object.assign({ color: RK_COLS[spec.col % RK_COLS.length], map: rkGranite(), bumpMap: rkGranite(), bumpScale: .012, roughness: spec.type === "flat" ? .7 : .85, envMapIntensity: .35 }, env));
+}
+// the icosphere has separate vertices per triangle, so average the normals of matching corners for smooth shading
+function rkSmoothNormals(geo) {
+  geo.computeVertexNormals();
+  const p = geo.attributes.position, n = geo.attributes.normal, acc = new Map(), key = i => `${p.getX(i).toFixed(4)},${p.getY(i).toFixed(4)},${p.getZ(i).toFixed(4)}`;
+  for (let i = 0; i < p.count; i++) { const k = key(i), a = acc.get(k) || [0, 0, 0]; a[0] += n.getX(i); a[1] += n.getY(i); a[2] += n.getZ(i); acc.set(k, a); }
+  for (let i = 0; i < p.count; i++) { const a = acc.get(key(i)), l = Math.hypot(a[0], a[1], a[2]) || 1; n.setXYZ(i, a[0] / l, a[1] / l, a[2] / l); }
+  n.needsUpdate = true;
+}
+// cheap ambient occlusion baked into vertex colours: a rock is darker underneath
+function rkShade(geo, b) {
+  const p = geo.attributes.position, c = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) { const t = clamp((p.getY(i) / b + 1) / 2, 0, 1), v = .55 + .45 * Math.sqrt(t); c[i * 3] = c[i * 3 + 1] = c[i * 3 + 2] = v; }
+  geo.setAttribute("color", new THREE.BufferAttribute(c, 3));
 }
 
 /* ---- building rocks ---- */
@@ -3981,7 +4006,7 @@ function rkSamples(rk) {
 function rkMake(spec) {
   // spec: { type, a, b, c, seed, col, style, p: [x,y,z], q: [x,y,z,w], locked }
   const R = mulberry(spec.seed), geo = lumpy(new THREE.IcosahedronGeometry(1, 3), R, .045);
-  geo.scale(spec.a, spec.b, spec.c);
+  geo.scale(spec.a, spec.b, spec.c); rkSmoothNormals(geo); rkShade(geo, spec.b);
   const mesh = new THREE.Mesh(geo, rkMaterial(spec)); mesh.castShadow = mesh.receiveShadow = true; RK.scene.add(mesh);
   // a light, invisible stand-in used for all the "what's under this point" rays
   const pg = new THREE.IcosahedronGeometry(1, 2); pg.scale(spec.a, spec.b, spec.c);
@@ -4021,7 +4046,8 @@ function rkScatter(n) {
   for (let i = 0; i < n && RK.rocks.length < RK_MAX; i++) {
     let x = 0, z = 0;
     for (let tries = 0; tries < 20; tries++) {
-      const a = rnd(0, 6.28), d = rnd(2.2, 5.5); x = RK.tx + Math.cos(a) * d; z = RK.tz + Math.sin(a) * d * .8;
+      // on the dry sand, clear of the waves behind the building patch
+      const a = rnd(0, 6.28), d = rnd(2.2, 5.5); x = RK.tx + Math.cos(a) * d; z = Math.max(RK_SHORE_Z + 1.4, RK.tz + Math.sin(a) * d * .8);
       if (RK.rocks.every(r => Math.hypot(r.body.position.x - x, r.body.position.z - z) > r.a + 1)) break;
     }
     const rk = rkMake(rkSpec(rkPickType(), x, z)); rkLock(rk, new Set());
@@ -4051,6 +4077,64 @@ function rkLockAtRest(rk) {
   rkLock(rk, L.sup); RK.dirty = true;
 }
 
+/* ---- feel: stack level and chime, settle wobble, sand puffs and dents ---- */
+// how high up a stack a rock sits: 1 on the sand, one more for each rock under it
+function rkLevel(rk, seen = new Set()) {
+  if (seen.has(rk) || !rk.sup.size) return 1; seen.add(rk);
+  let m = 0; for (const s of rk.sup) m = Math.max(m, rkLevel(s, seen)); return m + 1;
+}
+// a soft stone-and-wood tone, one pentatonic step higher for each level of the cairn
+const RK_NOTES = [392, 440, 523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.5];
+function rkChime(level) {
+  const a = ac(); if (!a || !soundOn) return;
+  const f = RK_NOTES[clamp(level - 1, 0, RK_NOTES.length - 1)];
+  tone(a, "sine", f, f, .13, .7); tone(a, "sine", f * 2.76, f * 2.7, .025, .25); nz(a, "bandpass", 2200, 1600, 4, .05, .03);
+}
+// the mesh rocks gently a couple of times as it seats; the physics body stays locked
+function rkWobble(rk, dx, dz) {
+  const l = Math.hypot(dx, dz) || 1;
+  rk.wob = { t: 0, axis: new THREE.Vector3(dz / l, 0, -dx / l), amp: .065 };
+}
+function rkFxInit() {
+  const g = new THREE.IcosahedronGeometry(.022, 0);
+  RK.grains = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ color: 0xD9B98A, roughness: 1 }), 240);
+  RK.grains.count = 0; RK.grains.frustumCulled = false; RK.scene.add(RK.grains);
+  const dent = rkCanvasTex("dent", x => {
+    const gr = x.createRadialGradient(128, 128, 0, 128, 128, 128);
+    gr.addColorStop(0, "rgba(90,60,30,.55)"); gr.addColorStop(.62, "rgba(90,60,30,.32)"); gr.addColorStop(.78, "rgba(255,240,210,.35)"); gr.addColorStop(1, "rgba(255,240,210,0)");
+    x.clearRect(0, 0, 256, 256); x.fillStyle = gr; x.fillRect(0, 0, 256, 256);
+  });
+  RK.dentMat = new THREE.MeshBasicMaterial({ map: dent, transparent: true, depthWrite: false, opacity: 0 });
+}
+function rkPuff(x, z, n, size) {
+  for (let i = 0; i < n; i++) {
+    if (RK.puffs.length >= 240) RK.puffs.shift();
+    const a = rnd(0, 6.28), sp = rnd(.6, 1.6) * size;
+    RK.puffs.push({ x: x + Math.cos(a) * size * .5, y: .03, z: z + Math.sin(a) * size * .5, vx: Math.cos(a) * sp, vy: rnd(.8, 1.8) * size, vz: Math.sin(a) * sp, life: 0 });
+  }
+}
+function rkDent(x, z, r) {
+  if (RK.dents.length >= 24) { const d = RK.dents.shift(); RK.scene.remove(d.m); d.m.material.dispose(); }
+  const m = new THREE.Mesh(new THREE.CircleGeometry(r, 24), RK.dentMat.clone());
+  m.rotation.x = -Math.PI / 2; m.position.set(x, .006, z); RK.scene.add(m);
+  RK.dents.push({ m, t: 0 });
+}
+function rkFxStep(dt) {
+  const L = RK.puffs, m4 = new THREE.Matrix4();
+  for (let i = L.length - 1; i >= 0; i--) {
+    const p = L[i]; p.life += dt; p.vy -= 6 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    if (p.y < .01) { p.y = .01; p.vx *= .7; p.vz *= .7; p.vy = 0; }
+    if (p.life > .9) L.splice(i, 1);
+  }
+  for (let i = 0; i < L.length; i++) { const p = L[i], s = 1 - p.life / .9; m4.makeScale(s, s, s).setPosition(p.x, p.y, p.z); RK.grains.setMatrixAt(i, m4); }
+  RK.grains.count = L.length; RK.grains.instanceMatrix.needsUpdate = true;
+  for (let i = RK.dents.length - 1; i >= 0; i--) {
+    const d = RK.dents[i]; d.t += dt;
+    d.m.material.opacity = d.t < .25 ? d.t / .25 * .8 : Math.max(0, .8 * (1 - (d.t - .25) / 20));
+    if (d.t > 20.5) { RK.scene.remove(d.m); d.m.material.dispose(); d.m.geometry.dispose(); RK.dents.splice(i, 1); }
+  }
+}
+
 /* ---- where a rock would land, and whether it would stay ---- */
 const rkTmp = { ray: null, q: null, v: null, down: null };
 function rkSupportHit(x, z, skip) {
@@ -4059,7 +4143,7 @@ function rkSupportHit(x, z, skip) {
   const hit = rkTmp.ray.intersectObjects(RK.rocks.filter(r => r !== skip).map(r => r.probe), false)[0];
   return hit ? { y: hit.point.y, rock: hit.object.userData.rock, ny: hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld).y : 1 } : { y: 0, rock: null, ny: 1 };
 }
-function rkLanding(rk, x, z) {
+function rkLanding(rk, x, z, tolMul = 1) {
   const q = rkTmp.q || (rkTmp.q = new THREE.Quaternion()), bq = rk.body.quaternion; q.set(bq.x, bq.y, bq.z, bq.w);
   const pts = [];
   let land = -1e9;
@@ -4074,7 +4158,7 @@ function rkLanding(rk, x, z) {
   const contacts = pts.filter(p => p.cy >= land - .035), sup = new Set();
   for (const p of contacts) if (p.rock) sup.add(p.rock);
   // balanced if the centre of mass sits over the contact patch (with a little forgiveness), and the surface isn't too steep
-  const tol = .12 * Math.max(rk.a, rk.c) + .02;
+  const tol = (.12 * Math.max(rk.a, rk.c) + .02) * tolMul;
   const steep = contacts.length < 3 && contacts.every(p => p.ny < .82);
   const stable = !steep && rkOverPatch(x, z, contacts, tol);
   let ox = 0, oz = 0; for (const p of contacts) { ox += p.x; oz += p.z; }
@@ -4102,6 +4186,19 @@ function rkHalfH(rk) {
   const m1 = 2 * (x * y + w * z), m5 = 1 - 2 * (x * x + z * z), m9 = 2 * (y * z - w * x);
   return Math.sqrt((m1 * rk.a) ** 2 + (m5 * rk.b) ** 2 + (m9 * rk.c) ** 2);
 }
+// the gentle magnet: over a stack, the carried rock is drawn toward the middle of the top stone,
+// so small hand shakes don't matter
+function rkMagnet(rk, x, z) {
+  let best = null, by = -1;
+  for (const r of RK.rocks) {
+    if (r === rk || !r.locked) continue;
+    const p = r.body.position, d = Math.hypot(p.x - x, p.z - z), R = Math.max(.35, Math.min(r.a, r.c) * .8);
+    if (d > R) continue;
+    const top = p.y + rkHalfH(r);
+    if (top > by) { by = top; best = { x: p.x, z: p.z, k: .6 * (1 - d / R) }; }
+  }
+  return best;
+}
 function rkGhost(rk) {
   if (!RK.ghost) {
     RK.ghost = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x6BE38A, transparent: true, opacity: .38, depthWrite: false }));
@@ -4125,17 +4222,20 @@ function rkHit(rk, e) {
   if (iv < .5 || now - rk.lastHit < 60 || now - RK.clack < 25) return;
   rk.lastHit = now; RK.clack = now;
   const v = Math.min(1, iv / 6);
-  if (e.body === RK.ground) { const a = ac(); if (a && soundOn) nz(a, "lowpass", 700, 160, 1, .35 * v, .09); } // a soft thud in the sand
+  if (e.body === RK.ground) { // a soft thud in the sand, and a little spray of grains on a hard landing
+    const a = ac(); if (a && soundOn) nz(a, "lowpass", 700, 160, 1, .35 * v, .09);
+    if (v > .3) rkPuff(rk.body.position.x, rk.body.position.z, Math.round(6 + v * 10), .4 + rk.a * .5);
+  }
   else rkStone(v, rk.a);
   if (v > .15) buzz(Math.round(3 + v * 16));
 }
-// the sea: a slow swell of soft noise that rises and falls with the foam on the shore; plus the breeze
+// the distant roar of the surf (each wave's own swell, wash and hiss are played by rkBeachStep), plus the breeze
 function rkEnsureBed() {
   const a = ac(); if (!a || RK.bed) return;
   const len = a.sampleRate * 3, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0); let l = 0;
   for (let i = 0; i < len; i++) { l = (l + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; }
   const mk = (type, f, q) => { const s = a.createBufferSource(), fl = a.createBiquadFilter(), g = a.createGain(); s.buffer = buf; s.loop = true; fl.type = type; fl.frequency.value = f; fl.Q.value = q; g.gain.value = 0; s.connect(fl).connect(g).connect(out(a)); s.start(); return { f: fl, g }; };
-  RK.bed = { sea: mk("lowpass", 600, .3), wind: mk("bandpass", 600, .8) };
+  RK.bed = { sea: mk("lowpass", 380, .3), wind: mk("bandpass", 600, .8) };
 }
 function rkCelebrate() {
   const a = ac();
@@ -4152,6 +4252,7 @@ function rocksSetup() {
   if (!RK.scene) rocksBuild();
   RK.cam.aspect = GL.w / GL.h; RK.dist = Math.max(9, 4.2 / (Math.tan(22.5 * Math.PI / 180) * RK.cam.aspect)) * .62;
   rkCamera(); RK.W = GL.w;
+  rkEnsureBed(); // the sea is heard as soon as you arrive
 }
 function rkCamera() {
   const d = RK.dist / RK.zoom, cp = Math.cos(RK.pitch);
@@ -4168,12 +4269,171 @@ function rkSetTime(name) {
   const x = RK.skyC.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
   g.addColorStop(0, T.sky[0]); g.addColorStop(.42, T.sky[1]); g.addColorStop(.5, T.sky[2]); g.addColorStop(1, T.sky[2]);
   x.fillStyle = g; x.fillRect(0, 0, 4, 256); RK.sky.material.map.needsUpdate = true;
-  RK.scene.fog.color.setHex(T.fog);
+  RK.scene.fog.color.setHex(T.fog); RK.scene.fog.near = T.fogR[0]; RK.scene.fog.far = T.fogR[1];
   RK.sun.color.setHex(T.sun); RK.sun.intensity = T.si;
   RK.hemi.color.setHex(T.hemi[0]); RK.hemi.groundColor.setHex(T.hemi[1]); RK.hemi.intensity = T.hemi[2];
-  RK.sea.material.color.setHex(T.sea); RK.sand.material.color.setHex(T.sand); RK.foamMax = T.foam;
+  RK.sand.material.color.setHex(T.sand);
+  rkSeaColors(T);
+  rkSkyEnv(T);
+  RK.swash.material.color.setHex(T.shallow); RK.foam.material.color.setHex(T.foam);
+  RK.grass.material.color.setHex(T.grass);
   RK.moon.visible = RK.stars.visible = name === "night";
   rkCamera();
+}
+
+/* ---- the beach: shaped sand, the sea right behind the cairn, waves washing up, blowing grains, dune grass ---- */
+const smooth01 = (e0, e1, v) => { const t = clamp((v - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+// sand height: the building patch is flat (it matches the physics ground), low dunes rise further out,
+// and behind it the beach slopes gently down into the water
+function rkGroundH(x, z) {
+  const r = Math.hypot(x, z - 1);
+  const dune = smooth01(8, 14, r) * smooth01(RK_SHORE_Z, RK_SHORE_Z + 4, z) * (Math.sin(x * .35 + 1.3) * .5 + Math.sin(z * .28 + x * .12) * .45 + Math.sin(x * .9 - z * .6) * .15 + .6);
+  const slope = z < RK_SHORE_Z ? (z - RK_SHORE_Z) * .11 - Math.pow(Math.max(0, RK_SHORE_Z - z - 4), 1.4) * .04 : 0;
+  return dune * 1.1 + slope;
+}
+const RK_WATER_Z = RK_SHORE_Z + RK_SEA / .11; // where the slope meets the still water line
+function rkBeachBuild(sc) {
+  // sand: warm grain for colour, wind ripples for relief
+  const st = rkCanvasTex("sand", x => {
+    x.fillStyle = "#E2C190"; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 26000; i++) { const l = 55 + Math.random() * 32; x.fillStyle = `hsla(${30 + Math.random() * 12},${28 + Math.random() * 26}%,${l}%,.55)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.2, 1.2); }
+  });
+  st.repeat.set(30, 30); st.anisotropy = 4;
+  const rip = rkCanvasTex("ripples", x => {
+    x.fillStyle = "#808080"; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 18; i++) { const y0 = i * 256 / 18 + Math.random() * 4; x.strokeStyle = "rgba(255,255,255,.45)"; x.lineWidth = 3; x.beginPath(); for (let px = 0; px <= 256; px += 8) x.lineTo(px, y0 + Math.sin(px * .045 + i * 1.7) * 4); x.stroke(); x.strokeStyle = "rgba(0,0,0,.3)"; x.lineWidth = 3; x.beginPath(); for (let px = 0; px <= 256; px += 8) x.lineTo(px, y0 + 4 + Math.sin(px * .045 + i * 1.7) * 4); x.stroke(); }
+    for (let i = 0; i < 6000; i++) { x.fillStyle = Math.random() < .5 ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.25)"; x.fillRect(Math.random() * 256, Math.random() * 256, 1, 1); }
+  }, false);
+  rip.repeat.set(26, 26);
+  const g = new THREE.PlaneGeometry(110, 110, 220, 220); g.rotateX(-Math.PI / 2); g.translate(0, 0, 15);
+  const p = g.attributes.position, col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), y = rkGroundH(x, z); p.setY(i, y);
+    // damp, darker sand toward the water; dune crests a touch lighter
+    const wet = smooth01(-.05, -.42, y), v = (1 - .2 * wet) * (1 + Math.max(0, y) * .04);
+    col[i * 3] = v; col[i * 3 + 1] = v * (1 - .03 * wet); col[i * 3 + 2] = v * (1 - .05 * wet);
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
+  RK.sand = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: st, bumpMap: rip, bumpScale: .035, vertexColors: true, roughness: 1 }));
+  RK.sand.receiveShadow = true; sc.add(RK.sand);
+  // the sea: shallow turquoise at the shore deepening offshore, with ripples from a scrolling normal map
+  const nm = rkCanvasTex("waternormal", x => {
+    const N = 256, h = new Float32Array(N * N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const u = i / N * 6.2832, v = j / N * 6.2832; h[j * N + i] = Math.sin(u * 3 + Math.sin(v * 2)) * .5 + Math.sin(v * 5 + u) * .3 + Math.sin((u + v) * 7) * .2; }
+    const img = x.createImageData(N, N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const k = j * N + i, dx = h[j * N + (i + 1) % N] - h[j * N + (i + N - 1) % N], dy = h[((j + 1) % N) * N + i] - h[((j + N - 1) % N) * N + i];
+      const nx = -dx * 2, ny = -dy * 2, l = Math.hypot(nx, ny, 1);
+      img.data[k * 4] = (nx / l * .5 + .5) * 255; img.data[k * 4 + 1] = (ny / l * .5 + .5) * 255; img.data[k * 4 + 2] = (1 / l * .5 + .5) * 255; img.data[k * 4 + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+  }, false);
+  nm.repeat.set(36, 18); RK.waterNormal = nm;
+  const wg = new THREE.PlaneGeometry(240, 112, 48, 28); wg.rotateX(-Math.PI / 2); wg.translate(0, RK_SEA, RK_WATER_Z - 54);
+  wg.setAttribute("color", new THREE.BufferAttribute(new Float32Array(wg.attributes.position.count * 3), 3));
+  RK.sea = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ vertexColors: true, normalMap: nm, normalScale: new THREE.Vector2(.45, .45), roughness: .3, metalness: 0, envMap: GL.env, envMapIntensity: .15, transparent: true, opacity: .97, fog: false }));
+  sc.add(RK.sea);
+  // the wash: a thin sheet of water and a foam edge that run up the slope and slide back, and the wet shine they leave
+  const NX = 96, strip = rows => { const geo = new THREE.BufferGeometry(), pos = new Float32Array(NX * rows * 3), uv = new Float32Array(NX * rows * 2), idx = [];
+    for (let r = 0; r < rows; r++) for (let i = 0; i < NX; i++) { uv[(r * NX + i) * 2] = i / (NX - 1) * 10; uv[(r * NX + i) * 2 + 1] = r / (rows - 1); if (r < rows - 1 && i < NX - 1) { const k = r * NX + i; idx.push(k, k + NX, k + 1, k + 1, k + NX, k + NX + 1); } }
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx); return geo; };
+  // the wash fades in from clear at the waterline to a sheen at its leading edge, so it never lies over the open sea like a slab
+  const fade = rkCanvasTex("washfade", x => { const g = x.createLinearGradient(0, 256, 0, 0); g.addColorStop(0, "#000"); g.addColorStop(.55, "#777"); g.addColorStop(1, "#FFF"); x.fillStyle = g; x.fillRect(0, 0, 256, 256); }, false);
+  RK.swash = new THREE.Mesh(strip(2), new THREE.MeshStandardMaterial({ color: 0x58C3C0, alphaMap: fade, transparent: true, opacity: .6, roughness: .3, envMapIntensity: .2, depthWrite: false }));
+  const foamTex = rkCanvasTex("foam", x => {
+    x.clearRect(0, 0, 256, 256);
+    for (let i = 0; i < 2600; i++) { const px = Math.random() * 256, py = Math.random() * 256, a = Math.pow(1 - Math.abs(py / 256 - .6) / .6, 2); x.fillStyle = `rgba(255,255,255,${(a * (.4 + Math.random() * .6)).toFixed(2)})`; x.beginPath(); x.arc(px, py, .8 + Math.random() * 2.6, 0, 6.3); x.fill(); }
+  });
+  RK.foam = new THREE.Mesh(strip(3), new THREE.MeshBasicMaterial({ map: foamTex, color: 0xFFFFFF, transparent: true, opacity: .85, depthWrite: false }));
+  RK.wet = new THREE.Mesh(strip(2), new THREE.MeshStandardMaterial({ color: 0x9C7A52, transparent: true, opacity: 0, roughness: .3, envMap: GL.env, envMapIntensity: .35, depthWrite: false }));
+  RK.wet.material.alphaMap = fade;
+  for (const m of [RK.wet, RK.swash, RK.foam]) { m.frustumCulled = false; m.renderOrder = 2; sc.add(m); }
+  RK.wave = { t: 0, dur: 7, reach: 2.6, wet: 0, wetZ: [], snd: 0, seed: rnd(0, 9) };
+  // wind-blown sand: fine grains skimming low over the beach in gusts
+  const gp = new Float32Array(300 * 3), gv = [];
+  for (let i = 0; i < 300; i++) { gp[i * 3] = rnd(-14, 14); gp[i * 3 + 1] = rnd(.01, .18); gp[i * 3 + 2] = rnd(RK_SHORE_Z, 12); gv.push(rnd(.6, 1.4)); }
+  const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.BufferAttribute(gp, 3));
+  RK.blow = new THREE.Points(gg, new THREE.PointsMaterial({ color: 0xF2DDB6, size: .035, transparent: true, opacity: .5, depthWrite: false })); RK.blow.userData.v = gv; RK.blow.frustumCulled = false; sc.add(RK.blow);
+  // dune grass tufts that sway in the wind
+  const blade = new THREE.PlaneGeometry(.035, .55); blade.translate(0, .27, 0);
+  const bp = blade.attributes.position; for (let i = 0; i < bp.count; i++) if (bp.getY(i) > .3) bp.setX(i, bp.getX(i) * .15);
+  RK.grass = new THREE.InstancedMesh(blade, new THREE.MeshStandardMaterial({ color: 0x9DB35A, side: THREE.DoubleSide, roughness: .9 }), 26 * 8);
+  RK.grass.userData.blades = [];
+  for (let c = 0; c < 26; c++) {
+    let x, z;
+    do { const a = rnd(0, 6.28), d = rnd(9.5, 17); x = Math.cos(a) * d; z = 1 + Math.sin(a) * d; } while (z < RK_SHORE_Z + 1);
+    const y = rkGroundH(x, z);
+    for (let k = 0; k < 8; k++) RK.grass.userData.blades.push({ x: x + rnd(-.18, .18), y, z: z + rnd(-.18, .18), yaw: rnd(0, 6.28), tilt: rnd(-.35, .35), ph: rnd(0, 6.28), s: rnd(.7, 1.3) });
+  }
+  RK.grass.castShadow = true; sc.add(RK.grass);
+}
+// the sea and the wash reflect this beach's own sky (not the studio light the rocks use), so the water reads as ocean
+function rkSkyEnv(T) {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 128; const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 128);
+  g.addColorStop(0, T.sky[0]); g.addColorStop(.3, T.sky[1]); g.addColorStop(.49, T.sky[2]); g.addColorStop(.51, "#" + new THREE.Color(T.deep).getHexString()); g.addColorStop(1, "#" + new THREE.Color(T.deep).multiplyScalar(.5).getHexString());
+  x.fillStyle = g; x.fillRect(0, 0, 256, 128);
+  const tex = new THREE.CanvasTexture(c); tex.mapping = THREE.EquirectangularReflectionMapping; tex.encoding = THREE.sRGBEncoding;
+  const pm = new THREE.PMREMGenerator(GL.r), env = pm.fromEquirectangular(tex).texture; pm.dispose(); tex.dispose();
+  if (RK.skyEnv) RK.skyEnv.dispose();
+  RK.skyEnv = env;
+  for (const m of [RK.sea.material, RK.swash.material]) { m.envMap = env; m.needsUpdate = true; }
+}
+function rkSeaColors(T) {
+  const c = RK.sea.geometry.attributes.color, p = RK.sea.geometry.attributes.position, sh = new THREE.Color(T.shallow), dp = new THREE.Color(T.deep), tmp = new THREE.Color();
+  // vertex colours are linear light, so convert from the sRGB palette or the sea comes out pale and grey
+  for (let i = 0; i < c.count; i++) { tmp.copy(sh).lerp(dp, smooth01(0, 14, RK_WATER_Z - p.getZ(i))).convertSRGBToLinear(); c.setXYZ(i, tmp.r, tmp.g, tmp.b); }
+  c.needsUpdate = true;
+}
+// one wave cycle: the water runs up the slope, slows, slides back, and the wet sand slowly dries
+function rkBeachStep(dt) {
+  const W = RK.wave, T = RK_TIMES[RK.time];
+  W.t += dt;
+  if (W.t > W.dur) { W.t = 0; W.dur = rnd(6, 9); W.reach = rnd(1.8, 3.4); W.seed = rnd(0, 9); W.snd = 0; }
+  const p = W.t / W.dur, up = .42;
+  const w = p < up ? 1 - Math.pow(1 - p / up, 3) : 1 - Math.pow((p - up) / (1 - up), 2) * 1.12;
+  RK.waterNormal.offset.x += dt * .012; RK.waterNormal.offset.y += dt * .02;
+  const NX = 96, sp = RK.swash.geometry.attributes.position.array, fp = RK.foam.geometry.attributes.position.array, wp = RK.wet.geometry.attributes.position.array;
+  if (W.wetZ.length !== NX) W.wetZ = new Array(NX).fill(RK_WATER_Z);
+  const t = performance.now() / 1000;
+  for (let i = 0; i < NX; i++) {
+    const x = -48 + i / (NX - 1) * 96, wig = Math.sin(x * .45 + W.seed) * .35 + Math.sin(x * 1.3 + t * .7) * .12;
+    const front = RK_WATER_Z + Math.max(-.4, W.reach * w + wig * Math.max(0, w));
+    if (p < up) W.wetZ[i] = Math.max(W.wetZ[i], front); else if (p > .95) W.wetZ[i] += (RK_WATER_Z - W.wetZ[i]) * .1;
+    const yb = RK_SEA + .01, yf = rkGroundH(x, front) + .015;
+    sp.set([x, yb, RK_WATER_Z - .3], i * 3); sp.set([x, Math.max(yb, yf), front], (NX + i) * 3);
+    const fz0 = front - .4 * (.4 + w), fz1 = front + .06;
+    fp.set([x, Math.max(yb, rkGroundH(x, fz0) + .02), fz0], i * 3); fp.set([x, Math.max(yb, rkGroundH(x, front - .1) + .022), front - .1], (NX + i) * 3); fp.set([x, Math.max(yb, rkGroundH(x, fz1) + .02), fz1], (2 * NX + i) * 3);
+    wp.set([x, yb, RK_WATER_Z], i * 3); wp.set([x, rkGroundH(x, W.wetZ[i]) + .008, W.wetZ[i]], (NX + i) * 3);
+  }
+  for (const m of [RK.swash, RK.foam, RK.wet]) { m.geometry.attributes.position.needsUpdate = true; m.geometry.computeBoundingSphere(); }
+  RK.foam.material.opacity = T.fo * (p < up ? .55 + .45 * w : Math.max(.15, w));
+  RK.swash.material.opacity = .3 + .4 * Math.max(0, w);
+  // wet shine is strongest right after the water pulls back, then dries
+  RK.wet.material.opacity = p < up ? .1 : .18 * (1 - (p - up) / (1 - up) * .8);
+  // sound: a swell as it runs up, a soft wash at the top, a fizzing hiss as it slides back
+  const a = actx, amb = soundOn && ambienceOn && a;
+  if (amb) {
+    if (W.snd === 0) { W.snd = 1; nz(a, "lowpass", 180, 650, .6, .06 * (W.reach / 2.6), W.dur * .4, 0, W.dur * .3); }
+    if (W.snd === 1 && p > up * .85) { W.snd = 2; nz(a, "bandpass", 1000, 450, .6, .1 * (W.reach / 2.6), 1.8, 0, .12); nz(a, "lowpass", 400, 150, .7, .06, 1.2, 0, .05); }
+    if (W.snd === 2 && p > up + .04) { W.snd = 3; nz(a, "highpass", 2600, 5200, .5, .04, W.dur * .45, 0, .5); }
+  }
+  // blowing sand and swaying grass, both livelier in a breeze
+  RK.windT = (RK.windT || 0) + dt;
+  const gust = .5 + .5 * Math.sin(RK.windT * .6) * Math.sin(RK.windT * .23 + 1), speed = (RK.breeze ? 2.6 : .9) * (.4 + gust);
+  const gpa = RK.blow.geometry.attributes.position.array, gv = RK.blow.userData.v;
+  for (let i = 0; i < gv.length; i++) {
+    gpa[i * 3] += speed * gv[i] * dt; gpa[i * 3 + 2] += speed * gv[i] * dt * .25; gpa[i * 3 + 1] = .02 + Math.abs(Math.sin(RK.windT * 3 * gv[i] + i)) * .12 * (.5 + gust);
+    if (gpa[i * 3] > RK.tx + 14 || gpa[i * 3 + 2] > RK.tz + 12) { gpa[i * 3] = RK.tx - 14; gpa[i * 3 + 2] = RK.tz + rnd(RK_SHORE_Z - RK.tz, 12); }
+  }
+  RK.blow.geometry.attributes.position.needsUpdate = true;
+  RK.blow.material.opacity = T.grains * (RK.breeze ? 1 : .55 + .45 * gust);
+  const bl = RK.grass.userData.blades, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc3 = new THREE.Vector3(), pos = new THREE.Vector3();
+  const sway = (RK.breeze ? .32 : .12) * (.5 + gust);
+  for (let i = 0; i < bl.length; i++) {
+    const b = bl[i]; e.set(b.tilt * .5, b.yaw, b.tilt + Math.sin(RK.windT * 2.2 + b.ph) * sway - sway * .6); q.setFromEuler(e);
+    m4.compose(pos.set(b.x, b.y, b.z), q, sc3.set(1, b.s, 1)); RK.grass.setMatrixAt(i, m4);
+  }
+  RK.grass.instanceMatrix.needsUpdate = true;
 }
 function rocksBuild() {
   const sc = new THREE.Scene(); RK.scene = sc;
@@ -4194,21 +4454,7 @@ function rocksBuild() {
   const sun = new THREE.DirectionalLight(0xFFF1DA, 1.15); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 40 }); sun.shadow.bias = -.0006; sun.shadow.radius = 3;
   sc.add(sun); sc.add(sun.target); RK.sun = sun;
-  // warm sand with grain and faint ripples
-  const c = document.createElement("canvas"); c.width = c.height = 512; const x = c.getContext("2d");
-  x.fillStyle = "#E0BE88"; x.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 60; i++) { x.strokeStyle = `rgba(160,120,70,${(.03 + Math.random() * .04).toFixed(3)})`; x.lineWidth = 3 + Math.random() * 5; const y = Math.random() * 512; x.beginPath(); for (let px = 0; px <= 512; px += 16) x.lineTo(px, y + Math.sin(px * .03 + i) * 6); x.stroke(); }
-  for (let i = 0; i < 40000; i++) { const l = 55 + Math.random() * 30; x.fillStyle = `hsla(${32 + Math.random() * 10},${30 + Math.random() * 25}%,${l}%,.5)`; x.fillRect(Math.random() * 512, Math.random() * 512, 1.3, 1.3); }
-  const st = new THREE.CanvasTexture(c); st.encoding = THREE.sRGBEncoding; st.wrapS = st.wrapT = THREE.RepeatWrapping; st.repeat.set(14, 14); st.anisotropy = 4;
-  RK.sand = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshStandardMaterial({ map: st, roughness: 1 }));
-  RK.sand.rotation.x = -Math.PI / 2; RK.sand.position.z = 52; RK.sand.receiveShadow = true; sc.add(RK.sand);
-  // wet sand, the sea and the foam line far behind the building patch
-  const wet = new THREE.Mesh(new THREE.PlaneGeometry(160, 6), new THREE.MeshStandardMaterial({ color: 0xB89564, roughness: .5, transparent: true, opacity: .55 }));
-  wet.rotation.x = -Math.PI / 2; wet.position.set(0, .005, -25); sc.add(wet);
-  RK.sea = new THREE.Mesh(new THREE.PlaneGeometry(400, 160), new THREE.MeshStandardMaterial({ color: 0x4F9DBF, roughness: .18, metalness: .1, envMap: GL.env, envMapIntensity: .8 }));
-  RK.sea.rotation.x = -Math.PI / 2; RK.sea.position.set(0, -.03, -108); sc.add(RK.sea);
-  const foam = new THREE.Mesh(new THREE.PlaneGeometry(160, 1.6), new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: .6 }));
-  foam.rotation.x = -Math.PI / 2; foam.position.set(0, .01, -28); sc.add(foam); RK.foam = foam; RK.foamMax = .6;
+  rkBeachBuild(sc);
   // physics, tuned for calm falls: even weights, soft contacts, no bounce, small steps
   const w = new CANNON.World(); w.gravity.set(0, -14, 0); w.broadphase = new CANNON.NaiveBroadphase(); w.solver.iterations = 25; w.allowSleep = true; RK.world = w;
   const soft = { contactEquationStiffness: 1e6, contactEquationRelaxation: 4, frictionEquationStiffness: 1e6, frictionEquationRelaxation: 4 };
@@ -4216,7 +4462,7 @@ function rocksBuild() {
   w.addContactMaterial(new CANNON.ContactMaterial(RK.mRock, RK.mRock, Object.assign({ friction: .9, restitution: 0 }, soft)));
   w.addContactMaterial(new CANNON.ContactMaterial(RK.mRock, mSand, Object.assign({ friction: 1, restitution: 0 }, soft)));
   const ground = new CANNON.Body({ mass: 0, material: mSand }); ground.addShape(new CANNON.Plane()); ground.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); w.addBody(ground); RK.ground = ground;
-  rkGhost(null);
+  rkGhost(null); rkFxInit();
   let saved = null; try { saved = JSON.parse(localStorage.getItem("fidget-rocks")); } catch (e) {}
   if (Array.isArray(saved) && saved.length) {
     const back = [];
@@ -4247,15 +4493,25 @@ function rocksFrame(now) {
   const dt = clamp((now - (RK.last || now - 16.7)) / 1000, .004, .05); RK.last = now;
   const H = RK.hold;
   if (H) {
-    // the held rock hovers over its landing spot; the ghost shows where it will settle and whether it will stay
-    const rk = H.rk, b = rk.body, L = rkLanding(rk, H.x, H.z);
-    const ty = L.y + .45, k = Math.min(1, dt * 16);
-    b.position.set(b.position.x + (H.x - b.position.x) * k, b.position.y + (ty - b.position.y) * Math.min(1, dt * 12), b.position.z + (H.z - b.position.z) * k);
-    b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0);
+    // the held rock hovers over its landing spot; the ghost shows where it will settle and whether it will stay.
+    // Everything here is smoothed: the finger maps onto a slowly-following carry height (no feedback loop with the
+    // landing height), the hover and ghost ease into place, and green/orange only flips once the new verdict holds.
+    const rk = H.rk, b = rk.body, k1 = 1 - Math.exp(-dt / .35), k2 = 1 - Math.exp(-dt / .12);
+    let tx = H.fx, tz = H.fz;
+    if (H.moved) { const mg = rkMagnet(rk, tx, tz); if (mg) { tx += (mg.x - tx) * mg.k; tz += (mg.z - tz) * mg.k; } }
+    H.x += (tx - H.x) * Math.min(1, dt * 18); H.z += (tz - H.z) * Math.min(1, dt * 18);
+    const L = rkLanding(rk, H.x, H.z, H.verdict ? 1.15 : 1);
+    H.cy += (L.y - H.cy) * k1; H.ly += (L.y - H.ly) * k2;
+    if (H.verdict === null) H.verdict = L.stable;
+    else if (L.stable !== H.verdict) { H.pendT += dt; if (H.pendT > .15) { H.verdict = L.stable; H.pendT = 0; } }
+    else H.pendT = 0;
     H.land = L;
-    RK.ghost.position.set(H.x, L.y, H.z); RK.ghost.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
-    RK.ghost.material.color.setHex(L.stable ? 0x6BE38A : 0xFF9A4A);
-    const lp = RK.line.geometry.attributes.position; lp.setXYZ(0, H.x, b.position.y - rkHalfH(rk), H.z); lp.setXYZ(1, H.x, L.y + rkHalfH(rk), H.z); lp.needsUpdate = true;
+    const k = Math.min(1, dt * 16);
+    b.position.set(b.position.x + (H.x - b.position.x) * k, b.position.y + (H.ly + .45 - b.position.y) * Math.min(1, dt * 12), b.position.z + (H.z - b.position.z) * k);
+    b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0);
+    RK.ghost.position.set(H.x, H.ly, H.z); RK.ghost.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+    RK.ghost.material.color.setHex(H.verdict ? 0x6BE38A : 0xFF9A4A);
+    const lp = RK.line.geometry.attributes.position; lp.setXYZ(0, b.position.x, b.position.y - rkHalfH(rk), b.position.z); lp.setXYZ(1, H.x, H.ly + rkHalfH(rk), H.z); lp.needsUpdate = true;
   }
   // a just-released rock eases down onto its landing spot before it locks or tips
   for (const r of RK.rocks) if (r.place) {
@@ -4263,16 +4519,27 @@ function rocksFrame(now) {
     r.body.position.y = P.y0 + (P.y1 - P.y0) * (1 - (1 - P.t) * (1 - P.t));
     if (P.t >= 1) {
       r.place = null; r.body.collisionResponse = true;
-      if (P.stable) { rkLock(r, P.sup); rkStone(.3, r.a); buzz(10); }
-      else {
+      if (P.stable) {
+        // it seats: a little rock back and forth, a click, a note one step higher for each level, a double tap
+        rkLock(r, P.sup); rkWobble(r, P.dx, P.dz);
+        rkStone(.35, r.a); rkChime(rkLevel(r)); buzz(10); setTimeout(() => buzz(6), 90);
+        if (!P.sup.size) { rkPuff(r.body.position.x, r.body.position.z, 18, .5 + r.a * .6); rkDent(r.body.position.x, r.body.position.z, Math.max(r.a, r.c) * 1.05); }
+      } else {
         // it won't balance: let physics tip it off toward the side it overhangs
-        r.body.type = CANNON.Body.DYNAMIC; r.body.mass = r.m; r.body.updateMassProperties(); r.body.wakeUp();
+        r.body.type = CANNON.Body.DYNAMIC; r.body.mass = r.m; r.body.updateMassProperties(); r.body.wakeUp(); r.fell = true;
         const dx = r.body.position.x - P.cx, dz = r.body.position.z - P.cz, l = Math.hypot(dx, dz) || 1;
         r.body.angularVelocity.set(dz / l * 1.6, 0, -dx / l * 1.6);
         rkStone(.25, r.a); buzz(6);
       }
       RK.dirty = true; RK.checkBest = true;
     }
+  }
+  // loose rocks lock as soon as they've come to rest, instead of jiggling until the engine puts them to sleep
+  for (const r of RK.rocks) {
+    if (r.locked || r.place || r === (H && H.rk)) continue;
+    const b = r.body;
+    if (b.velocity.length() < .25 && b.angularVelocity.length() < .4) r.restT = (r.restT || 0) + dt; else r.restT = 0;
+    if (r.restT > .25) { r.restT = 0; rkLockAtRest(r); if (r.fell && !r.sup.size) rkPuff(b.position.x, b.position.z, 8, .4 + r.a * .4); r.fell = false; }
   }
   if (RK.breeze) {
     RK.gust += dt; const g = 1.4 + Math.sin(RK.gust * .9) * .9 + Math.sin(RK.gust * 2.3) * .5;
@@ -4293,6 +4560,11 @@ function rocksFrame(now) {
   for (const r of RK.rocks) {
     if (r === (H && H.rk)) { rkSync(r); continue; }
     rkSync(r);
+    if (r.wob) {
+      const W = r.wob; W.t += dt;
+      r.mesh.quaternion.premultiply(rkTmp.wq = (rkTmp.wq || new THREE.Quaternion()).setFromAxisAngle(W.axis, W.amp * Math.exp(-W.t * 7) * Math.sin(W.t * 26)));
+      if (W.t > .6) r.wob = null;
+    }
     const p = r.body.position;
     if (p.y < -5 || Math.hypot(p.x - RK.tx, p.z - RK.tz) > 30) { rkUnlock(r); p.set(RK.tx + rnd(-3, 3), 3, RK.tz + rnd(-3, 3)); r.body.velocity.set(0, 0, 0); continue; }
     if (r.locked && r.sup.size) top = Math.max(top, p.y + rkHalfH(r));
@@ -4304,13 +4576,12 @@ function rocksFrame(now) {
     if (cm > RK.best) { const had = RK.best > 0; RK.best = cm; try { localStorage.setItem("fidget-rocks-best", cm); } catch (e) {} if (had) rkCelebrate(); }
   }
   rkBest.textContent = RK.best ? "Best " + RK.best + " cm" : "";
-  // waves wash in and out every few seconds; the sea sound swells with them
-  RK.waveT += dt; const sw = (Math.sin(RK.waveT * .8) + 1) / 2;
-  RK.foam.position.z = -28 + sw * 2.5; RK.foam.material.opacity = RK.foamMax * (.4 + sw * .8);
+  // the beach: waves washing up and back (with their sounds), ripples, blowing sand, swaying grass, sand puffs
+  rkBeachStep(dt); rkFxStep(dt);
   if (RK.bed) {
-    const t = actx.currentTime, amb = typeof ambienceOn === "undefined" || ambienceOn;
-    RK.bed.sea.g.gain.setTargetAtTime(soundOn && amb ? .03 + sw * .06 : 0, t, .3); RK.bed.sea.f.frequency.setTargetAtTime(420 + sw * 500, t, .3);
-    RK.bed.wind.g.gain.setTargetAtTime(soundOn && RK.breeze ? .03 + Math.max(0, Math.sin(RK.gust * .9)) * .05 : 0, t, .4);
+    const t = actx.currentTime, amb = soundOn && ambienceOn;
+    RK.bed.sea.g.gain.setTargetAtTime(amb ? .05 : 0, t, .5);
+    RK.bed.wind.g.gain.setTargetAtTime(amb && RK.breeze ? .03 + Math.max(0, Math.sin(RK.gust * .9)) * .05 : 0, t, .4);
   }
   if (RK.dirty && !H && now - RK.saveT > 2500) { RK.saveT = now; rkSave(); }
   GL.r.render(RK.scene, RK.cam);
@@ -4336,7 +4607,10 @@ on3D(secRocks, "pointerdown", e => {
     // lifting a rock frees whatever was resting on it
     rkUnlock(rk);
     b.type = CANNON.Body.KINEMATIC; b.collisionResponse = false; b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0);
-    RK.hold = { rk, id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false, x: b.position.x, z: b.position.z };
+    const L0 = rkLanding(rk, b.position.x, b.position.z);
+    RK.hold = { rk, id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false,
+      x: b.position.x, z: b.position.z, fx: b.position.x, fz: b.position.z, sx: b.position.x, sz: b.position.z,
+      cy: L0.y, ly: L0.y, land: L0, verdict: null, pendT: 0 };
     rkGhost(rk);
     const a = ac(); if (a && soundOn) nz(a, "bandpass", 900, 500, 1.5, .12, .12, 0, .02);
     buzz(6); return;
@@ -4360,8 +4634,9 @@ on3D(secRocks, "pointermove", e => {
   if (H && H.id === e.pointerId) {
     if (!H.moved && Math.hypot(e.clientX - H.x0, e.clientY - H.y0) > 8) H.moved = true;
     if (!H.moved) return;
-    const g = rkGroundAt(e, H.land ? H.land.y : 0);
-    if (g) { const dx = g.x - RK.tx, dz = g.z - RK.tz, l = Math.hypot(dx, dz), k = l > 9 ? 9 / l : 1; H.x = RK.tx + dx * k; H.z = RK.tz + dz * k; }
+    // the finger maps onto the slowly-following carry height, never the raw landing height (that fed back and jittered)
+    const g = rkGroundAt(e, H.cy);
+    if (g) { const dx = g.x - RK.tx, dz = g.z - RK.tz, l = Math.hypot(dx, dz), k = l > 9 ? 9 / l : 1; H.fx = RK.tx + dx * k; H.fz = Math.max(RK_SHORE_Z, RK.tz + dz * k); }
     return;
   }
   const o = RK.orbit;
@@ -4377,8 +4652,10 @@ const rkEnd = e => {
   // a tap turns it a little where it lies
   if (!H.moved && performance.now() - H.t0 < 300) b.quaternion.copy(rkYaw(Math.PI / 4).mult(b.quaternion));
   b.position.x = H.x; b.position.z = H.z;
-  const L = rkLanding(rk, H.x, H.z);
-  rk.place = { t: 0, y0: b.position.y, y1: L.y, stable: L.stable, sup: L.sup, cx: L.cx, cz: L.cz };
+  const L = rkLanding(rk, H.x, H.z, H.verdict ? 1.15 : 1);
+  // honour what the ghost showed: green means it stays
+  const stable = H.verdict === null ? L.stable : H.verdict;
+  rk.place = { t: 0, y0: b.position.y, y1: L.y, stable, sup: L.sup, cx: L.cx, cz: L.cz, dx: H.x - H.sx, dz: H.z - H.sz };
 };
 on3D(secRocks, "pointerup", rkEnd); on3D(secRocks, "pointercancel", rkEnd);
 secRocks.addEventListener("wheel", e => { if (e.target !== GL.canvas) return; e.preventDefault(); RK.zoom = clamp(RK.zoom * (e.deltaY < 0 ? 1.08 : .93), .55, 2.4); rkCamera(); }, { passive: false });
