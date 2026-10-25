@@ -4078,13 +4078,33 @@ const RK = { W: 0, scene: null, cam: null, world: null, rocks: [], ptrs: new Map
 const RK_SEA = -.5, RK_SHORE_Z = -3.2; // water level, and where the beach starts sloping down to it
 try { RK.best = +localStorage.getItem("fidget-rocks-best") || 0; RK.time = localStorage.getItem("fidget-rocks-time") || "day"; } catch (e) {}
 const RK_TYPES = {
-  flat: { w: 34, s: () => [rnd(.45, .8), rnd(.13, .2), 0], k: [1, 1, .82] },
-  round: { w: 22, s: () => [rnd(.28, .45), 0, 0], k: [1, .72, .86] },
-  long: { w: 14, s: () => [rnd(.35, .5), 0, 0], k: [1.55, .42, .6] },
-  pebble: { w: 18, s: () => [rnd(.15, .24), 0, 0], k: [1, .62, .8] },
-  boulder: { w: 12, s: () => [rnd(.8, 1.05), 0, 0], k: [1, .6, .9] },
+  flat: { w: 22, s: () => [rnd(.45, .8), rnd(.13, .2), 0], k: [1, 1, .82] },
+  round: { w: 14, s: () => [rnd(.28, .45), 0, 0], k: [1, .72, .86] },
+  long: { w: 10, s: () => [rnd(.35, .5), 0, 0], k: [1.55, .42, .6] },
+  pebble: { w: 14, s: () => [rnd(.15, .24), 0, 0], k: [1, .62, .8] },
+  boulder: { w: 8, s: () => [rnd(.8, 1.05), 0, 0], k: [1, .6, .9] },
+  // broken stones like a real cairn: a split slab, a wedge, and a chunky angular block
+  slab: { w: 14, s: () => [rnd(.5, .8), rnd(.16, .24), 0], k: [1, 1, .8] },
+  wedge: { w: 10, s: () => [rnd(.35, .55), 0, 0], k: [1.1, .8, .9] },
+  block: { w: 10, s: () => [rnd(.32, .5), 0, 0], k: [1, .85, .9] },
 };
-const RK_COLS = [0x8E8A84, 0x6F6B66, 0xA49C90, 0x7D6F64, 0x5B5754, 0xB3A99B, 0x8C7A6B, 0x9A938B];
+// flat cuts that turn a smooth stone into a broken, angular one: [nx, ny, nz, d] planes in the rock's own frame,
+// worked out from its seed so they never need saving
+function rkCutsFor(type, a, b, c, seed) {
+  if (!["slab", "wedge", "block"].includes(type)) return null;
+  const R = mulberry(seed + 7), cuts = [];
+  const add = (n, f) => { const l = Math.hypot(...n); n = n.map(v => v / l); cuts.push([...n, Math.sqrt((n[0] * a) ** 2 + (n[1] * b) ** 2 + (n[2] * c) ** 2) * f]); };
+  if (type === "slab") { for (let i = 0; i < 4; i++) { const t = i / 4 * 6.28 + R() * .9; add([Math.cos(t), (R() - .5) * .5, Math.sin(t)], .62 + R() * .2); } add([0, 1, 0], .86); add([0, -1, 0], .9); }
+  if (type === "wedge") { add([R() - .5, 1, .9], .35 + R() * .15); add([-.9, .2, R() - .5], .6); add([0, -1, 0], .8); }
+  if (type === "block") { for (let i = 0; i < 6; i++) { const t = R() * 6.28, y = (R() - .5) * 1.6; add([Math.cos(t), y, Math.sin(t)], .7 + R() * .15); } add([0, -1, 0], .78); }
+  return cuts;
+}
+// press a point inside every cut (twice, so corners where cuts meet settle)
+function rkCut(v, cuts) {
+  if (cuts) for (let k = 0; k < 2; k++) for (const [nx, ny, nz, d] of cuts) { const s = v.x * nx + v.y * ny + v.z * nz - d; if (s > 0) { v.x -= s * nx; v.y -= s * ny; v.z -= s * nz; } }
+  return v;
+}
+const RK_COLS = [0x8E8A84, 0x6F6B66, 0xA49C90, 0x8A6F5E, 0x5B5754, 0xB3A99B, 0x9A7A62, 0x7E8A78];
 const RK_GLASS = [0x8FD9C4, 0x7FC3E0, 0xA8E6B0, 0x9BCFE8];
 const RK_MAX = 44;
 const RK_TIMES = {
@@ -4123,7 +4143,8 @@ function rkMaterial(spec) {
   if (spec.style === "glass") return new THREE.MeshPhysicalMaterial(Object.assign({ color: RK_GLASS[spec.col % RK_GLASS.length], roughness: .5, roughnessMap: rkFrost(), bumpMap: rkFrost(), bumpScale: .006, clearcoat: .6, transparent: true, opacity: .9, envMapIntensity: .9 }, env));
   if (spec.style === "quartz") return new THREE.MeshStandardMaterial(Object.assign({ map: rkQuartz(), bumpMap: rkQuartz(), bumpScale: .008, color: 0xFFFFFF, roughness: .55, envMapIntensity: .4 }, env));
   if (spec.style === "black") return new THREE.MeshStandardMaterial(Object.assign({ map: rkBasalt(), bumpMap: rkBasalt(), bumpScale: .01, color: 0x8A8A90, roughness: .45, envMapIntensity: .6 }, env));
-  return new THREE.MeshStandardMaterial(Object.assign({ color: RK_COLS[spec.col % RK_COLS.length], map: rkGranite(), bumpMap: rkGranite(), bumpScale: .012, roughness: spec.type === "flat" ? .7 : .85, envMapIntensity: .35 }, env));
+  // the palette is sRGB, so it's linearised to show the warm greys and browns as written
+  return new THREE.MeshStandardMaterial(Object.assign({ color: new THREE.Color(RK_COLS[spec.col % RK_COLS.length]).convertSRGBToLinear().multiplyScalar(1.35), map: rkGranite(), bumpMap: rkGranite(), bumpScale: .012, roughness: spec.type === "flat" ? .7 : .85, envMapIntensity: .35 }, env));
 }
 // the icosphere has separate vertices per triangle, so average the normals of matching corners for smooth shading
 function rkSmoothNormals(geo) {
@@ -4142,15 +4163,20 @@ function rkShade(geo, b) {
 
 /* ---- building rocks ---- */
 // physics hull: an icosphere (80 faces) squashed to the rock's proportions, with shared vertices merged
-function rkHull(a, b, c) {
-  const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, verts = [], keyOf = new Map(), faces = [];
+function rkHull(a, b, c, cuts) {
+  const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, verts = [], keyOf = new Map(), faces = [], v = new THREE.Vector3();
   for (let i = 0; i < p.count; i += 3) {
     const f = [];
     for (let k = 0; k < 3; k++) {
-      const x = p.getX(i + k) * a, y = p.getY(i + k) * b, z = p.getZ(i + k) * c, key = `${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`;
-      if (!keyOf.has(key)) { keyOf.set(key, verts.length); verts.push(new CANNON.Vec3(x, y, z)); }
+      rkCut(v.set(p.getX(i + k) * a, p.getY(i + k) * b, p.getZ(i + k) * c), cuts);
+      const key = `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`;
+      if (!keyOf.has(key)) { keyOf.set(key, verts.length); verts.push(new CANNON.Vec3(v.x, v.y, v.z)); }
       f.push(keyOf.get(key));
     }
+    // cuts can squash a triangle flat; leave those out
+    if (f[0] === f[1] || f[1] === f[2] || f[0] === f[2]) continue;
+    const A = verts[f[0]], B = verts[f[1]], C = verts[f[2]], ux = B.x - A.x, uy = B.y - A.y, uz = B.z - A.z, wx = C.x - A.x, wy = C.y - A.y, wz = C.z - A.z;
+    if (Math.hypot(uy * wz - uz * wy, uz * wx - ux * wz, ux * wy - uy * wx) < 1e-6) continue;
     faces.push(f);
   }
   g.dispose();
@@ -4169,22 +4195,37 @@ function rkSamples(rk) {
     S2.push([Math.sin(t) * Math.cos(f), Math.cos(t), Math.sin(t) * Math.sin(f)]);
   }
   S2.push([0, 1, 0]);
-  return S2.map(([x, y, z]) => new THREE.Vector3(x * rk.a, y * rk.b, z * rk.c));
+  return S2.map(([x, y, z]) => rkCut(new THREE.Vector3(x * rk.a, y * rk.b, z * rk.c), rk.cuts));
 }
 function rkMake(spec) {
   // spec: { type, a, b, c, seed, col, style, p: [x,y,z], q: [x,y,z,w], locked }
-  const R = mulberry(spec.seed), geo = lumpy(new THREE.IcosahedronGeometry(1, 3), R, .045);
-  geo.scale(spec.a, spec.b, spec.c); rkSmoothNormals(geo); rkShade(geo, spec.b);
+  const R = mulberry(spec.seed), geo = lumpy(new THREE.IcosahedronGeometry(1, 3), R, .045), cuts = rkCutsFor(spec.type, spec.a, spec.b, spec.c, spec.seed);
+  geo.scale(spec.a, spec.b, spec.c);
+  if (cuts) {
+    const P = geo.attributes.position, v = new THREE.Vector3();
+    for (let i = 0; i < P.count; i++) { rkCut(v.fromBufferAttribute(P, i), cuts); P.setXYZ(i, v.x, v.y, v.z); }
+  }
+  rkSmoothNormals(geo);
+  // cut faces stay crisp and flat
+  if (cuts) {
+    const P = geo.attributes.position, N = geo.attributes.normal, v = new THREE.Vector3();
+    for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i); for (const [nx, ny, nz, d] of cuts) if (Math.abs(v.x * nx + v.y * ny + v.z * nz - d) < 2e-3) { N.setXYZ(i, nx, ny, nz); break; } }
+  }
+  rkShade(geo, spec.b);
   const mesh = new THREE.Mesh(geo, rkMaterial(spec)); mesh.castShadow = mesh.receiveShadow = true; RK.scene.add(mesh);
   // a light, invisible stand-in used for all the "what's under this point" rays
   const pg = new THREE.IcosahedronGeometry(1, 2); pg.scale(spec.a, spec.b, spec.c);
+  if (cuts) { const P = pg.attributes.position, v = new THREE.Vector3(); for (let i = 0; i < P.count; i++) { rkCut(v.fromBufferAttribute(P, i), cuts); P.setXYZ(i, v.x, v.y, v.z); } }
   const probe = new THREE.Mesh(pg, new THREE.MeshBasicMaterial()); probe.visible = false; mesh.add(probe);
   const m = clamp(4.19 * spec.a * spec.b * spec.c * 2.6, .6, 3);
   const body = new CANNON.Body({ mass: m, material: RK.mRock });
-  body.addShape(rkHull(spec.a, spec.b, spec.c));
+  body.addShape(rkHull(spec.a, spec.b, spec.c, cuts));
   body.position.set(...spec.p); body.quaternion.set(...spec.q);
   body.linearDamping = .25; body.angularDamping = .45; body.allowSleep = true; body.sleepSpeedLimit = .12; body.sleepTimeLimit = .35;
-  const rk = Object.assign({}, spec, { mesh, probe, body, m, lastHit: 0, locked: false, sup: new Set(), place: null });
+  const rk = Object.assign({}, spec, { mesh, probe, body, m, lastHit: 0, locked: false, sup: new Set(), place: null, cuts, rest: 0 });
+  // the ways it can lie, as "this side down" directions in its own frame: flat, on its side, on its end, and any cut face
+  rk.rests = [[0, -1, 0], [0, 0, -1], [-1, 0, 0]].concat((cuts || []).filter(k => k[1] > -.9).map(k => [k[0], k[1], k[2]]));
+  { const fx = new THREE.Vector3(1, 0, 0).applyQuaternion(new THREE.Quaternion(...spec.q)); rk.heading = Math.atan2(-fx.z, fx.x); }
   rk.samples = rkSamples(rk);
   probe.userData.rock = rk; mesh.userData.rock = rk;
   body.addEventListener("collide", e => rkHit(rk, e));
@@ -4205,7 +4246,7 @@ function rkSync(rk) {
 function rkSpec(type, x, z) {
   const T = RK_TYPES[type], [s, fb] = T.s(), a = s * T.k[0], b = fb || s * T.k[1], c = s * T.k[2];
   const r = Math.random(), small = type === "pebble" || type === "round";
-  const style = small && r < .25 ? "glass" : r < .4 ? "quartz" : r < .55 ? "black" : "granite";
+  const style = small && r < .2 ? "glass" : r < .3 ? "quartz" : r < .45 ? "black" : "granite";
   return { type, a, b, c, style, seed: Math.random() * 1e9 | 0, col: Math.random() * 8 | 0, p: [x, b + .02, z], q: new CANNON.Quaternion().setFromEuler(0, rnd(0, 6.28), 0).toArray() };
 }
 function rkPickType() {
@@ -4801,8 +4842,9 @@ function rocksFrame(now) {
   }
   // a just-released rock eases down onto its landing spot before it locks or tips
   for (const r of RK.rocks) if (r.place) {
-    const P = r.place; P.t = Math.min(1, P.t + dt / .15);
+    const P = r.place; P.t = Math.min(1, P.t + dt / (P.q0 ? .3 : .15));
     r.body.position.y = P.y0 + (P.y1 - P.y0) * (1 - (1 - P.t) * (1 - P.t));
+    if (P.q0) { const q = P.q0.clone().slerp(P.q1, 1 - (1 - P.t) * (1 - P.t)); r.body.quaternion.set(q.x, q.y, q.z, q.w); }
     if (P.t >= 1) {
       r.place = null; r.body.collisionResponse = true;
       if (P.stable) {
@@ -4915,7 +4957,7 @@ on3D(secRocks, "pointermove", e => {
     if (RK.hold) {
       // second finger twisting: turn the held rock
       const q = rkYaw(-da), b2 = RK.hold.rk.body;
-      b2.quaternion.copy(q.mult(b2.quaternion)); RK.hold.moved = true;
+      b2.quaternion.copy(q.mult(b2.quaternion)); RK.hold.moved = true; RK.hold.rk.heading -= da;
     } else { RK.zoom = clamp(RK.zoom * d / RK.pinch.d, .55, 2.4); RK.yaw += da; rkCamera(); }
     RK.pinch = { d, ang }; return;
   }
@@ -4938,13 +4980,22 @@ const rkEnd = e => {
   const H = RK.hold; if (!H || H.id !== e.pointerId) return;
   RK.hold = null; rkGhost(null);
   const rk = H.rk, b = rk.body;
-  // a tap turns it a little where it lies
-  if (!H.moved && performance.now() - H.t0 < 300) b.quaternion.copy(rkYaw(Math.PI / 4).mult(b.quaternion));
+  // a tap rolls it onto its next resting face (flat, on its side, on its end, or a broken face), keeping its heading
+  let q0 = null;
+  if (!H.moved && performance.now() - H.t0 < 300) {
+    q0 = new THREE.Quaternion(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+    rk.rest = (rk.rest + 1) % rk.rests.length;
+    const d = new THREE.Vector3(...rk.rests[rk.rest]).normalize(), q = new THREE.Quaternion().setFromUnitVectors(d, new THREE.Vector3(0, -1, 0));
+    q.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rk.heading));
+    b.quaternion.set(q.x, q.y, q.z, q.w);
+    const a = ac(); if (a && soundOn) { nz(a, "lowpass", 500, 180, 1, .18, .12); setTimeout(() => rkStone(.2, rk.a), 140); }
+    buzz(8);
+  }
   b.position.x = H.x; b.position.z = H.z;
   const L = rkLanding(rk, H.x, H.z, H.verdict ? 1.15 : 1);
   // honour what the ghost showed: green means it stays
   const stable = H.verdict === null ? L.stable : H.verdict;
-  rk.place = { t: 0, y0: b.position.y, y1: L.y, stable, sup: L.sup, cx: L.cx, cz: L.cz, dx: H.x - H.sx, dz: H.z - H.sz };
+  rk.place = { t: 0, y0: b.position.y, y1: L.y, stable, sup: L.sup, cx: L.cx, cz: L.cz, dx: H.x - H.sx, dz: H.z - H.sz, q0, q1: q0 && new THREE.Quaternion(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w) };
 };
 on3D(secRocks, "pointerup", rkEnd); on3D(secRocks, "pointercancel", rkEnd);
 secRocks.addEventListener("wheel", e => { if (e.target !== GL.canvas) return; e.preventDefault(); RK.zoom = clamp(RK.zoom * (e.deltaY < 0 ? 1.08 : .93), .55, 2.4); rkCamera(); }, { passive: false });
