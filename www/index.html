@@ -221,7 +221,10 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 .pills .pill{margin-left:0}
 
 /* ---------- board ---------- */
-#mode-board{overflow-y:auto;-webkit-overflow-scrolling:touch}
+#mode-board{overflow:hidden}
+#mode-board .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+/* the original controls stay for screen readers and keyboards, out of sight behind the 3D board */
+.board-a11y{position:absolute!important;width:1px;height:1px;padding:0!important;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;min-height:0!important}
 .plank{position:relative; min-height:100%; padding:84px 18px 48px; background:var(--plank-bg);}
 .screw{position:absolute;width:16px;height:16px;border-radius:50%;
   background:linear-gradient(45deg,transparent 44%,rgba(40,40,40,.7) 44% 56%,transparent 56%),var(--screw-face);
@@ -536,15 +539,15 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
     </div>
   </section>
 
-  <section class="mode" id="mode-board" aria-label="Board">
-    <div class="plank" data-theme="wood">
-      <div class="themes" role="group" aria-label="Board style">
-        <button class="theme" data-theme="wood" aria-pressed="true"><i style="background:linear-gradient(135deg,#C98B52 50%,#F5402B 50%)"></i>Wood</button>
-        <button class="theme" data-theme="cute" aria-pressed="false"><i style="background:linear-gradient(135deg,#FFB0CF 50%,#A8EBD0 50%)"></i>Cute</button>
-        <button class="theme" data-theme="blue" aria-pressed="false"><i style="background:linear-gradient(135deg,#173E82 50%,#5FE3FF 50%)"></i>Blue</button>
-        <button class="theme" data-theme="scifi" aria-pressed="false"><i style="background:linear-gradient(135deg,#0B0F17 50%,#00FFE0 50%)"></i>Sci-fi</button>
-      </div>
-      <span class="screw a" hidden></span><span class="screw b"></span><span class="screw c"></span>
+  <section class="mode" id="mode-board" aria-label="Fidget board: a big button, light switches, two knobs, a joystick, rocker switches, a fader and four keys">
+    <div class="themes" role="group" aria-label="Board style">
+      <button class="theme" data-theme="wood" aria-pressed="true"><i style="background:linear-gradient(135deg,#C8935E 50%,#E8301E 50%)"></i>Cosy wood</button>
+      <button class="theme" data-theme="candy" aria-pressed="false"><i style="background:linear-gradient(135deg,#FFB6D2 50%,#C9F2DF 50%)"></i>Candy</button>
+      <button class="theme" data-theme="arcade" aria-pressed="false"><i style="background:linear-gradient(135deg,#221C2E 50%,#00F0FF 50%)"></i>Arcade</button>
+      <button class="theme" data-theme="space" aria-pressed="false"><i style="background:linear-gradient(135deg,#1C2656 50%,#FFC857 50%)"></i>Space</button>
+      <button class="theme" data-theme="retro" aria-pressed="false"><i style="background:linear-gradient(135deg,#DDD5C2 50%,#5CFF6B 50%)"></i>Retro PC</button>
+    </div>
+    <div class="plank board-a11y">
       <div class="grid">
         <div class="center"><div class="bezel"><button class="red" id="red" aria-label="Big red button"></button></div></div>
         <div class="center" style="gap:26px;padding-top:12px">
@@ -896,6 +899,7 @@ function setMode(m) {
   if (m === "cradle") cradleSetup();
   if (m === "cube") cubeSetup();
   if (m === "rocks") rocksSetup();
+  if (m === "board") boardSetup();
   if (m === "home") { renderHome(); if (!$("#mode-home").classList.contains("list")) tbSetup(); } else try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
 }
@@ -1208,129 +1212,6 @@ function slimeRender(now) {
     cx.fillRect(X - r / 2, Y - r / 2, r, r);
   }
 }
-
-/* ================= board ================= */
-const red = $("#red");
-const redDown = () => { if (!red.classList.contains("down")) { red.classList.add("down"); S.thunk(); S.boop(); buzz(30); } };
-const redUp = () => { if (red.classList.contains("down")) { red.classList.remove("down"); S.tick(2600, .12, .02); buzz(6); } };
-red.addEventListener("pointerdown", e => { red.setPointerCapture(e.pointerId); redDown(); });
-red.addEventListener("pointerup", redUp); red.addEventListener("pointercancel", redUp);
-red.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); redDown(); } });
-red.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") redUp(); });
-
-document.querySelectorAll(".lever").forEach(l => l.addEventListener("click", () => {
-  const on = l.getAttribute("aria-checked") !== "true";
-  l.setAttribute("aria-checked", on);
-  l.closest(".plate").querySelector(".led").classList.toggle("on", on);
-  S.tick(on ? 3200 : 2400, .35, .025, "square"); S.thunk(); buzz(18);
-}));
-
-document.querySelectorAll(".knob-wrap").forEach((w, wi) => {
-  const k = w.querySelector(".knob3d"), ring = w.querySelector(".ring"), dots = [];
-  for (let i = 0; i < 11; i++) {
-    const d = document.createElement("span"), a = (-135 + i * 27) * Math.PI / 180;
-    d.className = "dot";
-    d.style.left = `calc(50% + ${(Math.sin(a) * 66).toFixed(1)}px - 4.5px)`;
-    d.style.top = `calc(50% - ${(Math.cos(a) * 66).toFixed(1)}px - 4.5px)`;
-    ring.appendChild(d); dots.push(d);
-  }
-  let ang = -135, last = null, drag = null;
-  function set(a, quiet) {
-    ang = Math.max(-135, Math.min(135, a)); k.style.setProperty("--r", ang + "deg");
-    const step = Math.round((ang + 135) / 27);
-    if (step !== last) {
-      if (last !== null && !quiet) { S.tick(900 + step * 120 + wi * 300, .3, .02, "square"); buzz(7); }
-      last = step; dots.forEach((d, i) => d.classList.toggle("on", i <= step)); k.setAttribute("aria-valuenow", step);
-    }
-  }
-  set(wi ? -135 + 27 * 6 : -135 + 27 * 3, true);
-  const angOf = e => { const r = k.getBoundingClientRect(); return Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2))) * 180 / Math.PI; };
-  k.addEventListener("pointerdown", e => { k.setPointerCapture(e.pointerId); drag = angOf(e); k.style.cursor = "grabbing"; });
-  k.addEventListener("pointermove", e => { if (drag === null) return; const a = angOf(e); let d = a - drag; if (d > 180) d -= 360; if (d < -180) d += 360; drag = a; set(ang + d); });
-  const end = () => { if (drag === null) return; drag = null; k.style.cursor = ""; set(Math.round((ang + 135) / 27) * 27 - 135); };
-  k.addEventListener("pointerup", end); k.addEventListener("pointercancel", end);
-  k.addEventListener("keydown", e => {
-    if (["ArrowRight", "ArrowUp"].includes(e.key)) { e.preventDefault(); set(ang + 27); }
-    if (["ArrowLeft", "ArrowDown"].includes(e.key)) { e.preventDefault(); set(ang - 27); }
-  });
-});
-
-document.querySelectorAll(".rocker").forEach(r => r.addEventListener("click", () => {
-  const on = r.getAttribute("aria-checked") !== "true";
-  r.setAttribute("aria-checked", on);
-  r.closest(".plate").querySelector(".led").classList.toggle("on", on);
-  S.tick(on ? 1700 : 1300, .3, .03, "square"); S.knock(.8); buzz(20);
-}));
-
-// joystick: springs back to centre, clicks into 8 directions shown on a ring of lights
-const stick = $("#stick"), sDots = [];
-for (let i = 0; i < 8; i++) {
-  const d = document.createElement("span"), a = i * Math.PI / 4;
-  d.className = "dot";
-  d.style.left = `calc(50% + ${(Math.sin(a) * 64).toFixed(1)}px - 4.5px)`;
-  d.style.top = `calc(50% - ${(Math.cos(a) * 64).toFixed(1)}px - 4.5px)`;
-  stick.parentNode.appendChild(d); sDots.push(d);
-}
-let sDir = -1, sHeld = false;
-function stickTo(dx, dy) {
-  const R = 30, l = Math.hypot(dx, dy), k = l > R ? R / l : 1;
-  stick.style.setProperty("--sx", dx * k + "px"); stick.style.setProperty("--sy", dy * k + "px");
-  const dir = l > R * .6 ? (Math.round(Math.atan2(dx, -dy) / (Math.PI / 4)) + 8) % 8 : -1;
-  if (dir !== sDir) {
-    if (dir >= 0) { S.tick(1300 + dir * 110, .26, .025, "square"); buzz(10); } else S.tick(900, .1, .02);
-    sDir = dir; sDots.forEach((d, i) => d.classList.toggle("on", i === dir));
-  }
-}
-const stickRel = e => { const r = stick.getBoundingClientRect(); return [e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2]; };
-stick.addEventListener("pointerdown", e => { stick.setPointerCapture(e.pointerId); sHeld = true; stick.classList.add("held"); stickTo(...stickRel(e)); });
-stick.addEventListener("pointermove", e => { if (sHeld) stickTo(...stickRel(e)); });
-const stickEnd = () => {
-  if (!sHeld) return; sHeld = false; stick.classList.remove("held");
-  const was = sDir; stickTo(0, 0); if (was >= 0) { S.thunk(); buzz(14); }
-};
-stick.addEventListener("pointerup", stickEnd); stick.addEventListener("pointercancel", stickEnd);
-const SKEYS = { ArrowUp: [0, -1], ArrowRight: [1, 0], ArrowDown: [0, 1], ArrowLeft: [-1, 0] };
-stick.addEventListener("keydown", e => { const v = SKEYS[e.key]; if (!v) return; e.preventDefault(); sHeld = true; stickTo(v[0] * 40, v[1] * 40); });
-stick.addEventListener("keyup", e => { if (SKEYS[e.key]) stickEnd(); });
-
-const fader = $("#fader"); let fv = .3, fl = null, fdrag = false;
-function setF(val, quiet) {
-  fv = Math.max(0, Math.min(1, val)); fader.style.setProperty("--v", fv);
-  const s = Math.round(fv * 15);
-  if (s !== fl) { if (fl !== null && !quiet) { S.tick(500 + s * 110, .22, .025, "square"); buzz(5); } fl = s; fader.setAttribute("aria-valuenow", s); }
-}
-setF(.3, true);
-const fFrom = e => { const r = fader.getBoundingClientRect(); setF((e.clientX - r.left - 32) / (r.width - 64)); };
-fader.addEventListener("pointerdown", e => { fader.setPointerCapture(e.pointerId); fdrag = true; fFrom(e); });
-fader.addEventListener("pointermove", e => { if (fdrag) fFrom(e); });
-fader.addEventListener("pointerup", () => { fdrag = false; setF(Math.round(fv * 15) / 15); });
-fader.addEventListener("pointercancel", () => fdrag = false);
-fader.addEventListener("keydown", e => {
-  if (["ArrowRight", "ArrowUp"].includes(e.key)) { e.preventDefault(); setF(fv + 1 / 15); }
-  if (["ArrowLeft", "ArrowDown"].includes(e.key)) { e.preventDefault(); setF(fv - 1 / 15); }
-});
-
-const plank = $(".plank"), BOARD_BG = { wood: "#A86A36", cute: "#FFB0CF", blue: "#173E82", scifi: "#0B0F17" };
-const SHEET_BG = { wood: "#C29567", cute: "#FFBCD7", blue: "var(--sheet)", scifi: "#0B0F17" };
-function setTheme(t) {
-  plank.dataset.theme = t; $("#sheet").dataset.theme = t;
-  document.documentElement.style.setProperty("--boardbg", BOARD_BG[t]);
-  document.documentElement.style.setProperty("--sheetbg", SHEET_BG[t]);
-  document.querySelectorAll(".theme").forEach(b => b.setAttribute("aria-pressed", b.dataset.theme === t ? "true" : "false"));
-  try { localStorage.setItem("fidget-board-theme", t); } catch (e) {}
-}
-let savedTheme = "wood"; try { savedTheme = localStorage.getItem("fidget-board-theme") || "wood"; } catch (e) {}
-setTheme(BOARD_BG[savedTheme] ? savedTheme : "wood");
-document.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { setTheme(b.dataset.theme); S.tick(2200, .15, .03, "square"); buzz(10); }));
-const notes = [523, 659, 784, 1047];
-document.querySelectorAll(".key").forEach((key, i) => {
-  const dn = () => { if (!key.classList.contains("down")) { key.classList.add("down"); S.blip(notes[i]); buzz(12); } };
-  const up = () => { if (key.classList.contains("down")) { key.classList.remove("down"); S.tick(2800, .1, .015); } };
-  key.addEventListener("pointerdown", e => { key.setPointerCapture(e.pointerId); dn(); });
-  key.addEventListener("pointerup", up); key.addEventListener("pointercancel", up);
-  key.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); dn(); } });
-  key.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") up(); });
-});
 
 /* ================= bubble wrap ================= */
 // an endless sheet: rows are made as they scroll into view and dropped once far away; popped state is kept per row
@@ -2681,6 +2562,290 @@ function lookInk(mesh, w = .02, color = 0x2A2438) {
   mat.customProgramCacheKey = () => "ink";
   const m = new THREE.Mesh(geo, mat); m.raycast = () => {}; m.userData.ink = true; mesh.add(m); return m;
 }
+
+/* ================= board ================= */
+// A chunky 3D toon fidget board: a big button, light switches, knobs, a joystick, rocker switches, a fader and four keys.
+// Every control lives in one state (BD) with its sounds. The 3D board is what you see and touch; the original
+// controls stay in the page, visually hidden, so screen readers and keyboards drive the very same state.
+const secBoard = $("#mode-board"), boardA11y = $(".board-a11y");
+const BD = { W: 0, scene: null, cam: null, board: null, parts: null, hits: [], ptrs: new Map(), last: 0, theme: "wood",
+  red: false, redP: 0, levers: [false, true, false], knobs: [-135 + 27 * 3, -135 + 27 * 6], kStep: [3, 6], rockers: [false, true],
+  stick: { x: 0, y: 0, dir: -1, held: false }, fader: .3, fStep: 5, keys: [false, false, false, false], tilt: { x: 0, z: 0 } };
+const BD_THEMES = {
+  wood: { label: "Cosy wood", sheet: "wood", bg: "#E8D6BE", plank: "#C8935E", plate: "#F6EEDF", red: "#E8301E", bezel: "#4A3424", lever: "#FAF6EE",
+    knob: "#D9A441", knobTop: "#F2D27A", led: "#FFB347", ledOff: "#7A6450", stick: "#E8301E", well: "#4A3424", rocker: ["#7FB685", "#F2A5B8"],
+    fader: "#F6EEDF", track: "#4A3424", keys: ["#F2B21C", "#5CC8B8", "#FF8FB8", "#4AA8FF"], keyStyle: "round" },
+  candy: { label: "Candy", sheet: "cute", bg: "#FFE3EE", plank: "#FFB6D2", plate: "#C9F2DF", red: "#FF5C9D", bezel: "#FFFFFF", lever: "#FFFFFF",
+    knob: "#B98CFF", knobTop: "#E6D6FF", led: "#FF3F8E", ledOff: "#E9B3C8", stick: "#7FD8FF", well: "#FFFFFF", rocker: ["#FFE27A", "#9FE3C4"],
+    fader: "#E9DDFF", track: "#B98CFF", keys: ["#FF8FB8", "#FFE27A", "#9FE3C4", "#A9D8FF"], keyStyle: "bean" },
+  arcade: { label: "Arcade", sheet: "scifi", bg: "#16121F", plank: "#221C2E", plate: "#2E2740", red: "#FF2E63", bezel: "#0E0B14", lever: "#E8E4F0",
+    knob: "#1B1726", knobTop: "#3A3150", led: "#00F0FF", ledOff: "#24303A", stick: "#FF2E63", well: "#0E0B14", rocker: ["#FFD23F", "#00F0FF"],
+    fader: "#2E2740", track: "#0E0B14", keys: ["#FF2E63", "#FFD23F", "#00F0FF", "#7CFF6B"], keyStyle: "neon", neon: "#00F0FF" },
+  space: { label: "Space", sheet: "blue", bg: "#0E1433", plank: "#1C2656", plate: "#2C3A78", red: "#FF8A5B", bezel: "#C9D3F0", lever: "#E7ECFF",
+    knob: "#7C8CFF", knobTop: "#B9C4FF", led: "#7CFFB2", ledOff: "#33406A", stick: "#FFC857", well: "#141C40", rocker: ["#B57BFF", "#5CE1E6"],
+    fader: "#2C3A78", track: "#0B1030", keys: ["#FF8A5B", "#FFC857", "#5CE1E6", "#B57BFF"], keyStyle: "planet" },
+  retro: { label: "Retro PC", sheet: "wood", bg: "#B9B09C", plank: "#DDD5C2", plate: "#CFC6B0", red: "#E4DCCB", bezel: "#A99F88", lever: "#EFEADF",
+    knob: "#8E8676", knobTop: "#B7AF9E", led: "#5CFF6B", ledOff: "#4D5A48", stick: "#3A3A3E", well: "#8E8676", rocker: ["#E4DCCB", "#E4DCCB"],
+    fader: "#CFC6B0", track: "#5A5448", keys: ["#E4DCCB", "#E4DCCB", "#E4DCCB", "#E4DCCB"], keyStyle: "keycap", power: true },
+};
+const BD_OLD = { cute: "candy", blue: "space", scifi: "arcade" };
+const BD_NOTES = [523, 659, 784, 1047];
+
+/* ---- state changes, with their sounds ---- */
+function bdRed(down) {
+  if (down === BD.red) return; BD.red = down;
+  if (down) { S.thunk(); S.boop(); buzz(30); } else { S.tick(2600, .12, .02); buzz(6); }
+  $("#red").classList.toggle("down", down);
+}
+function bdLever(i) {
+  const on = BD.levers[i] = !BD.levers[i];
+  S.tick(on ? 3200 : 2400, .35, .025, "square"); S.thunk(); buzz(18);
+  boardA11y.querySelectorAll(".lever")[i].setAttribute("aria-checked", on);
+}
+function bdKnobTo(i, ang, quiet) {
+  ang = clamp(ang, -135, 135); BD.knobs[i] = ang;
+  const step = Math.round((ang + 135) / 27);
+  if (step !== BD.kStep[i]) { BD.kStep[i] = step; if (!quiet) { S.tick(900 + step * 120 + i * 300, .3, .02, "square"); buzz(7); } boardA11y.querySelectorAll(".knob3d")[i].setAttribute("aria-valuenow", step); }
+}
+function bdKnobEnd(i) { bdKnobTo(i, BD.kStep[i] * 27 - 135, true); }
+function bdRocker(i) {
+  const on = BD.rockers[i] = !BD.rockers[i];
+  S.tick(on ? 1700 : 1300, .3, .03, "square"); S.knock(.8); buzz(20);
+  boardA11y.querySelectorAll(".rocker")[i].setAttribute("aria-checked", on);
+}
+// the joystick clicks into 8 directions and springs back to the middle
+function bdStickTo(dx, dy) {
+  const R = 34, l = Math.hypot(dx, dy), k = l > R ? R / l : 1, St = BD.stick;
+  St.x = dx * k / R; St.y = dy * k / R;
+  const dir = l > R * .6 ? (Math.round(Math.atan2(dx, -dy) / (Math.PI / 4)) + 8) % 8 : -1;
+  if (dir !== St.dir) { if (dir >= 0) { S.tick(1300 + dir * 110, .26, .025, "square"); buzz(10); } else S.tick(900, .1, .02); St.dir = dir; }
+}
+function bdStickEnd() { const was = BD.stick.dir; BD.stick.held = false; bdStickTo(0, 0); if (was >= 0) { S.thunk(); buzz(14); } }
+function bdFader(v, quiet) {
+  BD.fader = clamp(v, 0, 1); const s = Math.round(BD.fader * 15);
+  if (s !== BD.fStep) { BD.fStep = s; if (!quiet) { S.tick(500 + s * 110, .22, .025, "square"); buzz(5); } $("#fader").setAttribute("aria-valuenow", s); }
+}
+function bdKey(i, down) {
+  if (BD.keys[i] === down) return; BD.keys[i] = down;
+  if (down) { S.blip(BD_NOTES[i]); buzz(12); } else S.tick(2800, .1, .015);
+}
+
+/* ---- the hidden accessible controls drive the same state ---- */
+{
+  const red = $("#red");
+  red.addEventListener("pointerdown", e => { red.setPointerCapture(e.pointerId); bdRed(true); });
+  red.addEventListener("pointerup", () => bdRed(false)); red.addEventListener("pointercancel", () => bdRed(false));
+  red.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); bdRed(true); } });
+  red.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") bdRed(false); });
+  boardA11y.querySelectorAll(".lever").forEach((l, i) => l.addEventListener("click", () => bdLever(i)));
+  boardA11y.querySelectorAll(".rocker").forEach((r, i) => r.addEventListener("click", () => bdRocker(i)));
+  boardA11y.querySelectorAll(".knob3d").forEach((k, i) => k.addEventListener("keydown", e => {
+    if (["ArrowRight", "ArrowUp"].includes(e.key)) { e.preventDefault(); bdKnobTo(i, BD.knobs[i] + 27); }
+    if (["ArrowLeft", "ArrowDown"].includes(e.key)) { e.preventDefault(); bdKnobTo(i, BD.knobs[i] - 27); }
+  }));
+  const SKEYS = { ArrowUp: [0, -1], ArrowRight: [1, 0], ArrowDown: [0, 1], ArrowLeft: [-1, 0] }, stick = $("#stick");
+  stick.addEventListener("keydown", e => { const v = SKEYS[e.key]; if (!v) return; e.preventDefault(); BD.stick.held = true; bdStickTo(v[0] * 40, v[1] * 40); });
+  stick.addEventListener("keyup", e => { if (SKEYS[e.key]) bdStickEnd(); });
+  $("#fader").addEventListener("keydown", e => {
+    if (["ArrowRight", "ArrowUp"].includes(e.key)) { e.preventDefault(); bdFader(BD.fader + 1 / 15); }
+    if (["ArrowLeft", "ArrowDown"].includes(e.key)) { e.preventDefault(); bdFader(BD.fader - 1 / 15); }
+  });
+  boardA11y.querySelectorAll(".key").forEach((key, i) => {
+    key.addEventListener("pointerdown", e => { key.setPointerCapture(e.pointerId); bdKey(i, true); });
+    key.addEventListener("pointerup", () => bdKey(i, false)); key.addEventListener("pointercancel", () => bdKey(i, false));
+    key.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); bdKey(i, true); } });
+    key.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") bdKey(i, false); });
+  });
+}
+
+/* ---- themes ---- */
+function setTheme(t) {
+  t = BD_OLD[t] || t; if (!BD_THEMES[t]) t = "wood";
+  const T = BD_THEMES[t]; BD.theme = t;
+  $("#sheet").dataset.theme = T.sheet;
+  document.documentElement.style.setProperty("--boardbg", T.bg);
+  document.documentElement.style.setProperty("--sheetbg", { wood: "#C29567", cute: "#FFBCD7", blue: "var(--sheet)", scifi: "#0B0F17" }[T.sheet]);
+  secBoard.querySelectorAll(".theme").forEach(b => b.setAttribute("aria-pressed", b.dataset.theme === t ? "true" : "false"));
+  try { localStorage.setItem("fidget-board-theme", t); } catch (e) {}
+  if (BD.scene) bdBuildBoard();
+}
+setTheme(pref("fidget-board-theme", "wood"));
+secBoard.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { setTheme(b.dataset.theme); S.tick(2200, .15, .03, "square"); buzz(10); }));
+
+/* ---- the 3D board ---- */
+// the printed top of the plank: grain, sprinkles, stars, a grid, or beige plastic with vents and a TURBO label
+function bdPlankTex(t) {
+  const T = BD_THEMES[t];
+  return tbCanvas(512, 1024, (x, w, h) => {
+    x.fillStyle = T.plank; x.fillRect(0, 0, w, h);
+    const R = mulberry(t.length * 31);
+    if (t === "wood") { for (let i = 0; i < 90; i++) { x.strokeStyle = "rgba(110,62,26,.16)"; x.lineWidth = 1 + R() * 3; const px = R() * w; x.beginPath(); for (let y = 0; y <= h; y += 24) x.lineTo(px + Math.sin(y * .01 + i) * 6, y); x.stroke(); } for (let k = 0; k < 3; k++) { x.fillStyle = "rgba(90,48,18,.22)"; x.beginPath(); x.ellipse(R() * w, R() * h, 14, 34, R(), 0, 6.3); x.fill(); } }
+    if (t === "candy") { const cs = ["#FFFFFF", "#FFE27A", "#9FE3C4", "#A9D8FF", "#C9A8FF"]; for (let i = 0; i < 260; i++) { x.save(); x.translate(R() * w, R() * h); x.rotate(R() * 6.3); x.fillStyle = cs[i % 5]; x.beginPath(); x.roundRect ? x.roundRect(-7, -2.5, 14, 5, 2.5) : x.rect(-7, -2.5, 14, 5); x.fill(); x.restore(); } }
+    if (t === "arcade") { x.strokeStyle = "rgba(0,240,255,.12)"; x.lineWidth = 2; for (let i = 0; i <= w; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, h); x.stroke(); } for (let j = 0; j <= h; j += 32) { x.beginPath(); x.moveTo(0, j); x.lineTo(w, j); x.stroke(); } x.font = "700 34px Fredoka, sans-serif"; x.fillStyle = "rgba(255,46,99,.8)"; x.textAlign = "center"; x.fillText("1P  START", w / 2, h * .955); }
+    if (t === "space") { for (let i = 0; i < 380; i++) { x.fillStyle = `rgba(255,255,255,${(.25 + R() * .75).toFixed(2)})`; const s = R() < .08 ? 3 : 1.5; x.fillRect(R() * w, R() * h, s, s); } x.fillStyle = "rgba(124,140,255,.25)"; x.beginPath(); x.arc(w * .8, h * .12, 40, 0, 6.3); x.fill(); }
+    if (t === "retro") {
+      x.fillStyle = "rgba(0,0,0,.06)"; for (let i = 0; i < 5000; i++) x.fillRect(R() * w, R() * h, 1, 1);
+      x.fillStyle = "rgba(60,54,44,.55)"; for (let k = 0; k < 7; k++) x.fillRect(40 + k * 18, 40, 9, 70);
+      x.font = "600 26px Fredoka, sans-serif"; x.fillStyle = "#5A5448"; x.textAlign = "left"; x.fillText("TURBO", w - 150, 70); x.fillText("POWER", w / 2 - 44, 300);
+      x.strokeStyle = "#5A5448"; x.lineWidth = 3; x.strokeRect(w - 160, 36, 130, 50);
+    }
+  });
+}
+function bdBuild() {
+  const sc = new THREE.Scene(); BD.scene = sc; sc.background = new THREE.Color();
+  BD.cam = new THREE.PerspectiveCamera(35, 1, .1, 100);
+  BD.L = lookLights(sc, { keyPos: [-5, 12, 6], keyI: .75, hemi: .55, fillI: .22 });
+  Object.assign(BD.L.key.shadow.camera, { left: -7, right: 7, top: 8, bottom: -8, near: 1, far: 40 });
+  BD.glowTex = tbCanvas(64, 64, x => { const r = x.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(.35, "rgba(255,255,255,.45)"); r.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = r; x.fillRect(0, 0, 64, 64); });
+  bdBuildBoard();
+}
+function bdBuildBoard() {
+  if (BD.board) { BD.scene.remove(BD.board); disposeTree(BD.board); }
+  const T = BD_THEMES[BD.theme], g = new THREE.Group(), P = BD.parts = { levers: [], knobs: [], rockers: [], keys: [], leds: [] }; BD.board = g; BD.hits = [];
+  BD.scene.background.set(T.bg);
+  const add = (geo, color, x, y, z, parent = g, o = {}) => { const m = new THREE.Mesh(geo, Array.isArray(color) || color.isMaterial ? color : tbT(color, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; };
+  const hit = (m, ctl) => { m.userData.ctl = ctl; BD.hits.push(m); return m; };
+  const grp = (x, y, z, parent = g) => { const p = new THREE.Group(); p.position.set(x, y, z); parent.add(p); return p; };
+  const led = (x, y, z, r = .12) => { const m = add(new THREE.SphereGeometry(r, 14, 10), T.ledOff, x, y, z); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: BD.glowTex, color: T.led, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); s.scale.setScalar(r * 7); m.add(s); m.userData.noInk = true; return { m, s }; };
+  const neon = (x, z, r) => { if (!T.neon) return; const n = new THREE.Mesh(new THREE.TorusGeometry(r, .05, 8, 40), new THREE.MeshBasicMaterial({ color: T.neon })); n.rotation.x = Math.PI / 2; n.position.set(x, .32, z); n.userData.noInk = true; g.add(n); };
+  // the plank
+  const top = tbT(0xFFFFFF, { map: bdPlankTex(BD.theme) }), side = tbT(new THREE.Color(T.plank).multiplyScalar(.8).getHex());
+  add(new THREE.BoxGeometry(6.4, .6, 11.8), [side, side, top, side, side, side], 0, -.3, 0);
+  // 1: the big button
+  add(new THREE.CylinderGeometry(1.28, 1.38, .3, 40), T.bezel, 0, .15, -4.15); neon(0, -4.15, 1.42);
+  P.red = grp(0, .3, -4.15);
+  if (T.power) {
+    hit(add(new THREE.BoxGeometry(1.75, .42, 1.75), T.red, 0, .21, 0, P.red), { t: "red" });
+    const icon = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ transparent: true, map: tbCanvas(128, 128, x => { x.strokeStyle = "#5A5448"; x.lineWidth = 11; x.lineCap = "round"; x.beginPath(); x.arc(64, 68, 34, -1.1, Math.PI + 1.1, false); x.stroke(); x.beginPath(); x.moveTo(64, 20); x.lineTo(64, 62); x.stroke(); }) }));
+    icon.rotation.x = -Math.PI / 2; icon.position.y = .43; icon.userData.noInk = true; P.red.add(icon);
+  } else {
+    hit(add(new THREE.CylinderGeometry(.95, .98, .5, 40), T.red, 0, .25, 0, P.red), { t: "red" });
+    hit(add(new THREE.SphereGeometry(.95, 32, 12, 0, Math.PI * 2, 0, .5), T.red, 0, .48, 0, P.red), { t: "red" }).scale.y = .45;
+  }
+  // 2: three light switches
+  for (let i = 0; i < 3; i++) {
+    const x = (i - 1) * 1.85, z = -1.95;
+    hit(add(new THREE.BoxGeometry(1.15, .12, 1.55), T.plate, x, .06, z), { t: "lever", i });
+    P.leds.push({ ...led(x, .2, z - .55), on: () => BD.levers[i] });
+    add(new THREE.CylinderGeometry(.24, .24, .12, 20), T.bezel, x, .18, z + .15);
+    const pv = grp(x, .22, z + .15); hit(add(new THREE.CylinderGeometry(.09, .12, .8, 12), T.lever, 0, .4, 0, pv), { t: "lever", i }); hit(add(new THREE.SphereGeometry(.15, 14, 10), T.lever, 0, .82, 0, pv), { t: "lever", i });
+    P.levers.push(pv);
+  }
+  // 3: two knobs, each with a ring of 11 lights
+  for (let i = 0; i < 2; i++) {
+    const x = (i ? 1 : -1) * 1.45, z = .05, k = grp(x, 0, z), dots = [];
+    add(new THREE.CylinderGeometry(.8, .85, .14, 32), T.bezel, x, .07, z);
+    hit(add(new THREE.CylinderGeometry(.6, .64, .55, 32), T.knob, 0, .42, 0, k), { t: "knob", i });
+    for (let r = 0; r < 18; r++) { const a = r / 18 * Math.PI * 2; add(new THREE.BoxGeometry(.08, .45, .1), T.knob, Math.sin(a) * .62, .4, Math.cos(a) * .62, k).rotation.y = a; }
+    add(new THREE.CylinderGeometry(.48, .48, .08, 28), T.knobTop, 0, .72, 0, k);
+    add(new THREE.BoxGeometry(.1, .05, .42), T.led === "#5CFF6B" ? "#2A2A2E" : "#FFFFFF", 0, .78, -.22, k);
+    if (BD.theme === "space") { const ring = add(new THREE.TorusGeometry(.92, .06, 8, 40), "#FFC857", 0, .45, 0, k); ring.rotation.x = Math.PI / 2 + .35; }
+    for (let s = 0; s < 11; s++) { const a = (-135 + s * 27) * Math.PI / 180, L = led(x + Math.sin(a) * 1.08, .1, z - Math.cos(a) * 1.08, .075); dots.push(L); P.leds.push({ ...L, on: () => s <= BD.kStep[i] }); }
+    P.knobs.push(k);
+  }
+  // 4: a joystick with 8 direction lights, and two rocker switches
+  { const x = -1.6, z = 2.15;
+    hit(add(new THREE.CylinderGeometry(.82, .88, .16, 32), T.well, x, .08, z), { t: "stick" });
+    add(new THREE.SphereGeometry(.45, 18, 10), "#2A2A2E", x, .14, z).scale.y = .35;
+    P.stick = grp(x, .16, z); add(new THREE.CylinderGeometry(.075, .075, .95, 10), "#3A3A40", 0, .47, 0, P.stick); hit(add(new THREE.SphereGeometry(.36, 20, 14), T.stick, 0, .98, 0, P.stick), { t: "stick" });
+    for (let s = 0; s < 8; s++) { const a = s * Math.PI / 4, L = led(x + Math.sin(a) * 1.12, .1, z - Math.cos(a) * 1.12, .075); P.leds.push({ ...L, on: () => BD.stick.dir === s }); }
+  }
+  for (let i = 0; i < 2; i++) {
+    const x = 1.0 + i * 1.3, z = 2.15;
+    hit(add(new THREE.BoxGeometry(1.05, .12, 1.7), T.plate, x, .06, z), { t: "rocker", i });
+    P.leds.push({ ...led(x, .2, z - .65), on: () => BD.rockers[i] });
+    add(new THREE.BoxGeometry(.66, .18, 1.02), T.bezel, x, .21, z + .1);
+    const pv = grp(x, .3, z + .1); hit(add(new THREE.BoxGeometry(.52, .24, .92), T.rocker[i], 0, .05, 0, pv), { t: "rocker", i });
+    add(new THREE.BoxGeometry(.3, .02, .06), "#FFFFFF", 0, .18, -.25, pv);
+    P.rockers.push(pv);
+  }
+  // 5: a fader with 16 notches
+  hit(add(new THREE.BoxGeometry(5.5, .1, .95), T.fader, 0, .05, 3.6), { t: "fader" });
+  add(new THREE.BoxGeometry(4.7, .06, .13), T.track, 0, .12, 3.6);
+  for (let s = 0; s < 16; s++) add(new THREE.BoxGeometry(.03, .02, s % 5 ? .1 : .2), T.track, -2.3 + s * 4.6 / 15, .11, 3.98);
+  P.fader = grp(0, .12, 3.6); hit(add(new THREE.BoxGeometry(.56, .42, .7), T.lever, 0, .21, 0, P.fader), { t: "fader" }); add(new THREE.BoxGeometry(.06, .02, .6), T.track, 0, .43, 0, P.fader);
+  // 6: four keys
+  for (let i = 0; i < 4; i++) {
+    const x = -2.1 + i * 1.4, z = 4.95, col = T.keys[i], kg = grp(x, 0, z);
+    if (T.keyStyle === "keycap") {
+      add(new THREE.BoxGeometry(1.15, .12, 1.0), T.bezel, x, .06, z);
+      const cap = grp(0, .1, 0, kg); hit(add(new THREE.BoxGeometry(.95, .36, .85), col, 0, .18, 0, cap), { t: "key", i });
+      const lab = new THREE.Mesh(new THREE.PlaneGeometry(.7, .6), new THREE.MeshBasicMaterial({ transparent: true, map: tbCanvas(128, 112, (c) => { c.fillStyle = "#5A5448"; c.font = "600 54px Fredoka, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("F" + (i + 1), 64, 58); }) }));
+      lab.rotation.x = -Math.PI / 2; lab.position.y = .37; lab.userData.noInk = true; cap.add(lab); P.keys.push(cap);
+    } else if (T.keyStyle === "bean") {
+      add(new THREE.CylinderGeometry(.6, .62, .1, 28), "#FFFFFF", x, .05, z);
+      const cap = grp(0, .12, 0, kg); const b = hit(add(new THREE.SphereGeometry(.5, 24, 14), col, 0, .14, 0, cap), { t: "key", i }); b.scale.set(1.1, .5, .82); P.keys.push(cap);
+    } else {
+      add(new THREE.CylinderGeometry(.6, .63, .14, 28), T.keyStyle === "neon" ? "#0E0B14" : T.bezel, x, .07, z); neon(x, z, .66);
+      const cap = grp(0, .14, 0, kg); hit(add(new THREE.CylinderGeometry(.47, .49, .3, 28), col, 0, .15, 0, cap), { t: "key", i });
+      if (T.keyStyle === "planet") { const r = add(new THREE.TorusGeometry(.6, .035, 6, 30), "#E7ECFF", 0, .2, 0, cap); r.rotation.x = Math.PI / 2 + .3; }
+      if (T.keyStyle === "neon") cap.children[0].material.emissive = new THREE.Color(col).convertSRGBToLinear().multiplyScalar(.25);
+      P.keys.push(cap);
+    }
+  }
+  tbToonify(g, .028);
+  BD.scene.add(g); bdCamera();
+}
+function bdCamera() {
+  if (!BD.cam) return;
+  const asp = BD.cam.aspect = GL.w / GL.h || .55, t = Math.tan(17.5 * Math.PI / 180);
+  const d = Math.max(6.6 / t, 3.6 / (t * asp)) * 1.02, a = .3;
+  BD.cam.position.set(0, Math.cos(a) * d, Math.sin(a) * d + .5); BD.cam.lookAt(0, 0, .5); BD.cam.updateProjectionMatrix();
+}
+function boardSetup() {
+  if (typeof THREE === "undefined" || !mount3D(secBoard)) return;
+  if (!BD.scene) bdBuild();
+  bdCamera(); BD.W = GL.w;
+}
+function bdFrame(now) {
+  const dt = clamp((now - (BD.last || now - 16.7)) / 1000, .004, .05); BD.last = now;
+  const P = BD.parts, k = Math.min(1, dt * 22), ease = (o, key, v) => { o[key] += (v - o[key]) * k; };
+  BD.redP += ((BD.red ? 1 : 0) - BD.redP) * Math.min(1, dt * 30); P.red.position.y = .3 - .22 * BD.redP;
+  P.levers.forEach((pv, i) => ease(pv.rotation, "x", BD.levers[i] ? -.55 : .55));
+  P.knobs.forEach((kn, i) => { kn.rotation.y = -BD.knobs[i] * Math.PI / 180; });
+  ease(P.stick.rotation, "x", BD.stick.y * .5); ease(P.stick.rotation, "z", -BD.stick.x * .5);
+  P.rockers.forEach((pv, i) => ease(pv.rotation, "x", BD.rockers[i] ? -.22 : .22));
+  ease(P.fader.position, "x", -2.3 + BD.fader * 4.6);
+  P.keys.forEach((c, i) => ease(c.position, "y", (BD.keys[i] ? .02 : .14) - (BD_THEMES[BD.theme].keyStyle === "keycap" ? .04 : 0)));
+  for (const L of P.leds) { const on = L.on(); L.s.material.opacity += ((on ? .9 : 0) - L.s.material.opacity) * k; if (on !== L.was) { L.was = on; L.m.material.color.set(on ? BD_THEMES[BD.theme].led : BD_THEMES[BD.theme].ledOff).convertSRGBToLinear(); L.m.material.emissive.set(on ? BD_THEMES[BD.theme].led : 0x000000).convertSRGBToLinear(); } }
+  // the board dips a touch toward wherever you press, then floats back
+  BD.tilt.x *= Math.exp(-dt * 6); BD.tilt.z *= Math.exp(-dt * 6);
+  ease(BD.board.rotation, "x", BD.tilt.x); ease(BD.board.rotation, "z", BD.tilt.z);
+  const tm = GL.r.toneMapping; GL.r.toneMapping = THREE.NoToneMapping; GL.r.render(BD.scene, BD.cam); GL.r.toneMapping = tm;
+}
+/* ---- touch ---- */
+function bdScreen(obj) { const v = obj.getWorldPosition(new THREE.Vector3()).project(BD.cam), r = GL.canvas.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }
+function bdFaderAt(e) { const p = rayAt(e, BD.cam).ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -.3), new THREE.Vector3()); if (p) bdFader((p.x + 2.3) / 4.6); }
+on3D(secBoard, "pointerdown", e => {
+  if (!BD.scene) return;
+  const h = rayAt(e, BD.cam).intersectObjects(BD.hits, false)[0]; if (!h) return;
+  GL.canvas.setPointerCapture(e.pointerId); ac();
+  const c = h.object.userData.ctl, Pt = { c, x0: e.clientX, y0: e.clientY };
+  BD.ptrs.set(e.pointerId, Pt);
+  BD.tilt.x = clamp(h.point.z * .006, -.03, .03); BD.tilt.z = clamp(-h.point.x * .008, -.03, .03);
+  if (c.t === "red") bdRed(true);
+  else if (c.t === "lever") bdLever(c.i);
+  else if (c.t === "rocker") bdRocker(c.i);
+  else if (c.t === "key") bdKey(c.i, true);
+  else if (c.t === "knob") { const [cx, cy] = bdScreen(BD.parts.knobs[c.i]); Pt.cx = cx; Pt.cy = cy; Pt.a = Math.atan2(e.clientX - cx, -(e.clientY - cy)) * 180 / Math.PI; }
+  else if (c.t === "stick") { BD.stick.held = true; }
+  else if (c.t === "fader") bdFaderAt(e);
+});
+on3D(secBoard, "pointermove", e => {
+  const Pt = BD.ptrs.get(e.pointerId); if (!Pt) return; const c = Pt.c;
+  if (c.t === "knob") { const a = Math.atan2(e.clientX - Pt.cx, -(e.clientY - Pt.cy)) * 180 / Math.PI; let d = a - Pt.a; if (d > 180) d -= 360; if (d < -180) d += 360; Pt.a = a; bdKnobTo(c.i, BD.knobs[c.i] + d); }
+  else if (c.t === "stick") bdStickTo(e.clientX - Pt.x0, e.clientY - Pt.y0);
+  else if (c.t === "fader") bdFaderAt(e);
+});
+const bdEnd = e => {
+  const Pt = BD.ptrs.get(e.pointerId); if (!Pt) return; BD.ptrs.delete(e.pointerId); const c = Pt.c;
+  if (c.t === "red") bdRed(false);
+  else if (c.t === "key") bdKey(c.i, false);
+  else if (c.t === "knob") bdKnobEnd(c.i);
+  else if (c.t === "stick") bdStickEnd();
+  else if (c.t === "fader") bdFader(Math.round(BD.fader * 15) / 15, true);
+};
+on3D(secBoard, "pointerup", bdEnd); on3D(secBoard, "pointercancel", bdEnd);
 
 /* ================= fidget spinner ================= */
 const secSpin = $("#mode-spin"), sHint = $("#sHint"), spinRpm = $("#spinRpm"), spinBest = $("#spinBest");
@@ -6030,7 +6195,7 @@ $("#custName").addEventListener("input", e => { TB.name = e.target.value.slice(0
 $("#tbSettings").addEventListener("click", () => openSettings());
 
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); });
+window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); });
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
@@ -6043,7 +6208,7 @@ renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
-if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, bdFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
@@ -6059,6 +6224,7 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, tbFrame, 
   if (mode !== "zen" && Z.bed) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .1);
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
   if (mode === "cube" && CB.W) cubeFrame(now || 0);
+  if (mode === "board" && BD.W) bdFrame(now || 0);
   if (mode === "home" && TB.W && !secHome.classList.contains("list")) tbFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.rain.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
