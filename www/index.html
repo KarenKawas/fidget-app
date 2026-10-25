@@ -189,6 +189,8 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 .cust-sticker img{width:100%;height:100%;display:block}
 .cust-sticker:active{transform:scale(.93)}
 .cust-note{margin:0 0 10px}
+.cust-clear{margin-top:12px}
+.cust-clear.armed{background:#E5484D;color:#fff}
 .cust-shop{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cust-shop[hidden]{display:none}
 .cust-pack{position:relative;border-radius:16px;padding:14px 10px;text-align:center;background:linear-gradient(160deg,var(--c),rgba(255,255,255,.4));color:#2A2438;opacity:.75}
@@ -739,8 +741,9 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
     <h3>Box</h3>
     <div class="cust-row" id="custBoxes" role="group" aria-label="Box colour and material"></div>
     <h3>Stickers</h3>
-    <p class="note cust-note">Tap a sticker to add it. Drag it around the box, pinch to resize, twist to turn, and hold to peel it off.</p>
+    <p class="note cust-note">Tap a sticker to add it. Drag it around the box, pinch to resize and twist to turn. Pull it off the box to peel it away.</p>
     <div class="cust-grid" id="custStickers"></div>
+    <button class="pill cust-clear" id="custClear">Peel off all stickers</button>
     <!-- the sticker shop stays hidden until paid packs are ready: Apple rejects "coming soon" placeholders -->
     <h3 hidden>Sticker shop</h3>
     <div class="cust-shop" id="custShop" hidden></div>
@@ -5060,8 +5063,8 @@ $("#homeFocus").addEventListener("click", () => openSettings(true));
 // Tap a toy to play it. The crate carries your name and stickers you place, move, resize, turn and peel off.
 const secHome = $("#mode-home"), tbHint = $("#tbHint");
 const TB = { W: 0, scene: null, cam: null, world: null, box: null, lid: null, lidA: 0, lidV: 0, open: false, toys: [], faces: [], ptrs: new Map(),
-  yaw: .32, pitch: .72, zoom: 1, dist: 9, drag: null, pinch: null, pick: null, stickers: [], sel: null, last: 0, wiggleT: 3, failed: false, labelTex: null };
-const TB_W = 3.2, TB_D = 2.2, TB_H = 1.45, TB_T = .1; // crate size and wall thickness
+  yaw: .32, pitch: .72, zoom: 1, dist: 9, drag: null, pinch: null, pick: null, stickers: [], flying: [], unpeel: [], sel: null, last: 0, wiggleT: 3, failed: false, labelTex: null };
+const TB_W = 3.2, TB_D = 2.2, TB_H = 1.45, TB_T = .1, TB_LIFT = .05; // crate size, wall thickness, and a lift so its ink line sits on the table
 const TB_STYLES = {
   white: { label: "White wood", base: "#F4F1EA", grain: "rgba(180,170,150,.18)", rough: .75, sw: "#F4F1EA" },
   natural: { label: "Natural wood", base: "#C8935E", grain: "rgba(110,65,30,.28)", rough: .8, sw: "#C8935E" },
@@ -5086,14 +5089,14 @@ function tbWoodTex(st) {
 }
 // the name across the front, in playful pink letters with polka dots (like a personalised toy crate)
 function tbLabelTex() {
-  const name = (TB.name || "").trim(), line1 = name ? (/s$/i.test(name) ? name + "'" : name + "'s") : "My", line2 = "Fidgets";
+  const name = (TB.name || "").trim(), line1 = name ? (/s$/i.test(name) ? name + "'" : name + "'s") : "My", line2 = "DigiFidgets";
   return tbCanvas(1024, 512, (x, w, h) => {
     x.clearRect(0, 0, w, h);
     const dots = ["#F06FA5", "#8B5CF6", "#FF9EC4", "#5B4BB0"];
     for (let i = 0; i < 26; i++) { x.fillStyle = dots[i % 4]; x.globalAlpha = .85; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 8 + Math.random() * 12, 0, 6.3); x.fill(); }
     x.globalAlpha = 1; x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round";
-    const draw = (t, y, size) => { x.font = `600 ${size}px Fredoka, sans-serif`; x.lineWidth = size * .3; x.strokeStyle = "#2A2438"; x.strokeText(t, w / 2, y); x.lineWidth = size * .16; x.strokeStyle = "#FFFFFF"; x.strokeText(t, w / 2, y); x.fillStyle = "#EC5C9A"; x.fillText(t, w / 2, y); };
-    draw(line1.slice(0, 16), h * .32, line1.length > 10 ? 110 : 150); draw(line2, h * .74, 150);
+    const draw = (t, y, size) => { x.font = `600 ${size}px Fredoka, sans-serif`; const fit = Math.min(1, w * .88 / x.measureText(t).width); size *= fit; x.font = `600 ${size}px Fredoka, sans-serif`; x.lineWidth = size * .3; x.strokeStyle = "#2A2438"; x.strokeText(t, w / 2, y); x.lineWidth = size * .16; x.strokeStyle = "#FFFFFF"; x.strokeText(t, w / 2, y); x.fillStyle = "#EC5C9A"; x.fillText(t, w / 2, y); };
+    draw(line1.slice(0, 18), h * .3, 150); draw(line2, h * .73, 150);
   });
 }
 const TB_STICKERS = [
@@ -5259,7 +5262,7 @@ function tbBuildBox() {
   const wood = tbT(0xFFFFFF, { map: tex }), inner = tbT(0xD8D0C4, { map: tex });
   const box = new THREE.Group(); TB.box = box; TB.wood = wood;
   const add = (geo, mat, x, y, z, face) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; box.add(m); if (face) { m.userData.face = face; TB.faces.push(m); } return m; };
-  add(new THREE.BoxGeometry(TB_W, TB_T, TB_D), inner, 0, TB_T / 2, 0);
+  add(new THREE.BoxGeometry(TB_W - 2 * TB_T, TB_T, TB_D - 2 * TB_T), inner, 0, TB_T / 2, 0).userData.noInk = true;
   add(new THREE.BoxGeometry(TB_W, TB_H, TB_T), [wood, wood, wood, wood, wood, inner], 0, TB_H / 2, TB_D / 2 - TB_T / 2, "front");
   add(new THREE.BoxGeometry(TB_W, TB_H, TB_T), [wood, wood, wood, wood, inner, wood], 0, TB_H / 2, -TB_D / 2 + TB_T / 2, "back");
   add(new THREE.BoxGeometry(TB_T, TB_H, TB_D - 2 * TB_T), [inner, wood, wood, wood, wood, wood], -TB_W / 2 + TB_T / 2, TB_H / 2, 0, "left");
@@ -5274,6 +5277,7 @@ function tbBuildBox() {
   lidTop.position.set(0, TB_T / 2, TB_D / 2); lidTop.castShadow = lidTop.receiveShadow = true; lidTop.userData.face = "lid"; lidTop.userData.lid = true; TB.lid.add(lidTop); TB.faces.push(lidTop);
   const knob = new THREE.Mesh(new THREE.SphereGeometry(.09, 16, 10), tbT(0xEC5C9A)); knob.position.set(0, TB_T + .05, TB_D - .12); knob.userData.lid = true; TB.lid.add(knob);
   tbToonify(box, .05);
+  box.position.y = TB_LIFT;
   TB.scene.add(box);
 }
 function tbRestyle() {
@@ -5295,9 +5299,39 @@ function tbFaceFrame(face) {
 const tbStickerTex = {};
 function tbStickerMesh(s) {
   if (!tbStickerTex[s.id]) { const t = new THREE.CanvasTexture(tbStickerCanvas(s.id)); t.encoding = THREE.sRGBEncoding; tbStickerTex[s.id] = t; }
-  const mat = tbT(0xFFFFFF, { map: tbStickerTex[s.id], transparent: true }); mat.polygonOffset = true; mat.polygonOffsetFactor = -2; mat.depthWrite = false;
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  const mat = tbT(0xFFFFFF, { map: tbStickerTex[s.id], transparent: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -2; mat.depthWrite = false;
+  // the back of a sticker is plain paper, seen when it curls up as it peels
+  mat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace("#include <map_fragment>", "#include <map_fragment>\n  if (!gl_FrontFacing) diffuseColor.rgb = vec3(.95, .93, .9);"); };
+  mat.customProgramCacheKey = () => "sticker";
+  // finely divided so it can bend
+  const geo = new THREE.PlaneGeometry(1, 1, 14, 14); geo.userData.base = geo.attributes.position.array.slice();
+  const m = new THREE.Mesh(geo, mat);
   m.userData.sticker = s; m.renderOrder = 2; s.mesh = m; tbPlaceSticker(s); return m;
+}
+// curl a sticker up from the edge you're pulling toward: k is how far it has peeled (0 flat, 1 fully off), (dx, dy) the pull direction
+function tbCurl(m, k, dx, dy) {
+  const g = m.geometry, P = g.attributes.position, B = g.userData.base;
+  const ext = .5 * (Math.abs(dx) + Math.abs(dy)), s0 = ext - k * 2.3 * ext, r = .12, amax = 1.25;
+  for (let i = 0; i < P.count; i++) {
+    const x = B[i * 3], y = B[i * 3 + 1], sp = x * dx + y * dy; let ns = sp, z = 0;
+    if (k > 0 && sp > s0) {
+      // the lifted part bends round a small roll and stands up off the box, toward your finger
+      const t = sp - s0, a = Math.min(t / r, amax); ns = s0 + r * Math.sin(a); z = r * (1 - Math.cos(a));
+      if (t / r > amax) { const e = t - amax * r; ns += e * Math.cos(amax); z += e * Math.sin(amax); }
+    }
+    P.setXYZ(i, x + (ns - sp) * dx, y + (ns - sp) * dy, z);
+  }
+  P.needsUpdate = true; g.computeVertexNormals(); m.userData.k = k;
+}
+// pulled off the crate: the sticker peels toward your finger, crackling as it lifts
+function tbPeelPull(s, e, D) {
+  const m = s.mesh, n = new THREE.Vector3(0, 0, 1).transformDirection(m.matrixWorld), c = m.getWorldPosition(new THREE.Vector3()), pt = new THREE.Vector3();
+  if (!rayAt(e, TB.cam).ray.intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(n, c), pt)) return;
+  const L = m.worldToLocal(pt), dist = Math.hypot(L.x, L.y), k = clamp((dist - .5) / 2.4, 0, 1), dk = k - (D.peel || 0);
+  D.peeling = true; D.peel = k;
+  if (dist > .001) s.peelDir = [L.x / dist, L.y / dist];
+  tbCurl(m, k, ...(s.peelDir || [0, 1]));
+  if (dk > .03) { const a = ac(); if (a && soundOn) nz(a, "highpass", 2600, 5200, 1, Math.min(.18, .04 + dk * .5), .05); buzz(2); }
 }
 function tbPlaceSticker(s) {
   const F = tbFaceFrame(s.face), m = s.mesh, size = .28 + s.s * .5;
@@ -5306,7 +5340,7 @@ function tbPlaceSticker(s) {
   m.position.copy(F.c).addScaledVector(F.r, s.u).addScaledVector(F.u, s.v);
   const basis = new THREE.Matrix4().makeBasis(F.r, F.u, F.n), q = new THREE.Quaternion().setFromRotationMatrix(basis);
   m.quaternion.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), s.rot));
-  m.scale.set(size, size, 1);
+  m.scale.set(size, size, size);
 }
 function tbSaveStickers() { savePref("fidget-box-stickers", JSON.stringify(TB.stickers.map(({ id, face, u, v, s, rot }) => ({ id, face, u: +u.toFixed(3), v: +v.toFixed(3), s: +s.toFixed(3), rot: +rot.toFixed(3) })))); }
 function tbAddSticker(id) {
@@ -5319,24 +5353,51 @@ function tbSelect(s) {
   if (TB.sel && TB.sel.mesh) TB.sel.mesh.material.emissive.setHex(0);
   TB.sel = s; if (s && s.mesh) s.mesh.material.emissive.setHex(0x332233);
 }
+// peel a sticker off for good: it finishes curling, rips free and flutters away toward you
 function tbPeel(s) {
-  s.mesh.parent.remove(s.mesh); s.mesh.geometry.dispose(); s.mesh.material.dispose();
-  TB.stickers = TB.stickers.filter(x => x !== s); if (TB.sel === s) TB.sel = null; tbSaveStickers();
-  const a = ac(); if (a && soundOn) nz(a, "highpass", 1500, 5000, .7, .12, .25, 0, .05); buzz(14);
+  TB.stickers = TB.stickers.filter(x => x !== s); if (TB.sel === s) tbSelect(null); tbSaveStickers();
+  const m = s.mesh; TB.scene.attach(m);
+  TB.flying.push({ m, k: m.userData.k || 0, dir: s.peelDir || [rnd(-.3, .3), 1], t: 0, off: 0, spin: rnd(-4, 4) });
+  const a = ac(); if (a && soundOn) { nz(a, "bandpass", 1800, 4200, 1.2, .16, .28, 0, .02); nz(a, "highpass", 3000, 6000, .8, .07, .2, .05); }
+  buzz(14);
 }
+function tbPeelStep(dt) {
+  // a sticker let go before it came off smooths back down
+  for (const u of TB.unpeel) { u.k = Math.max(0, u.k - dt * 5); tbCurl(u.s.mesh, u.k, ...(u.s.peelDir || [0, 1])); }
+  TB.unpeel = TB.unpeel.filter(u => u.k > 0);
+  for (const f of TB.flying) {
+    f.t += dt;
+    if (f.k < 1) { f.k = Math.min(1, f.k + dt * 4); tbCurl(f.m, f.k, ...f.dir); continue; }
+    f.off += dt;
+    const away = TB.cam.position.clone().sub(f.m.position).normalize();
+    f.m.position.addScaledVector(away, dt * 2.4); f.m.position.y += dt * 1.4; f.m.rotateZ(dt * f.spin); f.m.rotateX(dt * 2);
+    f.m.material.opacity = Math.max(0, 1 - f.off / .55);
+  }
+  for (const f of TB.flying.filter(f => f.m.material.opacity <= 0)) { f.m.parent.remove(f.m); f.m.geometry.dispose(); f.m.material.dispose(); }
+  TB.flying = TB.flying.filter(f => f.m.material.opacity > 0);
+}
+// peel them all, one after another
+function tbPeelAll() { TB.stickers.slice().forEach((s, i) => setTimeout(() => { s.peelDir = [rnd(-.5, .5), 1]; tbPeel(s); }, 120 + i * 110)); }
 // convert a ray hit on a face into that face's (u, v)
 function tbFaceUV(face, point) {
   const F = tbFaceFrame(face), local = F.parent.worldToLocal(point.clone()).sub(F.c);
   return [local.dot(F.r), local.dot(F.u)];
 }
 
-/* ---- the room: a painted wall with a window, a wooden tabletop, and a desk lamp that brings on the night ---- */
+/* ---- the room: a cosy reading nook with a window, floorboards and a rug, and a lamp that brings on the night ---- */
 function tbWallTex(night) {
   return tbCanvas(2048, 512, (x, w, h) => {
     const g = x.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, night ? "#1B1D3F" : "#F8E9D8"); g.addColorStop(1, night ? "#2B2752" : "#EED3BC"); x.fillStyle = g; x.fillRect(0, 0, w, h);
     const R2 = mulberry(night ? 7 : 3);
-    for (let i = 0; i < 90; i++) { x.fillStyle = night ? "rgba(150,150,230,.10)" : "rgba(236,92,154,.08)"; x.beginPath(); x.arc(R2() * w, R2() * h * .8, 6 + R2() * 6, 0, 6.3); x.fill(); }
+    // a soft wallpaper of little leaf sprigs
+    x.fillStyle = night ? "rgba(150,160,230,.12)" : "rgba(130,160,115,.16)";
+    for (let row = 0; row < 9; row++) for (let col = 0; col < 64; col++) {
+      const px = col * 32 + (row % 2) * 16, py = 14 + row * 44, a = (R2() - .5) * 1.2;
+      x.save(); x.translate(px, py); x.rotate(a);
+      for (const [lx, ly, la] of [[0, -5, 0], [-4, 2, -.9], [4, 3, .9]]) { x.beginPath(); x.ellipse(lx, ly, 2.6, 5, la, 0, 6.3); x.fill(); }
+      x.restore();
+    }
     // a skirting band along the bottom
     x.fillStyle = night ? "#221F45" : "#E4C3A8"; x.fillRect(0, h * .84, w, h * .16); x.fillStyle = night ? "#3A3670" : "#F7E2CF"; x.fillRect(0, h * .84, w, 7);
     // the window sits on the back wall (u = .5): blue sky and clouds by day, the moon and stars at night
@@ -5354,6 +5415,20 @@ function tbWallTex(night) {
     x.lineJoin = "round"; path(); x.lineWidth = 16; x.strokeStyle = "#2A2438"; x.stroke(); path(); x.lineWidth = 10; x.strokeStyle = night ? "#4B4680" : "#FFFFFF"; x.stroke();
     x.fillStyle = night ? "#4B4680" : "#FFFFFF"; x.fillRect(wx + ww / 2 - 4, wy, 8, wh); x.fillRect(wx, wy + wh / 2 - 4, ww, 8);
     x.fillStyle = night ? "#3A3670" : "#F2DCC6"; x.fillRect(wx - 14, wy + wh + 4, ww + 28, 12); x.strokeStyle = "#2A2438"; x.lineWidth = 3; x.strokeRect(wx - 14, wy + wh + 4, ww + 28, 12);
+    // gathered curtains on a rail
+    x.fillStyle = "#2A2438"; x.fillRect(wx - 46, wy - 22, ww + 92, 6);
+    for (const side of [-1, 1]) {
+      const cx = side < 0 ? wx - 40 : wx + ww + 4;
+      x.beginPath(); x.moveTo(cx, wy - 18); x.lineTo(cx + 36, wy - 18); x.quadraticCurveTo(cx + 18 - side * 10, wy + wh * .7, cx + 30 - side * 6, wy + wh + 30); x.lineTo(cx + 4, wy + wh + 30); x.quadraticCurveTo(cx + 8, wy + wh * .5, cx, wy - 18); x.closePath();
+      x.fillStyle = night ? "#5A4A86" : "#F4A6B8"; x.fill(); x.lineWidth = 3; x.strokeStyle = "#2A2438"; x.stroke();
+      x.strokeStyle = night ? "rgba(255,255,255,.12)" : "rgba(255,255,255,.45)"; x.lineWidth = 2; for (let k = 1; k < 4; k++) { x.beginPath(); x.moveTo(cx + k * 9, wy - 14); x.quadraticCurveTo(cx + k * 8, wy + wh * .6, cx + 8 + k * 6, wy + wh + 26); x.stroke(); }
+    }
+    // a framed print beside the window: a little sunset over hills
+    const fx = wx - 190, fy = wy + 6, fw = 80, fh = 100;
+    x.fillStyle = "#F7EBDD"; x.fillRect(fx, fy, fw, fh); const pg = x.createLinearGradient(0, fy + 10, 0, fy + fh - 10); pg.addColorStop(0, night ? "#6A5A9A" : "#FFC59E"); pg.addColorStop(1, night ? "#3A3266" : "#FF8FA3"); x.fillStyle = pg; x.fillRect(fx + 10, fy + 10, fw - 20, fh - 20);
+    x.fillStyle = night ? "#E8E0FF" : "#FFF3C4"; x.beginPath(); x.arc(fx + fw / 2, fy + fh * .55, 13, 0, 6.3); x.fill();
+    x.fillStyle = night ? "#2E2A55" : "#7FB685"; x.beginPath(); x.moveTo(fx + 10, fy + fh - 10); x.quadraticCurveTo(fx + 30, fy + fh * .5, fx + 52, fy + fh - 24); x.quadraticCurveTo(fx + 62, fy + fh * .6, fx + fw - 10, fy + fh - 30); x.lineTo(fx + fw - 10, fy + fh - 10); x.fill();
+    x.lineWidth = 7; x.strokeStyle = "#C48650"; x.strokeRect(fx + 3, fy + 3, fw - 6, fh - 6); x.lineWidth = 3; x.strokeStyle = "#2A2438"; x.strokeRect(fx, fy, fw, fh);
   });
 }
 function tbRoom(sc) {
@@ -5374,7 +5449,79 @@ function tbRoom(sc) {
   const blob = new THREE.Mesh(new THREE.PlaneGeometry(TB_W + 1.4, TB_D + 1.4), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, fog: false, map: tbCanvas(256, 256, (x, w, h) => {
     const g = x.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 2); g.addColorStop(0, "rgba(60,36,90,.38)"); g.addColorStop(.7, "rgba(60,36,90,.18)"); g.addColorStop(1, "rgba(60,36,90,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
   }) }));
-  blob.rotation.x = -Math.PI / 2; blob.position.y = .006; sc.add(blob);
+  blob.rotation.x = -Math.PI / 2; blob.position.y = .02; sc.add(blob);
+}
+// the furniture: a bed corner with a knit throw, a bookshelf, plants, a pouf, books and a mug, a rug, and fairy lights
+function tbNook(sc) {
+  const g = new THREE.Group(), R = mulberry(41); TB.nook = g;
+  const add = (geo, mat, x, y, z, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; };
+  const grp = (x, z, ry = 0) => { const p = new THREE.Group(); p.position.set(x, 0, z); p.rotation.y = ry; g.add(p); return p; };
+  // a striped round rug with a scalloped edge
+  const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 64), tbT(0xFFFFFF, { map: tbCanvas(512, 512, (x, w, h) => {
+    const c = ["#F6D6C8", "#EFB7A8", "#F9E9DC", "#C9D9C3"];
+    for (let k = 9; k > 0; k--) { x.fillStyle = c[k % 4]; x.beginPath(); x.arc(w / 2, h / 2, k * w / 18, 0, 6.3); x.fill(); }
+    x.strokeStyle = "rgba(42,36,56,.18)"; x.lineWidth = 2; for (let k = 1; k <= 9; k++) { x.beginPath(); x.arc(w / 2, h / 2, k * w / 18, 0, 6.3); x.stroke(); }
+  }) }));
+  rug.rotation.x = -Math.PI / 2; rug.scale.set(4.4, 3.6, 1); rug.position.y = .012; rug.receiveShadow = true; g.add(rug);
+  // the corner of the bed, back right: a frame, a mattress under a quilt, pillows and a chunky knit throw over the end
+  const bed = grp(6.6, -6.2, -.35);
+  add(new THREE.BoxGeometry(7.2, 1.2, 9), tbT(0xC48650, { map: tbWoodTex(TB_STYLES.natural) }), 0, .6, 0, bed);
+  const quilt = tbCanvas(512, 512, (x, w, h) => { x.fillStyle = "#F7EFE4"; x.fillRect(0, 0, w, h); const cs = ["#F4A6B8", "#A8CBB7", "#F6D28B", "#B9B3E6"]; for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.fillStyle = cs[(i + j * 3) % 4]; x.globalAlpha = .55; x.fillRect(i * 64 + 6, j * 64 + 6, 52, 52); } x.globalAlpha = 1; x.strokeStyle = "rgba(255,255,255,.9)"; x.setLineDash([6, 6]); x.lineWidth = 3; for (let i = 0; i <= 8; i++) { x.beginPath(); x.moveTo(i * 64, 0); x.lineTo(i * 64, h); x.moveTo(0, i * 64); x.lineTo(w, i * 64); x.stroke(); } });
+  add(new THREE.BoxGeometry(7, 1.5, 8.8), tbT(0xFFFFFF, { map: quilt }), 0, 1.95, 0, bed);
+  for (const px of [-1.8, 1.8]) add(new THREE.SphereGeometry(1, 20, 12), tbT(0xFFFFFF), px, 3, -3.4, bed).scale.set(1.5, .55, .9);
+  // the knit throw: a lumpy blanket hanging over the foot of the bed
+  const knit = tbCanvas(256, 256, (x, w, h) => { x.fillStyle = "#B9A3E3"; x.fillRect(0, 0, w, h); x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 6; for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.beginPath(); x.moveTo(i * 32 + 4, j * 32 + 4); x.lineTo(i * 32 + 16, j * 32 + 26); x.lineTo(i * 32 + 28, j * 32 + 4); x.stroke(); } });
+  knit.wrapS = knit.wrapT = THREE.RepeatWrapping; knit.repeat.set(3, 2);
+  const throwGeo = new THREE.BoxGeometry(7.4, .35, 3.6, 24, 1, 8), tp = throwGeo.attributes.position;
+  for (let i = 0; i < tp.count; i++) { const x = tp.getX(i), z = tp.getZ(i); tp.setY(i, tp.getY(i) + Math.sin(x * 1.3) * .12 + (z > 1.2 ? -(z - 1.2) * 1.6 : 0)); }
+  rkSmoothNormals(throwGeo); add(throwGeo, tbT(0xFFFFFF, { map: knit }), 0, 2.85, 3.3, bed);
+  // a bookshelf, back left, with books in every colour and a trailing plant on top
+  const shelf = grp(-7.4, -6.6, .75), wood = tbT(0xE9D2B4);
+  add(new THREE.BoxGeometry(4.6, .25, 1.6), wood, 0, 7.2, 0, shelf);
+  for (const sx of [-2.2, 2.2]) add(new THREE.BoxGeometry(.25, 7.3, 1.6), wood, sx, 3.65, 0, shelf);
+  add(new THREE.BoxGeometry(4.6, 7.3, .15), tbT(0xD7BE9C), 0, 3.65, -.75, shelf);
+  const bookCols = [0xE5484D, 0x4AA8FF, 0xFFC93C, 0x5CC8B8, 0xB57BFF, 0xFF8FB8, 0x7FB685, 0xF29E4C];
+  for (let lv = 0; lv < 3; lv++) {
+    add(new THREE.BoxGeometry(4.2, .2, 1.5), wood, 0, .2 + lv * 2.35, 0, shelf);
+    let bx = -1.95;
+    while (bx < 1.7) {
+      const bw = .25 + R() * .2, bh = 1.3 + R() * .6, lean = R() < .12 ? .25 : 0;
+      const b = add(new THREE.BoxGeometry(bw, bh, 1.1), tbT(bookCols[Math.floor(R() * 8)]), bx + bw / 2, .3 + lv * 2.35 + bh / 2, .1, shelf); b.rotation.z = -lean; bx += bw + .03 + lean * 1.2;
+    }
+  }
+  const pot = (parent, x, y, z, s, col) => { add(new THREE.CylinderGeometry(.55 * s, .42 * s, .9 * s, 20), tbT(col), x, y + .45 * s, z, parent); add(new THREE.CylinderGeometry(.5 * s, .5 * s, .06, 20), tbT(0x6B4A2E), x, y + .88 * s, z, parent); };
+  pot(shelf, 1.2, 7.32, 0, .8, 0xF4F1EA);
+  for (let i = 0; i < 6; i++) { const v = add(new THREE.CylinderGeometry(.03, .03, 1.4 + R() * 1.4, 5), tbT(0x5DB534), 1.2 + (R() - .5) * .5, 7.4, .5, shelf); v.position.y -= .3; v.rotation.z = (R() - .5) * .6; for (let k = 0; k < 4; k++) add(new THREE.SphereGeometry(.13, 8, 6), tbT(0x6FC24A), 0, -.2 - k * .3, 0, v).scale.set(1, .5, 1); }
+  // a monstera in a big pot
+  const plant = grp(-4.7, -3.4, .4);
+  pot(plant, 0, 0, 0, 1.4, 0xE7A27C);
+  for (let i = 0; i < 7; i++) {
+    const a = i / 7 * Math.PI * 2 + R(), stem = new THREE.Group(); stem.position.set(0, 1.2, 0); stem.rotation.set(0, a, .5 + R() * .4); plant.add(stem);
+    add(new THREE.CylinderGeometry(.04, .05, 2, 6), tbT(0x3F8A3A), 0, 1, 0, stem);
+    const leaf = add(new THREE.SphereGeometry(.75, 14, 8), tbT(0x4FA24A, { side: THREE.DoubleSide }), 0, 2.2, .1, stem); leaf.scale.set(1, .12, 1.25); leaf.rotation.x = .5;
+  }
+  // a knitted pouf, front left
+  const pouf = add(new THREE.SphereGeometry(1, 28, 16), tbT(0xFFFFFF, { map: knit }), -4.8, .75, 2.4); pouf.scale.set(1.35, .75, 1.35);
+  // a stack of books with a mug on top, front right
+  const stack = grp(3.5, 1.9, -.3);
+  [[1.5, .28, 1.1, 0xE5484D, .1], [1.4, .24, 1, 0x5CC8B8, -.12], [1.3, .3, .95, 0xFFC93C, .05]].reduce((y, [w, h, d, c, r]) => { add(new THREE.BoxGeometry(w, h, d), tbT(c), 0, y + h / 2, 0, stack).rotation.y = r; return y + h; }, 0);
+  add(new THREE.CylinderGeometry(.26, .23, .5, 18), tbT(0xF4F1EA), .1, 1.07, 0, stack);
+  add(new THREE.CircleGeometry(.22, 16), tbT(0x7A4A2A), .1, 1.31, 0, stack).rotation.x = -Math.PI / 2;
+  tbToonify(g, .035);
+  // fairy lights strung in scallops along the back wall; they glow at night
+  const bulbs = [], N = 26;
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1), a = Math.PI * (.62 + t * .76), sag = Math.sin((t * 6 % 1) * Math.PI) * .9;
+    bulbs.push(new THREE.Vector3(Math.sin(a) * 13.6, 8.6 - sag, Math.cos(a) * 13.6));
+  }
+  const wire = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(bulbs), 120, .025, 4), new THREE.MeshBasicMaterial({ color: 0x2A2438 })); g.add(wire);
+  const bulbGeo = new THREE.SphereGeometry(.13, 10, 8), cols = [0xFFD27A, 0xFF9EC4, 0x9FD8FF, 0xC9F2A6];
+  TB.fairy = bulbs.map((p, i) => { const m = new THREE.Mesh(bulbGeo, new THREE.MeshBasicMaterial({ color: 0xEDE6DA })); m.position.copy(p).y -= .12; m.userData.c = cols[i % 4]; g.add(m); return m; });
+  const glowPos = new Float32Array(N * 3); TB.fairy.forEach((m, i) => m.position.toArray(glowPos, i * 3));
+  const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.BufferAttribute(glowPos, 3));
+  TB.fairyGlow = new THREE.Points(gg, new THREE.PointsMaterial({ color: 0xFFD9A0, size: .9, map: tbCanvas(64, 64, (x) => { const r = x.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = r; x.fillRect(0, 0, 64, 64); }), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  g.add(TB.fairyGlow);
+  sc.add(g);
 }
 function tbLamp(sc) {
   const g = new THREE.Group(); g.position.set(-2.35, 0, -1.25); TB.lamp = g;
@@ -5420,6 +5567,8 @@ function tbNightStep(dt, snap) {
   TB.spot.intensity = 2.4 * k; TB.glow.material.opacity = .6 * k; tbMix(TB.bulb.material.color, TB_DAY.bulb, TB_NIGHT.bulb, k);
   TB.wallN.material.opacity = k; TB.wallN.visible = k > .001; TB.motes.material.opacity = .8 * k; TB.motes.visible = k > .001;
   TB.label.material.emissive.setScalar(.28 * k);
+  for (const m of TB.fairy) tbMix(m.material.color, 0xEDE6DA, m.userData.c, k);
+  TB.fairyGlow.material.opacity = .85 * k; TB.fairyGlow.visible = k > .001;
   for (const m of TB.glows) m.mat.emissive.setHex(m.c).convertSRGBToLinear().multiplyScalar(.32 * k);
 }
 
@@ -5445,14 +5594,14 @@ function tbBuild() {
   TB.cam = new THREE.PerspectiveCamera(40, 1, .1, 100); sc.add(TB.cam);
   TB.L = lookLights(sc, { keyPos: [-4, 9, 6], keyI: .72, hemi: .5, fillI: .2 });
   Object.assign(TB.L.key.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 30 });
-  tbRoom(sc); tbLamp(sc);
+  tbRoom(sc); tbLamp(sc); tbNook(sc);
   // the dim veil behind a picked toy, carried by the camera
   TB.veil = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshBasicMaterial({ color: 0x1A1426, transparent: true, opacity: 0, depthWrite: false, fog: false }));
   TB.veil.visible = false; TB.cam.add(TB.veil);
   // light physics: toys tumble into the crate and settle
   const w = new CANNON.World(); w.gravity.set(0, -16, 0); w.broadphase = new CANNON.NaiveBroadphase(); w.solver.iterations = 12; w.allowSleep = true; TB.world = w;
   const mat = new CANNON.Material("toy"); w.addContactMaterial(new CANNON.ContactMaterial(mat, mat, { friction: .6, restitution: .25 })); TB.mat = mat;
-  const wall = (hx, hy, hz, x, y, z) => { const b = new CANNON.Body({ mass: 0, material: mat }); b.addShape(new CANNON.Box(new CANNON.Vec3(hx, hy, hz))); b.position.set(x, y, z); w.addBody(b); };
+  const wall = (hx, hy, hz, x, y, z) => { const b = new CANNON.Body({ mass: 0, material: mat }); b.addShape(new CANNON.Box(new CANNON.Vec3(hx, hy, hz))); b.position.set(x, y + TB_LIFT, z); w.addBody(b); };
   wall(TB_W / 2, TB_T / 2, TB_D / 2, 0, TB_T / 2, 0);
   wall(TB_W / 2, TB_H * 2, TB_T / 2, 0, TB_H, TB_D / 2 - TB_T / 2); wall(TB_W / 2, TB_H * 2, TB_T / 2, 0, TB_H, -TB_D / 2 + TB_T / 2);
   wall(TB_T / 2, TB_H * 2, TB_D / 2, -TB_W / 2 + TB_T / 2, TB_H, 0); wall(TB_T / 2, TB_H * 2, TB_D / 2, TB_W / 2 - TB_T / 2, TB_H, 0);
@@ -5587,6 +5736,7 @@ function tbFrame(now) {
     t.g.visible = TB.open || TB.lidA < -.05;
   }
   if (TB.motes.visible) { const a = TB.motes.geometry.attributes.position; for (let i = 0; i < a.count; i++) { let y = a.getY(i) + dt * .05; if (y > 2.1) y = .2; a.setY(i, y); a.setX(i, a.getX(i) + Math.sin(now * .0006 + i) * dt * .03); } a.needsUpdate = true; }
+  if (TB.flying.length || TB.unpeel.length) tbPeelStep(dt);
   if (TB.pick) tbPickStep(dt);
   // toon colours read best without filmic tone mapping
   const tm = GL.r.toneMapping; GL.r.toneMapping = THREE.NoToneMapping; GL.r.render(TB.scene, TB.cam); GL.r.toneMapping = tm;
@@ -5633,9 +5783,13 @@ on3D(secHome, "pointermove", e => {
   const D = TB.drag; if (!D || D.id !== e.pointerId) return;
   if (Math.hypot(e.clientX - p.x0, e.clientY - p.y0) > 8) D.moved = true;
   if (D.kind === "sticker" && D.moved) {
-    // slide it across the crate, hopping from face to face
-    const h = tbHit(e, TB.faces); if (!h) return;
-    const s = D.s, face = h.object.userData.face; s.face = face; [s.u, s.v] = tbFaceUV(face, h.point); tbPlaceSticker(s); return;
+    const s = D.s, h = tbHit(e, TB.faces);
+    // on the crate it slides across, hopping from face to face; pulled off the crate it starts to peel
+    if (h && (!D.peeling || D.peel < .08)) {
+      if (D.peeling) { D.peeling = false; D.peel = 0; tbCurl(s.mesh, 0, 0, 1); }
+      s.face = h.object.userData.face; [s.u, s.v] = tbFaceUV(s.face, h.point); tbPlaceSticker(s); return;
+    }
+    tbPeelPull(s, e, D); return;
   }
   // drag sideways to turn round the box, up and down to tilt between a side view and looking straight in
   if (D.kind === "look" && D.moved) {
@@ -5649,7 +5803,9 @@ const tbEnd = e => {
   clearTimeout(TB.shakeT);
   if (TB.pinch) { if (TB.ptrs.size < 2) { TB.pinch = null; if (TB.sel) tbSaveStickers(); } return; }
   const D = TB.drag; TB.drag = null; clearTimeout(TB.peelT);
-  if (D && D.kind === "sticker") { if (D.moved) { tbSaveStickers(); const a = ac(); if (a && soundOn) nz(a, "lowpass", 700, 250, 1, .2, .06); buzz(6); } return; }
+  if (D && D.kind === "sticker") {
+    if (D.peeling) { if (D.peel > .45) tbPeel(D.s); else { TB.unpeel.push({ s: D.s, k: D.peel }); tbSaveStickers(); } return; }
+    if (D.moved) { tbSaveStickers(); const a = ac(); if (a && soundOn) nz(a, "lowpass", 700, 250, 1, .2, .06); buzz(6); } return; }
   // a still finger at release means no glide
   if (performance.now() - p.tm > 80) TB.vy = TB.vp = 0;
   if (D && D.shook) return;
@@ -5687,11 +5843,18 @@ function openCustomise() {
   box.innerHTML = ""; for (const [k, st] of Object.entries(TB_STYLES)) { const b = document.createElement("button"); b.className = "sw cust-sw"; b.style.setProperty("--c", st.sw); b.style.background = st.sw; b.setAttribute("aria-label", st.label); b.setAttribute("aria-pressed", k === TB.style); b.onclick = () => { TB.style = k; savePref("fidget-box-style", k); if (TB.scene) tbRestyle(); openCustomise(); buzz(6); }; box.append(b); }
   stk.innerHTML = ""; for (const st of TB_STICKERS) { const b = document.createElement("button"); b.className = "cust-sticker"; b.setAttribute("aria-label", "Add " + st.label + " sticker"); const img = new Image(); img.src = tbStickerCanvas(st.id).toDataURL(); img.alt = ""; b.append(img); b.onclick = () => { if (!TB.scene) return; tbAddSticker(st.id); closeCustomise(); }; stk.append(b); }
   shop.innerHTML = ""; for (const p of TB_PACKS) { const d = document.createElement("div"); d.className = "cust-pack"; d.style.setProperty("--c", p.c); d.innerHTML = `<span class="lock" aria-hidden="true">🔒</span><b></b><small>Coming soon</small>`; d.querySelector("b").textContent = p.label + " pack"; shop.append(d); }
+  $("#custClear").hidden = !TB.stickers.length;
   custSheet.hidden = false; closeDrawer();
 }
 function closeCustomise() { custSheet.hidden = true; }
 $("#tbCustom").addEventListener("click", openCustomise);
 $("#custClose").addEventListener("click", closeCustomise);
+// peeling them all asks for a second tap first
+$("#custClear").addEventListener("click", e => {
+  const b = e.currentTarget;
+  if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Tap again to peel them all"; clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove("armed"); b.textContent = "Peel off all stickers"; }, 3000); return; }
+  clearTimeout(b._t); b.classList.remove("armed"); b.textContent = "Peel off all stickers"; closeCustomise(); tbPeelAll();
+});
 custSheet.addEventListener("click", e => { if (e.target === custSheet) closeCustomise(); });
 $("#custName").addEventListener("input", e => { TB.name = e.target.value.slice(0, 16); savePref("fidget-box-name", TB.name); if (TB.scene) tbRelabel(); });
 $("#tbSettings").addEventListener("click", () => openSettings());
