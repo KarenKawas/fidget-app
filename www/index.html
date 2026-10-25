@@ -684,7 +684,7 @@ html[data-mode="twisty"]{background:var(--twbg,#2E2A36)}
       <button class="opt" data-time="storm" aria-pressed="false"><i style="background:linear-gradient(180deg,#36404F,#8E99A6)"></i>Storm</button>
       <button class="opt rock-thunder" id="rkThunder" aria-pressed="false" hidden><i style="background:linear-gradient(135deg,#5F6B7C 50%,#FFE27A 50%)"></i>Thunder</button>
     </div>
-    <p class="hint" id="rkHint">Drag a rock over a stack · green means it will balance</p>
+    <p class="hint" id="rkHint">Drag a rock over a stack · flick it to throw it in the sea</p>
     <div class="toppings rock-tools" role="toolbar" aria-label="Rock tools">
       <button class="top-btn" id="rkMore"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="11" cy="20" rx="7" ry="4"/><ellipse cx="21" cy="21" rx="5" ry="3"/><path d="M22 6v8M18 10h8"/></svg>More rocks</button>
       <button class="top-btn" id="rkBreeze" aria-pressed="false"><svg viewBox="0 0 30 30" fill="none" stroke="#2A2438" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h14a3 3 0 1 0-3-3M4 16h19a3 3 0 1 1-3 3M4 21h8"/></svg>Breeze</button>
@@ -4790,6 +4790,65 @@ function rkScatter(n) {
   }
   RK.dirty = true;
 }
+/* ---- throwing a rock into the sea: a quick flick toward the water while holding it ---- */
+// the flick, in screen pixels per second, if the finger was moving fast and mostly up the screen (toward the sea)
+function rkFlick(H) {
+  const h = H.hist; if (!h || h.length < 2) return null;
+  const a = h[0], b = h[h.length - 1], dt = (b.t - a.t) / 1000; if (dt <= .01 || performance.now() - b.t > 90) return null;
+  const vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt;
+  return vy < -1100 && -vy > Math.abs(vx) * 1.1 ? { vx, vy } : null;
+}
+function rkThrow(rk, fl) {
+  const b = rk.body, s = Math.hypot(fl.vx, fl.vy);
+  // throw along the camera's view across the sand, a little to the side if the flick leaned
+  const fwd = RK.cam.getWorldDirection(new THREE.Vector3()).setY(0).normalize(), side = new THREE.Vector3(-fwd.z, 0, fwd.x);
+  const v = fwd.multiplyScalar(clamp(s / 220, 6, 15)).addScaledVector(side, clamp(fl.vx / 260, -4, 4));
+  b.type = CANNON.Body.DYNAMIC; b.mass = rk.m; b.updateMassProperties(); b.collisionResponse = true; b.wakeUp();
+  b.velocity.set(v.x, clamp(s / 380, 3.5, 7), v.z); b.angularVelocity.set(rnd(-8, 8), rnd(-4, 4), rnd(-8, 8));
+  rk.thrown = true; rk.locked = false; rk.place = null; RK.dirty = true;
+  S.whoosh(); buzz(10);
+}
+function rkThrownStep(r) {
+  const p = r.body.position;
+  // past the waterline it no longer touches the (flat) physics ground, so it can fall into the sea
+  if (p.z < RK_WATER_Z + 1) r.body.collisionResponse = false;
+  if (p.z < RK_WATER_Z && p.y < RK_SEA + .1) { rkSplash(p.x, p.z, Math.max(r.a, r.c)); rkRemove(r); }
+  else if (p.y < -6 || Math.hypot(p.x - RK.tx, p.z - RK.tz) > 60) rkRemove(r);
+}
+function rkRemove(r) {
+  RK.scene.remove(r.mesh); if (r.blob) RK.scene.remove(r.blob);
+  r.mesh.geometry.dispose(); r.probe.geometry.dispose(); r.mesh.material.dispose(); RK.world.removeBody(r.body);
+  RK.rocks = RK.rocks.filter(o => o !== r); for (const o of RK.rocks) o.sup.delete(r); RK.dirty = true;
+}
+// a splash: rings spreading on the water and a burst of spray, a plunk and a thump
+function rkSplash(x, z, size) {
+  if (!RK.splashRings) {
+    RK.splashRings = []; RK.ringGeo = new THREE.RingGeometry(.9, 1, 48);
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(60 * 3), 3));
+    RK.spray = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xEAF6FF, size: .12, transparent: true, opacity: .9, depthWrite: false })); RK.spray.frustumCulled = false; RK.scene.add(RK.spray);
+    RK.sprayV = []; for (let i = 0; i < 60; i++) RK.sprayV.push({ x: 0, y: -100, z: 0, vx: 0, vy: 0, vz: 0 });
+  }
+  for (let k = 0; k < 3; k++) {
+    const m = new THREE.Mesh(RK.ringGeo, new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, RK_SEA + .04, z); m.renderOrder = 3; RK.scene.add(m);
+    RK.splashRings.push({ m, t: -k * .22, size });
+  }
+  for (const s of RK.sprayV) { const a = rnd(0, 6.28), sp = rnd(.5, 2.2) * (.6 + size); Object.assign(s, { x, y: RK_SEA, z, vx: Math.cos(a) * sp, vy: rnd(2.5, 5.5) * (.6 + size), vz: Math.sin(a) * sp }); }
+  const a = ac(); if (a && soundOn) { tone(a, "sine", 320, 90, .3, .22); nz(a, "bandpass", 1600, 500, 1.2, .2, .35); nz(a, "highpass", 3000, 6000, 1, .08, .5, .1); }
+  buzz(24);
+}
+function rkSplashStep(dt) {
+  if (!RK.splashRings) return;
+  for (const R of RK.splashRings) {
+    R.t += dt; if (R.t < 0) continue;
+    const k = R.t / 1.8; R.m.scale.setScalar(R.size * (.6 + k * 5)); R.m.material.opacity = .75 * Math.max(0, 1 - k);
+  }
+  for (const R of RK.splashRings.filter(R => R.t > 1.8)) { RK.scene.remove(R.m); R.m.material.dispose(); }
+  RK.splashRings = RK.splashRings.filter(R => R.t <= 1.8);
+  const P = RK.spray.geometry.attributes.position.array;
+  RK.sprayV.forEach((s, i) => { if (s.y > -50) { s.vy -= 14 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; if (s.y < RK_SEA) s.y = -100; } P[i * 3] = s.x; P[i * 3 + 1] = s.y; P[i * 3 + 2] = s.z; });
+  RK.spray.geometry.attributes.position.needsUpdate = true;
+}
 function rkClearAll() {
   for (const r of RK.rocks) if (r.blob) { RK.scene.remove(r.blob); r.blob.geometry.dispose(); }
   for (const r of RK.rocks) { RK.scene.remove(r.mesh); r.mesh.geometry.dispose(); r.probe.geometry.dispose(); r.mesh.material.dispose(); RK.world.removeBody(r.body); }
@@ -4951,8 +5010,8 @@ function rkGhost(rk) {
   if (rk) { RK.ghost.geometry = rk.mesh.geometry; RK.ghostRim.geometry = rk.mesh.geometry; }
 }
 // place the ring under the ghost and a line of dots from the carried rock down to it; everything pulses gently
-function rkGhostDraw(rk, b, x, y, z, ok) {
-  const col = ok ? 0x6BE38A : 0xFF9A4A, pulse = .5 + .5 * Math.sin(performance.now() / 180);
+function rkGhostDraw(rk, b, x, y, z, ok, sea) {
+  const col = sea ? 0x5CC8FF : ok ? 0x6BE38A : 0xFF9A4A, pulse = .5 + .5 * Math.sin(performance.now() / 180);
   RK.ghost.material.color.setHex(col); RK.ghostRim.material.color.setHex(col);
   RK.ghost.material.opacity = .42 + .12 * pulse; RK.ghostRim.material.opacity = .35 + .35 * pulse;
   const hh = rkHalfH(rk), r = Math.max(rk.a, rk.c);
@@ -5419,7 +5478,7 @@ function rocksFrame(now) {
     b.position.set(b.position.x + (H.x - b.position.x) * k, b.position.y + (H.ly + .45 - b.position.y) * Math.min(1, dt * 12), b.position.z + (H.z - b.position.z) * k);
     b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0);
     RK.ghost.position.set(H.x, H.ly, H.z); RK.ghost.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
-    rkGhostDraw(rk, b, H.x, H.ly, H.z, H.verdict);
+    rkGhostDraw(rk, b, H.x, H.ly, H.z, H.verdict, !!rkFlick(H));
   }
   // a just-released rock eases down onto its landing spot before it locks or tips
   for (const r of RK.rocks) if (r.place) {
@@ -5446,6 +5505,7 @@ function rocksFrame(now) {
   }
   // loose rocks lock as soon as they've come to rest, instead of jiggling until the engine puts them to sleep
   for (const r of RK.rocks) {
+    if (r.thrown) { rkThrownStep(r); continue; }
     if (r.locked || r.place || r === (H && H.rk)) continue;
     const b = r.body;
     if (b.velocity.length() < .25 && b.angularVelocity.length() < .4) r.restT = (r.restT || 0) + dt; else r.restT = 0;
@@ -5476,6 +5536,7 @@ function rocksFrame(now) {
       if (W.t > .6) r.wob = null;
     }
     const p = r.body.position;
+    if (r.thrown) continue;
     if (p.y < -5 || Math.hypot(p.x - RK.tx, p.z - RK.tz) > 30) { rkUnlock(r); p.set(RK.tx + rnd(-3, 3), 3, RK.tz + rnd(-3, 3)); r.body.velocity.set(0, 0, 0); continue; }
     if (r.locked && r.sup.size) top = Math.max(top, p.y + rkHalfH(r));
   }
@@ -5487,7 +5548,7 @@ function rocksFrame(now) {
   }
   rkBest.textContent = RK.best ? "Best " + RK.best + " cm" : "";
   // the beach: waves washing up and back (with their sounds), ripples, blowing sand, swaying grass, sand puffs
-  rkBeachStep(dt); rkFxStep(dt);
+  rkBeachStep(dt); rkFxStep(dt); rkSplashStep(dt);
   rkSkyStep(dt); rkStormStep(dt);
   rkCamStep(dt);
   if (RK.bed) {
@@ -5547,6 +5608,7 @@ on3D(secRocks, "pointermove", e => {
   const H = RK.hold;
   if (H && H.id === e.pointerId) {
     if (!H.moved && Math.hypot(e.clientX - H.x0, e.clientY - H.y0) > 8) H.moved = true;
+    const now = performance.now(); (H.hist || (H.hist = [])).push({ x: e.clientX, y: e.clientY, t: now }); while (H.hist.length > 2 && now - H.hist[0].t > 110) H.hist.shift();
     if (!H.moved) return;
     // the finger maps onto the slowly-following carry height, never the raw landing height (that fed back and jittered)
     const g = rkGroundAt(e, H.cy);
@@ -5563,6 +5625,7 @@ const rkEnd = e => {
   const H = RK.hold; if (!H || H.id !== e.pointerId) return;
   RK.hold = null; rkGhost(null);
   const rk = H.rk, b = rk.body;
+  const fl = rkFlick(H); if (fl) return rkThrow(rk, fl);
   // a tap rolls it onto its next resting face (flat, on its side, on its end, or a broken face), keeping its heading
   let q0 = null;
   if (!H.moved && performance.now() - H.t0 < 300) {
