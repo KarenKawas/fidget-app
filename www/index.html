@@ -190,6 +190,7 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 .cust-sticker:active{transform:scale(.93)}
 .cust-note{margin:0 0 10px}
 .cust-shop{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cust-shop[hidden]{display:none}
 .cust-pack{position:relative;border-radius:16px;padding:14px 10px;text-align:center;background:linear-gradient(160deg,var(--c),rgba(255,255,255,.4));color:#2A2438;opacity:.75}
 .cust-pack b{display:block;font-size:.9rem}.cust-pack small{font-size:.75rem}
 .cust-pack .lock{position:absolute;top:6px;right:8px;font-size:.85rem}
@@ -740,8 +741,9 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
     <h3>Stickers</h3>
     <p class="note cust-note">Tap a sticker to add it. Drag it around the box, pinch to resize, twist to turn, and hold to peel it off.</p>
     <div class="cust-grid" id="custStickers"></div>
-    <h3>Sticker shop</h3>
-    <div class="cust-shop" id="custShop"></div>
+    <!-- the sticker shop stays hidden until paid packs are ready: Apple rejects "coming soon" placeholders -->
+    <h3 hidden>Sticker shop</h3>
+    <div class="cust-shop" id="custShop" hidden></div>
   </div>
 </div>
 

@@ -1,6 +1,6 @@
 # Backlog
 
-## Store release (not started)
+## Store release (in progress: see APP-STORE-GUIDE.md)
 
 **Goal:** publish DigiFidget on the App Store and Google Play. It's for adults winding down and for people with ADHD or anxiety. Pricing isn't decided yet, so it ships free with no ads and no tracking, with room to add a one-time unlock later.
 

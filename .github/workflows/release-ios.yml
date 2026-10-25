@@ -1,0 +1,63 @@
+name: Release iPhone app to TestFlight
+
+# Run by hand from the Actions tab. Builds a signed app and uploads it to App Store Connect, where it
+# appears in TestFlight after Apple's processing (about 10-30 minutes). Signing is automatic: Xcode uses
+# the App Store Connect API key to create the certificate and profile in the cloud, so no Mac is needed.
+#
+# Repository secrets it needs (Settings > Secrets and variables > Actions):
+#   APPLE_TEAM_ID   the 10-character Team ID (developer.apple.com > Account > Membership details)
+#   ASC_KEY_ID      the API key's Key ID
+#   ASC_ISSUER_ID   the Issuer ID shown above the keys list
+#   ASC_KEY_P8      the full text of the downloaded AuthKey_XXXX.p8 file
+on:
+  workflow_dispatch:
+
+jobs:
+  testflight:
+    name: Signed build to TestFlight
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Prepare the iOS project (icons, portrait, iPhone only, Info.plist keys)
+        run: sh scripts/ios-prepare.sh
+      - name: Check the secrets are set
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KID: ${{ secrets.ASC_KEY_ID }}
+          ISS: ${{ secrets.ASC_ISSUER_ID }}
+          P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          for v in TEAM KID ISS P8; do eval "[ -n \"\$$v\" ]" || { echo "Missing secret: $v (see the top of release-ios.yml)"; exit 1; }; done
+      - name: Archive and upload
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KID: ${{ secrets.ASC_KEY_ID }}
+          ISS: ${{ secrets.ASC_ISSUER_ID }}
+          P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          KEY="$RUNNER_TEMP/AuthKey.p8"; printf '%s' "$P8" > "$KEY"
+          AUTH="-allowProvisioningUpdates -authenticationKeyPath $KEY -authenticationKeyID $KID -authenticationKeyIssuerID $ISS"
+          VERSION=$(node -p "require('./package.json').version")
+          xcodebuild archive -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION=${{ github.run_number }} $AUTH
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" $AUTH
+          rm -f "$KEY"
+          echo "Uploaded DigiFidget $VERSION (build ${{ github.run_number }}). It shows up in App Store Connect > TestFlight once Apple finishes processing."
