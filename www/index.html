@@ -227,6 +227,11 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 /* ---------- board ---------- */
 #mode-board{overflow:hidden}
 html[data-mode="twisty"]{background:var(--twbg,#2E2A36)}
+html[data-mode="stones"]{background:var(--stbg,#DCE3E6)}
+#mode-stones .rock-time{bottom:18px}
+#mode-stones .hint{bottom:72px}
+.st-skip{position:fixed;z-index:4;transform:translate(-50%,-50%);font-weight:700;font-size:1.6rem;color:#fff;-webkit-text-stroke:2.5px #2A2438;paint-order:stroke;pointer-events:none;animation:stskip .9s ease-out forwards}
+@keyframes stskip{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}20%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-160%) scale(1)}}
 #mode-twisty .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
 #mode-twisty .tw-reset{bottom:74px;z-index:3}
 #mode-twisty .hint{bottom:128px}
@@ -699,6 +704,17 @@ html[data-mode="twisty"]{background:var(--twbg,#2E2A36)}
     </div>
   </section>
 
+  <section class="mode" id="mode-stones" aria-label="Stones: skip stones across a misty lake. Flick the stone in your hand up the screen to throw it; flat stones skip further. Tap the water to drop a pebble and watch the ripples.">
+    <div class="spin-hud rock-hud" aria-live="off"><span class="lbl">Skips</span><span class="total"><span id="stCount">0</span></span><span class="best" id="stBest"></span></div>
+    <p class="rock-new" id="stPop" hidden>New best!</p>
+    <div class="themes rock-time" role="group" aria-label="Time of day">
+      <button class="opt" data-time="misty" aria-pressed="true"><i style="background:linear-gradient(180deg,#9FB0BC,#DCE3E6)"></i>Misty</button>
+      <button class="opt" data-time="sunset" aria-pressed="false"><i style="background:linear-gradient(180deg,#5D5B8F,#FFC08A)"></i>Sunset</button>
+      <button class="opt" data-time="night" aria-pressed="false"><i style="background:linear-gradient(180deg,#070A1E,#25305A)"></i>Night</button>
+    </div>
+    <p class="hint" id="stHint">Flick the stone across the lake · tap the water to drop one</p>
+  </section>
+
   <section class="mode" id="mode-twisty" aria-label="Twisty: a chain of clicky links. Drag a link to twist it a quarter turn at a time, or tap it for one notch. Pull a link well away to pop it off, bring a socket to a loose peg to connect, drag the first link of a piece to move it, and drag empty space to look around.">
     <p class="hint" id="twHint">Drag a link to twist it · pull hard to pop it off</p>
     <button class="newsheet tw-reset" id="twReset">Tip out a new one</button>
@@ -731,6 +747,7 @@ html[data-mode="twisty"]{background:var(--twbg,#2E2A36)}
   <button class="mode-btn" data-mode="zen" aria-current="false"><span class="ico zen"></span>Zen garden</button>
   <button class="mode-btn" data-mode="cradle" aria-current="false"><span class="ico cradle"><svg viewBox="0 0 36 36" fill="none" stroke-linecap="round"><path d="M5 7h26" stroke="#8C939E" stroke-width="2.5"/><path d="M6 24V7M12 24V7M18 24V7M24 24V7M30 24V7" stroke="#9AA0A8" stroke-width=".9"/><g fill="#B9BEC6" stroke="#6E7580" stroke-width=".8"><circle cx="6" cy="26" r="3.2"/><circle cx="12" cy="26" r="3.2"/><circle cx="18" cy="26" r="3.2"/><circle cx="24" cy="26" r="3.2"/><circle cx="30" cy="26" r="3.2"/></g></svg></span>Newton's cradle</button>
   <button class="mode-btn" data-mode="cube" aria-current="false"><span class="ico cube"><svg viewBox="0 0 36 36"><path d="M18 3l13 9.5-5 15.5H10L5 12.5z" fill="#8B4FD8" stroke="#5E2FA8" stroke-width="1.2" stroke-linejoin="round"/><path d="M18 9l7.6 5.5-2.9 9H13.3l-2.9-9z" fill="#A574E6"/><path d="M14 15l4 3.5M22 15l-4 3.5" stroke="#2B2B30" stroke-width="2" stroke-linecap="round"/><path d="M18 18.5V22" stroke="#F9C74F" stroke-width="2.4" stroke-linecap="round"/><circle cx="29" cy="8" r="3.2" fill="#F5A623"/></svg></span>Dodec</button>
+  <button class="mode-btn" data-mode="stones" aria-current="false"><span class="ico stones"><svg viewBox="0 0 36 36" fill="none"><ellipse cx="18" cy="24" rx="14" ry="5" stroke="#7FB2D9" stroke-width="2"/><ellipse cx="18" cy="24" rx="7" ry="2.4" stroke="#7FB2D9" stroke-width="2"/><ellipse cx="21" cy="12" rx="6.5" ry="3" fill="#8E8A84" stroke="#2A2438" stroke-width="1.5"/></svg></span>Stones</button>
   <button class="mode-btn" data-mode="twisty" aria-current="false"><span class="ico twisty"><svg viewBox="0 0 36 36" fill="none" stroke-linecap="round" stroke-width="5.5"><path d="M6 26a8 8 0 0 1 8-8" stroke="#B9E8C8"/><path d="M14 18a8 8 0 0 0 8-8" stroke="#7CC4F0"/><path d="M22 10a8 8 0 0 1 8 8" stroke="#B9E8C8"/><path d="M30 18v6" stroke="#7CC4F0"/></svg></span>Twisty</button>
   <button class="mode-btn" data-mode="rocks" aria-current="false"><span class="ico rocks"><svg viewBox="0 0 36 36"><ellipse cx="18" cy="30" rx="11" ry="4" fill="#7D776E"/><ellipse cx="18" cy="23.5" rx="8" ry="3.6" fill="#A49C90"/><ellipse cx="17" cy="17.5" rx="6.5" ry="3" fill="#8E8A84"/><ellipse cx="18.5" cy="12" rx="5" ry="2.8" fill="#B3A99B"/><ellipse cx="18" cy="7" rx="3.4" ry="2.4" fill="#6F6B66"/></svg></span>Rock piling</button>
   </div>
@@ -924,6 +941,7 @@ function setMode(m) {
   if (m === "rocks") rocksSetup();
   if (m === "board") boardSetup();
   if (m === "twisty") twistySetup();
+  if (m === "stones") stonesSetup();
   if (m === "home") { renderHome(); if (!$("#mode-home").classList.contains("list")) tbSetup(); } else try { localStorage.setItem("fidget-mode", m); } catch (e) {}
   closeDrawer();
 }
@@ -3039,6 +3057,249 @@ const bdEnd = e => {
   else if (c.t === "fader") bdFader(Math.round(BD.fader * 15) / 15, true);
 };
 on3D(secBoard, "pointerup", bdEnd); on3D(secBoard, "pointercancel", bdEnd);
+
+/* ================= stones ================= */
+// Skipping stones on a misty lake. Flick the stone in your hand across the water: flat stones skip, round ones plop,
+// every bounce leaves rings that really bend the light. Tap the water to drop a pebble and just watch the ripples.
+const secSt = $("#mode-stones"), stHint = $("#stHint"), stCount = $("#stCount"), stBest = $("#stBest"), stPop = $("#stPop");
+const ST = { W: 0, scene: null, cam: null, stones: [], hand: null, hold: null, rips: [], ripI: 0, t: 0, last: 0, skips: 0,
+  best: +pref("fidget-stones-best", "0") || 0, time: pref("fidget-stones-time", "misty"), splash: [], splashI: 0, bed: null };
+const ST_RIPS = 24, ST_G = 9.8;
+const ST_TIMES = {
+  misty: { top: "#9FB0BC", hor: "#DCE3E6", deep: "#3E5560", sun: "#FFF6E6", sunDir: [-.3, .5, -1], fog: "#C9D2D6", fogR: [14, 75], hemi: [0xE6EEF2, 0x6A7A70, .75], key: .55, trees: "#33433D", glow: false },
+  sunset: { top: "#5D5B8F", hor: "#FFC08A", deep: "#4A4560", sun: "#FFB070", sunDir: [-.15, .12, -1], fog: "#E9B38F", fogR: [16, 80], hemi: [0xFFD2B0, 0x6A5060, .7], key: .7, trees: "#3A2C3C", glow: true },
+  night: { top: "#070A1E", hor: "#25305A", deep: "#0E1A2C", sun: "#DDE6FF", sunDir: [.25, .35, -1], fog: "#1C2547", fogR: [12, 65], hemi: [0x6070C0, 0x20202C, .35], key: .3, trees: "#0C1222", glow: false },
+};
+if (!ST_TIMES[ST.time]) ST.time = "misty";
+
+/* ---- the water: a painterly lake whose ripple rings are computed per pixel, so they bend reflections and the sun ---- */
+function stWater() {
+  const U = ST.wu = { uTime: { value: 0 }, uRip: { value: Array.from({ length: ST_RIPS }, () => new THREE.Vector4(0, 0, -99, 0)) },
+    uDeep: { value: new THREE.Color() }, uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSun: { value: new THREE.Color() },
+    uSunDir: { value: new THREE.Vector3() }, uFogC: { value: new THREE.Color() }, uFogN: { value: 14 }, uFogF: { value: 75 } };
+  const m = new THREE.ShaderMaterial({ uniforms: U,
+    vertexShader: `varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `
+      uniform float uTime; uniform vec4 uRip[${ST_RIPS}]; uniform vec3 uDeep, uTop, uHor, uSun, uSunDir, uFogC; uniform float uFogN, uFogF;
+      varying vec3 vW;
+      void main() {
+        vec2 p = vW.xz, g = vec2(0.0);
+        // a slow, gentle swell everywhere so the lake is never glassy-dead
+        g += vec2(cos(p.x * .7 + uTime * .6) * .012 + cos((p.x + p.y) * 1.9 - uTime) * .006, cos(p.y * .9 - uTime * .5) * .014 + cos((p.y - p.x) * 2.3 + uTime * 1.3) * .005);
+        float crest = 0.0;
+        for (int i = 0; i < ${ST_RIPS}; i++) {
+          vec4 r = uRip[i]; float age = uTime - r.z;
+          if (age < 0.0 || age > 6.0 || r.w <= 0.0) continue;
+          vec2 d = p - r.xy; float dist = length(d) + 1e-4, x = dist - age * 1.5;
+          float env = exp(-x * x * 1.6) * exp(-age * .55) * r.w / (1.0 + dist * .35);
+          float w = sin(x * 11.0) * env;
+          g += d / dist * cos(x * 11.0) * env * .55; crest += max(w, 0.0);
+        }
+        vec3 n = normalize(vec3(-g.x, 1.0, -g.y)), V = normalize(cameraPosition - vW), R = reflect(-V, n);
+        float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0);
+        vec3 refl = mix(uHor, uTop, clamp(R.y * 2.2, 0.0, 1.0));
+        vec3 col = mix(uDeep, refl, .3 + .65 * fres);
+        // a painted sun glint, and light catching on ripple crests
+        // (faded close by, where the steep view would smear it into a blob)
+        float far = smoothstep(5.0, 16.0, length(cameraPosition - vW));
+        float sp = pow(max(dot(R, normalize(uSunDir)), 0.0), 160.0);
+        col += uSun * (smoothstep(.35, .45, sp) * .7 + sp * .25) * far;
+        col = mix(col, uTop * .4 + uHor * .6 + .15, smoothstep(.25, .4, crest) * .35);
+        float f = smoothstep(uFogN, uFogF, length(cameraPosition - vW));
+        gl_FragColor = linearToOutputTexel(vec4(mix(col, uFogC, f), 1.0));
+      }` });
+  const w = new THREE.Mesh(new THREE.PlaneGeometry(260, 200), m); w.rotation.x = -Math.PI / 2; w.position.z = -90; return w;
+}
+function stRipple(x, z, amp) { const r = ST.wu.uRip.value[ST.ripI++ % ST_RIPS]; r.set(x, z, ST.t, amp); }
+
+/* ---- the stones ---- */
+function stStoneMesh(flat, R) {
+  const geo = lumpy(new THREE.IcosahedronGeometry(1, 2), R, .06);
+  const a = flat ? .22 + R() * .06 : .16 + R() * .05, b = flat ? .06 + R() * .02 : .12 + R() * .04, c = flat ? .17 + R() * .05 : .14 + R() * .04;
+  geo.scale(a, b, c); rkSmoothNormals(geo);
+  const cols = [0x8E8A84, 0x6F6B66, 0xA49C90, 0x8A6F5E, 0x5B5754, 0x7E8A78, 0x9A7A62];
+  const m = new THREE.Mesh(geo, tbT(cols[(R() * cols.length) | 0], { map: rkGranite() })); m.castShadow = true;
+  lookInk(m, .012); return m;
+}
+function stNewHand() {
+  const R = mulberry(Math.random() * 1e9 | 0), flat = Math.random() < .85, m = stStoneMesh(flat, R);
+  m.position.set(0, .55, 3.6); m.scale.setScalar(.01); ST.scene.add(m);
+  ST.hand = { m, flat, born: ST.t };
+}
+function stThrow(fl) {
+  const H = ST.hand; if (!H) return;
+  const sp = Math.hypot(fl.vx, fl.vy), speed = clamp(sp / 170, 6, 24), yaw = clamp(Math.atan2(fl.vx, -fl.vy) * .75, -.6, .6);
+  const el = (5 + Math.random() * 5) * Math.PI / 180;
+  const s = { m: H.m, flat: H.flat, p: H.m.position.clone(), v: new THREE.Vector3(Math.sin(yaw) * Math.cos(el) * speed, Math.sin(el) * speed, -Math.cos(yaw) * Math.cos(el) * speed), spin: speed * 2.5, skips: 0, sink: 0 };
+  ST.stones.push(s); ST.hand = null; ST.skips = 0; stCount.textContent = "0";
+  const a = ac(); if (a && soundOn) nz(a, "bandpass", 700, 1800, 1, .1, .25); buzz(8);
+  setTimeout(() => { if (ST.scene && !ST.hand) stNewHand(); }, 650);
+}
+function stDrop(x, z) {
+  const R = mulberry(Math.random() * 1e9 | 0), m = stStoneMesh(Math.random() < .5, R); m.position.set(x, 4, z); ST.scene.add(m);
+  ST.stones.push({ m, flat: false, p: m.position.clone(), v: new THREE.Vector3(0, -2, 0), spin: 3, skips: 0, sink: 0, drop: true });
+  if (ST.stones.length > 30) { const o = ST.stones.shift(); ST.scene.remove(o.m); }
+}
+function stSplash(x, z, n, power) {
+  for (let i = 0; i < n; i++) { const a = rnd(0, 6.28), s = ST.splash[ST.splashI++ % ST.splash.length]; Object.assign(s, { x, y: .02, z, vx: Math.cos(a) * rnd(.3, 1.3) * power, vy: rnd(1.5, 3.2) * power, vz: Math.sin(a) * rnd(.3, 1.3) * power }); }
+}
+function stPlip(k) {
+  const a = ac(); if (!a || !soundOn) return;
+  const f = 620 * Math.pow(1.12, Math.min(k, 14));
+  tone(a, "sine", f * 1.4, f, .16, .07); nz(a, "highpass", 2500, 5000, 1.5, .05, .05);
+}
+function stPlop(big) {
+  const a = ac(); if (!a || !soundOn) return;
+  tone(a, "sine", big ? 240 : 380, big ? 70 : 120, big ? .3 : .2, .22); nz(a, "lowpass", 1400, 300, 1, big ? .18 : .1, .3);
+}
+function stStep(dt) {
+  for (const s of ST.stones) {
+    if (s.sink) { s.sink += dt; s.p.y -= dt * .35; s.m.position.copy(s.p); if (s.p.y < -.6) s.dead = true; continue; }
+    s.v.y -= ST_G * dt; s.p.addScaledVector(s.v, dt);
+    s.m.rotation.y += s.spin * dt; s.m.rotation.x = Math.sin(ST.t * 3 + s.spin) * .08;
+    if (s.p.y <= 0 && s.v.y < 0) {
+      const vh = Math.hypot(s.v.x, s.v.z), ang = Math.atan2(-s.v.y, vh), lim = ((s.flat ? 24 : 15) + (s.skips ? 0 : 4)) * Math.PI / 180;
+      // a skip needs a shallow angle and enough speed; every bounce costs speed, and luck runs out eventually
+      if (!s.drop && vh > 3.2 && ang < lim && Math.random() > s.skips * .025) {
+        s.skips++; s.p.y = 0; s.v.y = Math.max(1.2, -s.v.y * .62); s.v.x *= .8; s.v.z *= .8; s.spin *= .9;
+        stRipple(s.p.x, s.p.z, .55); stSplash(s.p.x, s.p.z, 5, .5); stPlip(s.skips); buzz(Math.min(14, 5 + s.skips));
+        ST.skips = s.skips; stCount.textContent = s.skips; stSkipPop(s.p, s.skips);
+      } else {
+        s.sink = .001; s.p.y = 0; stRipple(s.p.x, s.p.z, s.drop ? 1.1 : .9); stSplash(s.p.x, s.p.z, 12, s.drop ? .8 : .6); stPlop(s.drop || !s.skips); buzz(s.drop ? 16 : 10);
+        if (!s.drop && s.skips) stScore(s.skips);
+      }
+    }
+    s.m.position.copy(s.p);
+    if (s.p.z < -110) s.dead = true;
+  }
+  for (const s of ST.stones.filter(s => s.dead)) { ST.scene.remove(s.m); s.m.geometry.dispose(); }
+  ST.stones = ST.stones.filter(s => !s.dead);
+  // spray
+  const P = ST.spray.geometry.attributes.position.array;
+  ST.splash.forEach((s, i) => { if (s.y > -50) { s.vy -= ST_G * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; if (s.y < 0) s.y = -100; } P[i * 3] = s.x; P[i * 3 + 1] = s.y; P[i * 3 + 2] = s.z; });
+  ST.spray.geometry.attributes.position.needsUpdate = true;
+}
+// the skip number pops up over the water where it bounced
+function stSkipPop(p, n) {
+  const v = p.clone().setY(.4).project(ST.cam), r = GL.canvas.getBoundingClientRect();
+  const el = document.createElement("span"); el.className = "st-skip"; el.textContent = n; el.setAttribute("aria-hidden", "true");
+  el.style.left = (r.left + (v.x + 1) / 2 * r.width) + "px"; el.style.top = (r.top + (1 - v.y) / 2 * r.height) + "px"; secSt.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+function stScore(n) {
+  if (n <= ST.best) return;
+  const had = ST.best > 0; ST.best = n; savePref("fidget-stones-best", n); stBest.textContent = "Best " + n;
+  if (had) { stPop.hidden = false; stPop.classList.remove("on"); void stPop.offsetWidth; stPop.classList.add("on"); [784, 988, 1175, 1568].forEach((f, i) => setTimeout(() => S.blip(f), i * 90)); buzz(30); setTimeout(() => stPop.hidden = true, 1800); }
+}
+
+/* ---- the lake scene ---- */
+function stSky() {
+  const T = ST_TIMES[ST.time], x = ST.skyC.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, T.top); g.addColorStop(.48, T.hor); g.addColorStop(1, T.hor); x.fillStyle = g; x.fillRect(0, 0, 4, 256); ST.sky.material.map.needsUpdate = true;
+  const lin = c => new THREE.Color(c).convertSRGBToLinear();
+  const U = ST.wu; U.uDeep.value.copy(lin(T.deep)); U.uTop.value.copy(lin(T.top)); U.uHor.value.copy(lin(T.hor)); U.uSun.value.copy(lin(T.sun)); U.uSunDir.value.set(...T.sunDir).normalize();
+  U.uFogC.value.copy(lin(T.fog)); U.uFogN.value = T.fogR[0]; U.uFogF.value = T.fogR[1];
+  ST.scene.fog.color.set(T.fog); ST.scene.fog.near = T.fogR[0]; ST.scene.fog.far = T.fogR[1];
+  ST.hemi.color.setHex(T.hemi[0]); ST.hemi.groundColor.setHex(T.hemi[1]); ST.hemi.intensity = T.hemi[2]; ST.key.intensity = T.key;
+  ST.trees.material.color.set(T.trees).convertSRGBToLinear();
+  ST.sunDisc.visible = ST.time === "sunset"; ST.moon.visible = ST.stars.visible = ST.time === "night";
+  secSt.querySelectorAll("[data-time]").forEach(b => b.setAttribute("aria-pressed", b.dataset.time === ST.time ? "true" : "false"));
+  document.documentElement.style.setProperty("--stbg", T.hor);
+}
+function stBuild() {
+  const sc = ST.scene = new THREE.Scene(); sc.fog = new THREE.Fog(0xffffff, 14, 75);
+  ST.cam = new THREE.PerspectiveCamera(52, 1, .05, 400);
+  ST.hemi = new THREE.HemisphereLight(0xffffff, 0x666666, .7); sc.add(ST.hemi);
+  ST.key = new THREE.DirectionalLight(0xFFF4E0, .6); ST.key.position.set(-4, 8, 3); ST.key.castShadow = true; sc.add(ST.key);
+  // sky dome
+  ST.skyC = document.createElement("canvas"); ST.skyC.width = 4; ST.skyC.height = 256;
+  const st = new THREE.CanvasTexture(ST.skyC); st.encoding = THREE.sRGBEncoding;
+  ST.sky = new THREE.Mesh(new THREE.SphereGeometry(300, 24, 16), new THREE.MeshBasicMaterial({ map: st, side: THREE.BackSide, fog: false })); sc.add(ST.sky);
+  const soft = (r, g0) => tbCanvas(128, 128, x => { const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g0(g); x.fillStyle = g; x.fillRect(0, 0, 128, 128); });
+  ST.sunDisc = new THREE.Sprite(new THREE.SpriteMaterial({ map: soft(0, g => { g.addColorStop(0, "rgba(255,240,210,1)"); g.addColorStop(.2, "rgba(255,210,150,.9)"); g.addColorStop(1, "rgba(255,160,110,0)"); }), transparent: true, fog: false, depthWrite: false, blending: THREE.AdditiveBlending }));
+  ST.sunDisc.position.set(-40, 14, -230); ST.sunDisc.scale.setScalar(60); sc.add(ST.sunDisc);
+  ST.moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: soft(0, g => { g.addColorStop(0, "rgba(255,250,235,1)"); g.addColorStop(.22, "rgba(255,250,235,1)"); g.addColorStop(.3, "rgba(200,210,255,.25)"); g.addColorStop(1, "rgba(200,210,255,0)"); }), transparent: true, fog: false, depthWrite: false }));
+  ST.moon.position.set(50, 60, -220); ST.moon.scale.setScalar(36); sc.add(ST.moon);
+  const sp = new Float32Array(600 * 3); for (let i = 0; i < 600; i++) { const a = rnd(-1.6, 1.6) + Math.PI, e = rnd(.08, 1.2), r = 280; sp.set([Math.sin(a) * Math.cos(e) * r, Math.sin(e) * r, Math.cos(a) * Math.cos(e) * r], i * 3); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
+  ST.stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xFFFFFF, size: 1.4, sizeAttenuation: false, fog: false, transparent: true, opacity: .85 })); sc.add(ST.stars);
+  // the lake, misty pine shores around it, and the pebbly shore at your feet
+  sc.add(ST.water = stWater());
+  const cone = new THREE.ConeGeometry(1, 1, 7), trees = ST.trees = new THREE.InstancedMesh(cone, tbT(0x33433D), 340), m4 = new THREE.Matrix4(), R = mulberry(17);
+  for (let i = 0; i < 340; i++) {
+    const side = i % 3, h = 6 + R() * 9, w = h * (.22 + R() * .08);
+    let x, z;
+    if (side === 0) { x = -40 + R() * 80; z = -70 - R() * 30; } else { x = (side === 1 ? -1 : 1) * (16 + R() * 26); z = -10 - R() * 70; }
+    m4.compose(new THREE.Vector3(x, h / 2 - .3, z), new THREE.Quaternion(), new THREE.Vector3(w, h, w)); trees.setMatrixAt(i, m4);
+  }
+  sc.add(trees);
+  const shore = new THREE.Mesh(new THREE.PlaneGeometry(40, 8), tbT(0xFFFFFF, { map: tbCanvas(512, 128, (x, w, h) => {
+    x.fillStyle = "#8D8378"; x.fillRect(0, 0, w, h); const R2 = mulberry(5);
+    for (let i = 0; i < 900; i++) { const v = 90 + R2() * 90; x.fillStyle = `rgb(${v + 20},${v + 12},${v})`; x.beginPath(); x.ellipse(R2() * w, R2() * h, 3 + R2() * 7, 2 + R2() * 4, R2() * 3, 0, 6.3); x.fill(); x.strokeStyle = "rgba(42,36,56,.35)"; x.lineWidth = 1; x.stroke(); }
+  }) }));
+  shore.rotation.x = -Math.PI / 2; shore.position.set(0, .02, 7.5); shore.receiveShadow = true; sc.add(shore);
+  // a little lip of shore where it meets the water
+  const lip = new THREE.Mesh(new THREE.PlaneGeometry(40, .6), new THREE.MeshBasicMaterial({ color: 0xF2F4F2, transparent: true, opacity: .35, fog: false })); lip.rotation.x = -Math.PI / 2; lip.position.set(0, .03, 3.6); sc.add(lip);
+  // mist drifting low over the water
+  ST.mist = [];
+  const mt = soft(0, g => { g.addColorStop(0, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)"); });
+  for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mt, transparent: true, depthWrite: false, opacity: .5 })); s.position.set(rnd(-30, 30), rnd(.8, 2.5), rnd(-60, -12)); s.scale.set(rnd(18, 34), rnd(3, 6), 1); s.userData.v = rnd(.2, .6) * (Math.random() < .5 ? -1 : 1); sc.add(s); ST.mist.push(s); }
+  // spray
+  const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(120 * 3).fill(-100), 3));
+  ST.spray = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xF0F6FA, size: .07, transparent: true, opacity: .9, depthWrite: false })); ST.spray.frustumCulled = false; sc.add(ST.spray);
+  for (let i = 0; i < 120; i++) ST.splash.push({ x: 0, y: -100, z: 0, vx: 0, vy: 0, vz: 0 });
+  stSky(); stNewHand();
+  stCount.textContent = "0"; stBest.textContent = ST.best ? "Best " + ST.best : "";
+}
+function stonesSetup() {
+  if (typeof THREE === "undefined" || !mount3D(secSt)) return;
+  if (!ST.scene) stBuild();
+  ST.cam.aspect = GL.w / GL.h; ST.W = GL.w;
+  ST.cam.position.set(0, 1.55, 6.2); ST.cam.lookAt(0, .2, -8); ST.cam.updateProjectionMatrix();
+}
+function stEnsureBed() {
+  const a = ac(); if (!a || ST.bed) return;
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = noise(a); s.loop = true; f.type = "lowpass"; f.frequency.value = 420; g.gain.value = 0;
+  s.connect(f).connect(g).connect(out(a)); s.start(); ST.bed = { g, f };
+}
+function stonesFrame(now) {
+  const dt = clamp((now - (ST.last || now - 16.7)) / 1000, .004, .05); ST.last = now; ST.t += dt; ST.wu.uTime.value = ST.t;
+  stStep(dt);
+  const H = ST.hand;
+  if (H) {
+    const k = Math.min(1, (ST.t - H.born) / .35), s = 1 - Math.pow(1 - k, 3) * (1 - k * .2);
+    H.m.scale.setScalar(Math.max(.01, s));
+    if (!ST.hold) { H.m.position.set(Math.sin(ST.t * 1.3) * .03, .55 + Math.sin(ST.t * 2) * .02, 3.6); H.m.rotation.y += dt * .4; }
+  }
+  for (const m of ST.mist) { m.position.x += m.userData.v * dt; if (Math.abs(m.position.x) > 40) m.userData.v *= -1; }
+  if (ST.bed) ST.bed.g.gain.setTargetAtTime(soundOn && ambienceOn ? .035 : 0, actx.currentTime, .5);
+  const tm = GL.r.toneMapping; GL.r.toneMapping = THREE.NoToneMapping; GL.r.render(ST.scene, ST.cam); GL.r.toneMapping = tm;
+}
+
+/* ---- touch: flick the stone in your hand; tap the water to drop a pebble ---- */
+on3D(secSt, "pointerdown", e => {
+  if (!ST.scene) return;
+  GL.canvas.setPointerCapture(e.pointerId); ac(); stEnsureBed(); stHint.classList.add("gone");
+  ST.hold = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), hist: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
+});
+on3D(secSt, "pointermove", e => {
+  const H = ST.hold; if (!H || H.id !== e.pointerId) return;
+  const now = performance.now(); H.hist.push({ x: e.clientX, y: e.clientY, t: now }); while (H.hist.length > 2 && now - H.hist[0].t > 110) H.hist.shift();
+  // the stone follows your thumb a little as you wind up
+  if (ST.hand) { const dx = (e.clientX - H.x0) / 300, dy = (e.clientY - H.y0) / 300; ST.hand.m.position.set(clamp(dx, -.6, .6), clamp(.55 - dy * .6, .3, 1.1), 3.6 + clamp(dy, -.3, .4) * .5); }
+});
+const stEnd = e => {
+  const H = ST.hold; if (!H || H.id !== e.pointerId) return; ST.hold = null;
+  const a = H.hist[0], b = H.hist[H.hist.length - 1], dt = Math.max(.016, (b.t - a.t) / 1000), vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt;
+  if (vy < -500 && performance.now() - b.t < 120 && ST.hand) return stThrow({ vx, vy });
+  if (Math.hypot(e.clientX - H.x0, e.clientY - H.y0) < 12 && performance.now() - H.t0 < 350) {
+    const p = rayAt(e, ST.cam).ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
+    if (p && p.z < 3) stDrop(p.x, p.z);
+  }
+};
+on3D(secSt, "pointerup", stEnd); on3D(secSt, "pointercancel", stEnd);
+secSt.querySelectorAll("[data-time]").forEach(b => b.addEventListener("click", () => { ST.time = b.dataset.time; savePref("fidget-stones-time", ST.time); if (ST.scene) stSky(); S.tick(1200, .05, .03, "sine"); buzz(4); }));
+document.documentElement.style.setProperty("--stbg", ST_TIMES[ST.time].hor);
 
 /* ================= twisty ================= */
 // A chain of quarter-circle links like the classic twisty fidget. Each joint turns about the chain in clicky quarter
@@ -5772,7 +6033,7 @@ const MODE_INFO = {
   slime: "Squish, swirl and stretch", board: "Buttons, switches, knobs and a joystick", bubbles: "Endless bubble wrap",
   dice: "Roll real 3D dice", grass: "Brush the grass through the seasons", pop: "Press the bubbles, flip it over",
   spin: "Flick a fidget spinner", zen: "Rake a tabletop sand garden", cradle: "Swing Newton's cradle",
-  cube: "A twelve-sided fidget toy", rocks: "Stack rocks into cairns", twisty: "Twist, click and connect the links",
+  cube: "A twelve-sided fidget toy", rocks: "Stack rocks into cairns", stones: "Skip stones across a misty lake", twisty: "Twist, click and connect the links",
 };
 const MODE_NAME = {};
 document.querySelectorAll(".mode-btn").forEach(b => { if (b.dataset.mode !== "home") MODE_NAME[b.dataset.mode] = b.textContent.trim(); });
@@ -5986,7 +6247,7 @@ function tbToonify(root, w = .014) {
 // tint: the toy's colour, used for the fade into its mode. show: how it turns to face you when picked (Euler in camera space)
 const TB_TOY = {
   slime: { tint: "#FF6FA8", show: [.5, 0, 0] }, board: { tint: "#E8301E", show: [1.0, 0, 0] }, bubbles: { tint: "#8FCBEF", show: [1.05, 0, 0] },
-  dice: { tint: "#E5484D", show: [.5, .45, 0] }, twisty: { tint: "#7CC4F0", show: [.7, .3, 0] }, grass: { tint: "#5DB534", show: [.3, 0, 0] }, pop: { tint: "#FFB13C", show: [1.05, 0, 0] },
+  dice: { tint: "#E5484D", show: [.5, .45, 0] }, stones: { tint: "#7FB2D9", show: [.9, 0, 0] }, twisty: { tint: "#7CC4F0", show: [.7, .3, 0] }, grass: { tint: "#5DB534", show: [.3, 0, 0] }, pop: { tint: "#FFB13C", show: [1.05, 0, 0] },
   spin: { tint: "#6D4BEA", show: [1.1, 0, 0] }, zen: { tint: "#D9CDB8", show: [1.0, 0, 0] }, cradle: { tint: "#8E9AAE", show: [.3, 0, 0] },
   cube: { tint: "#8B4FD8", show: [.15, 0, 0] }, rocks: { tint: "#A99F92", show: [.3, 0, 0] },
 };
@@ -6070,6 +6331,10 @@ function tbToy(mode) {
     const up = N.map(n => n.clone().applyQuaternion(q)).filter(n => n.z < .9).sort((a, b) => b.y - a.y)[0];
     const btn = add(zcyl(.06, .05, 20).rotateX(-Math.PI / 2), soft(0xF0352A)); btn.position.copy(up).multiplyScalar(.24 * .7947 + .02); btn.quaternion.setFromUnitVectors(V3(0, 1, 0), up);
     shape = { sphere: .22 };
+  } else if (mode === "stones") {
+    // a little stack of flat skipping stones on a pond-blue coaster
+    add(zcyl(.3, .04, 24).rotateX(-Math.PI / 2), soft(0x7FB2D9));
+    [[.26, .06, .2, 0x8E8A84, .05], [.21, .05, .17, 0x6F6B66, .14], [.16, .045, .13, 0xA49C90, .22]].forEach(([a, b, c, col, y]) => add(rkSmoothNormalsGeo(lumpy(new THREE.IcosahedronGeometry(1, 2), R, .05), a, b, c), soft(col, { map: rkGranite() }), (R() - .5) * .05, y, (R() - .5) * .05));
   } else if (mode === "twisty") {
     // five real twisty links, chained with the same joint maths as the full toy, mint and glitter blue
     const arc = new THREE.TorusGeometry(1, .3, 10, 14, Math.PI / 2).rotateZ(-Math.PI / 2).translate(0, 1, 0), M = new THREE.Matrix4().makeScale(.15, .15, .15);
@@ -6697,7 +6962,7 @@ $("#custName").addEventListener("input", e => { TB.name = e.target.value.slice(0
 $("#tbSettings").addEventListener("click", () => openSettings());
 
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); if (mode === "twisty") twistySetup(); });
+window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); if (mode === "twisty") twistySetup(); if (mode === "stones") stonesSetup(); });
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
@@ -6710,7 +6975,7 @@ renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
-if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
@@ -6728,6 +6993,8 @@ if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, bdFra
   if (mode === "cube" && CB.W) cubeFrame(now || 0);
   if (mode === "board" && BD.W) bdFrame(now || 0);
   if (mode === "twisty" && TW.W) twistyFrame(now || 0);
+  if (mode === "stones" && ST.W) stonesFrame(now || 0);
+  else if (ST.bed) ST.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
   if (mode === "home" && TB.W && !secHome.classList.contains("list")) tbFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.rain.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
