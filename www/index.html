@@ -1815,7 +1815,7 @@ function diceFrame(now) {
     if (now - (D.rollStart || now) > 7000) D.settle = 1; // never get stuck waiting on a jittery die
     if (D.settle > .3) { D.rolling = false; showResults(); }
   }
-  D.r.render(D.scene, D.cam);
+  toonRender(D.r, D.scene, D.cam, TOON_INK.dice);
 }
 
 const dieBtns = $("#dieBtns");
@@ -2589,6 +2589,8 @@ function disposeTree(o) { o.traverse(n => { if (n.geometry) n.geometry.dispose()
 /* ---- the look: one place that decides how surfaces feel. "soft" (rounded, cosy, gently lit toy plastic and wood)
    is the default; "toon" (stepped light bands plus optional outlines) is ready for a later style switch ---- */
 const LOOK = { kind: "soft", ramp: null };
+// ink line widths per mode: [fraction of each mesh's size, min, max] in world units
+const TOON_INK = { dice: { ink: [.05, .012, .045] }, spin: { ink: [.02, .004, .018] }, zen: { ink: [.05, .01, .05] }, cube: { ink: [.03, .01, .04] }, cradle: { ink: [.06, .006, .03] }, rocks: { ink: [.045, .008, .026] } };
 function lookMat(o = {}) {
   if (LOOK.kind === "toon" || o.toon) {
     if (!LOOK.ramp) {
@@ -2610,6 +2612,51 @@ function lookLights(scene, o = {}) {
   const fill = new THREE.DirectionalLight(o.fill ?? 0xC8D8FF, o.fillI ?? .3); fill.position.set(...(o.fillPos || [5, 4, -3])); scene.add(fill);
   return { hemi, key, fill };
 }
+/* ---- the toon pass for every 3D mode: the existing materials keep their colours and settings, but light falls in flat
+   bands, highlights become crisp blobs and reflections posterise; solid meshes get an ink line ---- */
+const TOON_GLSL = `
+float toonBand(float d) { return .22 + .38 * smoothstep(.04, .1, d) + .32 * smoothstep(.5, .56, d); }
+vec3 toonSpec(vec3 s) { float l = dot(s, vec3(.3333)); return s / max(l, 1e-4) * smoothstep(.35, .42, l) * .85; }
+vec3 toonPost(vec3 c) { float l = dot(c, vec3(.299, .587, .114)); float q = floor(l * 3.0 + .3) / 3.0; return c * (q / max(l, 1e-4)); }
+`;
+let toonChunk = null;
+function toonChunkText() {
+  if (toonChunk) return toonChunk;
+  const C = THREE.ShaderChunk.lights_physical_pars_fragment;
+  const rep = (s, a, b) => { if (!s.includes(a)) console.warn("toon: chunk changed", a); return s.split(a).join(b); };
+  let t = rep(C, "float dotNL = saturate( dot( geometry.normal, directLight.direction ) );", "float dotNL = toonBand( saturate( dot( geometry.normal, directLight.direction ) ) );");
+  t = rep(t, "BRDF_Specular_GGX( directLight, geometry.viewDir, geometry.normal, material.specularColor, material.specularRoughness)", "toonSpec( BRDF_Specular_GGX( directLight, geometry.viewDir, geometry.normal, material.specularColor, material.specularRoughness) )");
+  t = rep(t, "reflectedLight.indirectSpecular += clearcoatInv * radiance * singleScattering;", "reflectedLight.indirectSpecular += clearcoatInv * toonPost( radiance ) * singleScattering;");
+  return toonChunk = TOON_GLSL + t;
+}
+const lookToonDone = new WeakSet();
+function lookToonMat(m) {
+  if (!m || !m.isMeshStandardMaterial || lookToonDone.has(m)) return; lookToonDone.add(m);
+  const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey;
+  m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); sh.fragmentShader = sh.fragmentShader.replace("#include <lights_physical_pars_fragment>", toonChunkText()); };
+  m.customProgramCacheKey = () => (prevKey ? prevKey.call(m) : "") + "|toon";
+  m.needsUpdate = true;
+}
+// toon a scene: patch its materials and ink its solid meshes. o.ink: [fraction of the mesh's size, min, max] for the line width
+function lookToon(root, o = {}) {
+  root.traverse(x => {
+    if (!x.isMesh || x.userData.ink || x.userData.toonDone) return;
+    x.userData.toonDone = true;
+    const mats = [].concat(x.material); if (x.userData.noToon) return;
+    mats.forEach(lookToonMat);
+    const g = x.geometry, flat = /Plane|Circle|Ring|Shape/.test(g.type);
+    if (!o.ink || x.isInstancedMesh || flat || x.userData.noInk || mats[0].transparent || (o.skip && o.skip(x))) return;
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    const s = x.getWorldScale(new THREE.Vector3()), r = g.boundingSphere.radius * Math.max(s.x, s.y, s.z), [f, lo, hi] = o.ink;
+    // the ink shell lives in the mesh's own (possibly scaled) space
+    lookInk(x, clamp(r * f, lo, hi) / Math.max(s.x, s.y, s.z, 1e-4));
+  });
+}
+// render a toon scene; new meshes (stones, dice, rocks) get picked up as they appear
+function toonRender(r, sc, cam, o) {
+  if (!sc.userData.toonT || --sc.userData.toonT <= 0) { sc.userData.toonT = 20; lookToon(sc, o); }
+  r.render(sc, cam);
+}
 // a dark back-face shell around a mesh: the outline for the toon look
 function lookOutline(mesh, w = .035, color = 0x2A2438) {
   const m = new THREE.Mesh(mesh.geometry, new THREE.MeshBasicMaterial({ color, side: THREE.BackSide })); m.scale.setScalar(1 + w); mesh.add(m); return m;
@@ -2617,6 +2664,13 @@ function lookOutline(mesh, w = .035, color = 0x2A2438) {
 // a toon ink line of even thickness: a back-face shell pushed out along smoothed normals, so box corners stay closed
 const lookInkGeo = new Map();
 function lookInk(mesh, w = .02, color = 0x2A2438) {
+  // extruded outlines (the spinner) have long thin cap triangles that would flip if pushed out, so they get a scaled-up shell instead
+  if (mesh.geometry.type === "ExtrudeGeometry") {
+    const g = mesh.geometry; if (!g.boundingSphere) g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: new THREE.Color(color).convertSRGBToLinear(), side: THREE.BackSide }));
+    m.scale.setScalar(1 + w / g.boundingSphere.radius); m.position.copy(g.boundingSphere.center).multiplyScalar(-(w / g.boundingSphere.radius));
+    m.raycast = () => {}; m.userData.ink = true; mesh.add(m); return m;
+  }
   let geo = lookInkGeo.get(mesh.geometry.uuid);
   if (!geo) { geo = mesh.geometry.clone(); rkSmoothNormals(geo); lookInkGeo.set(mesh.geometry.uuid, geo); }
   const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).convertSRGBToLinear(), side: THREE.BackSide });
@@ -2743,7 +2797,7 @@ function spinFrame(now) {
   // screen-clockwise spin is a negative turn about +Y seen from above
   SP.root.rotation.y = -SP.th;
   const bo = clamp((w - 12) / 70, 0, .45); SP.blur.material.opacity = bo; SP.blur.visible = bo > .01;
-  GL.r.render(SP.scene, SP.cam);
+  toonRender(GL.r, SP.scene, SP.cam, TOON_INK.spin);
 }
 // angle of the finger around the hub, measured on the spinner's top face (screen-style: x right, z down)
 const spinPlane = { n: null, v: null };
@@ -3179,7 +3233,7 @@ function zenBuild() {
   x.fillStyle = "#F4F1EA"; x.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 9000; i++) { const l = 80 + Math.random() * 18; x.fillStyle = `hsla(38,${10 + Math.random() * 14}%,${l}%,.8)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.2, 1.2); }
   const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
-  Z.sand = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: .96 })); Z.sand.receiveShadow = true; sc.add(Z.sand);
+  Z.sand = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: .96 })); Z.sand.receiveShadow = true; Z.sand.userData.noToon = true; sc.add(Z.sand);
   Z.h = new Float32Array(n); Z.dirty = [1e9, 1e9, -1, -1]; Z.settle = [1e9, 1e9, -1, -1, 0];
   Z.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); Z.v = new THREE.Vector3();
   zPetalsInit();
@@ -3245,7 +3299,7 @@ function zenFrame(now) {
   zPetalStep(dt);
   // the raking hush fades away soon after the finger stops
   if (Z.bed && now - Z.rakeT > 110) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .18);
-  GL.r.render(Z.scene, Z.cam);
+  toonRender(GL.r, Z.scene, Z.cam, TOON_INK.zen);
 }
 
 /* ---- sound: a soft continuous hush while raking, a gentle tap for stones ---- */
@@ -3836,7 +3890,7 @@ function cubeFrame(now) {
   }
   for (const c of CB.ctrls) if (c.step) c.step(dt);
   cubeNight(dt);
-  GL.r.render(CB.scene, CB.cam);
+  toonRender(GL.r, CB.scene, CB.cam, TOON_INK.cube);
 }
 function cubeHit(e) {
   const hits = rayAt(e, CB.cam).intersectObject(CB.toy, true);
@@ -3971,7 +4025,7 @@ function cradleFrame(now) {
     pos.set([px, NC.top, -.75, hx, hy, 0, px, NC.top, .75, hx, hy, 0], i * 12);
   }
   NC.strings.geometry.attributes.position.needsUpdate = true;
-  GL.r.render(NC.scene, NC.cam);
+  toonRender(GL.r, NC.scene, NC.cam, TOON_INK.cradle);
 }
 on3D(secCradle, "pointerdown", e => {
   if (!NC.scene) return;
@@ -4505,6 +4559,8 @@ function rkBeachBuild(sc) {
   RK.wet = new THREE.Mesh(strip(2), new THREE.MeshStandardMaterial({ color: 0x9C7A52, transparent: true, opacity: 0, roughness: .3, envMap: GL.env, envMapIntensity: .35, depthWrite: false }));
   RK.wet.material.alphaMap = fade;
   for (const m of [RK.wet, RK.swash, RK.foam]) { m.frustumCulled = false; m.renderOrder = 2; sc.add(m); }
+  // painterly toon: the rocks get bands and ink, but the sand and the water keep their soft, rippled shading
+  for (const m of [RK.sand, RK.sea, RK.wet, RK.swash]) m.userData.noToon = true;
   RK.wave = { t: 0, dur: 7, reach: 2.6, wet: 0, wetZ: [], snd: 0, seed: rnd(0, 9) };
   // wind-blown sand: fine grains skimming low over the beach in gusts
   const gp = new Float32Array(300 * 3), gv = [];
@@ -4817,7 +4873,7 @@ function rocksFrame(now) {
     RK.bed.wind.g.gain.setTargetAtTime(amb && RK.breeze ? .03 + Math.max(0, Math.sin(RK.gust * .9)) * .05 : 0, t, .4);
   }
   if (RK.dirty && !H && now - RK.saveT > 2500) { RK.saveT = now; rkSave(); }
-  GL.r.toneMappingExposure = RK_TIMES[RK.time].exp; GL.r.render(RK.scene, RK.cam); GL.r.toneMappingExposure = 1.05;
+  GL.r.toneMappingExposure = RK_TIMES[RK.time].exp; toonRender(GL.r, RK.scene, RK.cam, TOON_INK.rocks); GL.r.toneMappingExposure = 1.05;
 }
 
 // a turn about the vertical axis (cannon 0.6.2's setFromAxisAngle returns nothing, so it can't be chained)
