@@ -384,21 +384,21 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
   --b1:rgba(170,255,248,.3);--b2:rgba(0,190,180,.3);--b3:rgba(0,255,224,.9);--bsh:0,0,0;--bglow:rgba(0,255,224,.45);
   --p1:rgba(0,255,224,.08);--p2:rgba(0,255,224,.35);--burst:#00FFE0}
 #mode-bubbles .themes{z-index:3}
-.bub{position:absolute;border-radius:50%;transition:transform .09s cubic-bezier(.3,1.6,.5,1),filter .09s;
+/* toon bubbles: three flat bands, a crisp painted highlight and sparkle, a plum ink outline and a flat drop shadow */
+.bub{position:absolute;box-sizing:border-box;border-radius:50%;transition:transform .09s cubic-bezier(.3,1.6,.5,1),filter .09s;
+  border:2.5px solid rgba(42,36,56,.6);
   background:
-    radial-gradient(ellipse 30% 20% at 33% 27%,rgba(255,255,255,1),rgba(255,255,255,.6) 40%,rgba(255,255,255,0) 72%),
-    radial-gradient(circle at 70% 76%,rgba(255,255,255,.6) 0 5%,rgba(255,255,255,0) 14%),
-    radial-gradient(circle at 50% 54%,rgba(255,255,255,0) 54%,rgba(255,255,255,.55) 66%,rgba(255,255,255,0) 76%),
-    radial-gradient(circle at 42% 36%,var(--b1),var(--b2) 58%,var(--b3) 100%);
-  box-shadow:0 9px 12px -3px rgba(var(--bsh),.45),0 3px 4px rgba(var(--bsh),.25),inset 0 -8px 12px rgba(var(--bsh),.4),inset 0 5px 7px rgba(255,255,255,.7),0 0 12px var(--bglow)}
-.bub::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(255,255,255,.28);box-shadow:inset 0 0 0 1px rgba(var(--bsh),.12);pointer-events:none}
-.bub.squeeze{transform:scale(.9,.84);filter:brightness(.94) saturate(1.2);box-shadow:0 4px 6px -2px rgba(var(--bsh),.4),inset 0 -5px 10px rgba(var(--bsh),.45),inset 0 7px 10px rgba(255,255,255,.75),0 0 16px var(--bglow)}
+    radial-gradient(ellipse 22% 14% at 33% 28%,#fff 0 85%,rgba(255,255,255,0) 100%),
+    radial-gradient(circle at 71% 73%,rgba(255,255,255,.9) 0 6%,rgba(255,255,255,0) 7.5%),
+    radial-gradient(circle at 44% 38%,var(--b1) 0 50%,var(--b2) 52% 76%,var(--b3) 78%);
+  box-shadow:0 6px 0 -1px rgba(var(--bsh),.3),0 0 12px var(--bglow)}
+.bub::after{content:none}
+.bub.squeeze{transform:scale(.9,.84);filter:brightness(.94) saturate(1.2);box-shadow:0 3px 0 -1px rgba(var(--bsh),.3),0 0 16px var(--bglow)}
 .bub.popped{transform:scale(.88) rotate(var(--rot));border-radius:46% 54% 42% 58%/55% 44% 56% 45%;animation:popjig .24s ease-out;
   background:
     conic-gradient(from var(--rot),rgba(255,255,255,.4) 0 7deg,transparent 7deg 52deg,rgba(255,255,255,.3) 52deg 58deg,transparent 58deg 128deg,rgba(255,255,255,.35) 128deg 135deg,transparent 135deg 214deg,rgba(255,255,255,.28) 214deg 220deg,transparent 220deg 298deg,rgba(255,255,255,.33) 298deg 305deg,transparent 305deg),
     radial-gradient(circle,var(--p1) 0 55%,var(--p2) 82%,transparent 100%);
-  box-shadow:inset 0 3px 5px rgba(var(--bsh),.35),0 1px 0 rgba(255,255,255,.45)}
-.bub.popped::after{border-color:rgba(255,255,255,.15)}
+  border-color:rgba(42,36,56,.4);box-shadow:inset 0 3px 0 rgba(var(--bsh),.25)}
 @keyframes popjig{0%{transform:scale(1.1) rotate(var(--rot))}45%{transform:scale(.78) rotate(var(--rot))}100%{transform:scale(.88) rotate(var(--rot))}}
 .burst{position:absolute;pointer-events:none;border-radius:50%;border:3px solid var(--burst);
   background:radial-gradient(circle,rgba(255,255,255,.75),rgba(255,255,255,0) 60%);animation:burst .34s ease-out forwards}
@@ -1141,20 +1141,22 @@ function drawTops(now) {
       const g = cx.createRadialGradient(-s * .35, -s * .4, s * .08, 0, 0, s);
       g.addColorStop(0, "#FFFFFF"); g.addColorStop(.2, t.col[0]); g.addColorStop(.88, t.col[1]); g.addColorStop(1, t.col[1]);
       cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, s, 0, 6.29); cx.fill();
+      cx.strokeStyle = "#2A2438"; cx.lineWidth = Math.max(1.2, s * .12); cx.stroke();
       cx.save(); cx.rotate(t.rot); cx.strokeStyle = "rgba(255,255,255,.4)"; cx.lineWidth = s * .16; cx.lineCap = "round";
       cx.beginPath(); cx.arc(0, 0, s * .6, -.7, .9); cx.stroke(); cx.restore();
       cx.fillStyle = "rgba(255,255,255,.88)"; cx.beginPath(); cx.ellipse(-s * .38, -s * .44, s * .25, s * .15, -.6, 0, 6.29); cx.fill();
     } else {
       cx.rotate(t.rot); cx.fillStyle = "rgba(110,0,30,.25)";
-      if (t.kind === "heart") { cx.translate(.8, 1.2); heart(s); cx.translate(-.8, -1.2); cx.fillStyle = t.col; heart(s); }
+      if (t.kind === "heart") { cx.translate(.8, 1.2); heart(s); cx.translate(-.8, -1.2); cx.fillStyle = t.col; heart(s); cx.strokeStyle = "#2A2438"; cx.lineWidth = Math.max(1, s * .1); cx.lineJoin = "round"; cx.stroke(); }
       else if (t.kind === "pearl") {
         cx.beginPath(); cx.arc(.8, 1.2, s * .5, 0, 6.29); cx.fill();
         const g = cx.createRadialGradient(-s * .15, -s * .15, 0, 0, 0, s * .55); g.addColorStop(0, "#fff"); g.addColorStop(1, "#E9D9DE");
-        cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, s * .5, 0, 6.29); cx.fill();
+        cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, s * .5, 0, 6.29); cx.fill(); cx.strokeStyle = "#2A2438"; cx.lineWidth = Math.max(1, s * .09); cx.stroke();
       } else {
         cx.lineCap = "round"; cx.lineWidth = s * .42;
         cx.strokeStyle = "rgba(110,0,30,.25)"; cx.beginPath(); cx.moveTo(-s * .6 + .8, 1.2); cx.lineTo(s * .6 + .8, 1.2); cx.stroke();
-        cx.strokeStyle = t.col; cx.beginPath(); cx.moveTo(-s * .6, 0); cx.lineTo(s * .6, 0); cx.stroke();
+        cx.strokeStyle = "#2A2438"; cx.lineWidth = s * .42 + 2.4; cx.beginPath(); cx.moveTo(-s * .6, 0); cx.lineTo(s * .6, 0); cx.stroke();
+        cx.strokeStyle = t.col; cx.lineWidth = s * .42; cx.beginPath(); cx.moveTo(-s * .6, 0); cx.lineTo(s * .6, 0); cx.stroke();
       }
     }
     cx.restore();
@@ -1178,6 +1180,7 @@ function heart(s) {
 }
 const L = (() => { const x = -.5, y = -.62, z = .6, n = Math.hypot(x, y, z); return [x / n, y / n, z / n]; })();
 const HV = (() => { const x = L[0], y = L[1], z = L[2] + 1, n = Math.hypot(x, y, z); return [x / n, y / n, z / n]; })();
+const sstep = (a, b, v) => { const t = v <= a ? 0 : v >= b ? 1 : (v - a) / (b - a); return t * t * (3 - 2 * t); };
 function slimeRender(now) {
   const d = img.data, gl = pal.b;
   for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) {
@@ -1190,11 +1193,14 @@ function slimeRender(now) {
     const s16 = s4 * s4 * s4 * s4;
     const cav = h[k - 1] + h[k + 1] + h[k - gw] + h[k + gw] - 4 * h[k];
     const rim = (1 - nzz) * (1 - nzz) * 1.2;
-    let shade = .5 + .58 * dif + h[k] * .03 - cav * .32; if (shade < .2) shade = .2;
-    const sheen = s16 * 70 + s4 * 12;
-    d[p] = cr[k] * 255 * shade + sheen * (.55 + .45 * gl[0]) + rim * gl[0] * 90;
-    d[p + 1] = cg[k] * 255 * shade + sheen * (.55 + .45 * gl[1]) + rim * gl[1] * 90;
-    d[p + 2] = cb[k] * 255 * shade + sheen * (.55 + .45 * gl[2]) + rim * gl[2] * 90;
+    // cartoon slime: the light falls in three bands (softened by the smooth upscale), the sheen becomes a crisp painted
+    // highlight, and the deepest folds get a plum ink line
+    const raw = .5 + .58 * dif + h[k] * .03 - cav * .32, shade = .7 + .17 * sstep(.56, .66, raw) + .16 * sstep(.86, .96, raw);
+    const sr = s16 * 70 + s4 * 12, sheen = 150 * sstep(10, 16, sr) + 36 * sstep(3, 6, sr);
+    const ink = .75 * sstep(.16, .3, cav), keep = 1 - ink;
+    d[p] = (cr[k] * 255 * shade + sheen * (.55 + .45 * gl[0]) + rim * gl[0] * 90) * keep + 42 * ink;
+    d[p + 1] = (cg[k] * 255 * shade + sheen * (.55 + .45 * gl[1]) + rim * gl[1] * 90) * keep + 36 * ink;
+    d[p + 2] = (cb[k] * 255 * shade + sheen * (.55 + .45 * gl[2]) + rim * gl[2] * 90) * keep + 56 * ink;
   }
   // copy edge pixels so the scaled image has no dark rim
   for (let i = 0; i < gw; i++) { const a = i * 4, b = ((gh - 1) * gw + i) * 4; for (let c = 0; c < 3; c++) { d[a + c] = d[a + gw * 4 + c]; d[b + c] = d[b - gw * 4 + c]; } }
@@ -2009,7 +2015,7 @@ function drawBugs(c) {
       c.rotate(b.h); c.scale(1.3, 1.3);
       c.fillStyle = "rgba(10,30,5,.3)"; c.beginPath(); c.ellipse(1, 2, 6.5, 7, 0, 0, 6.29); c.fill();
       c.fillStyle = "#1A1A1A"; c.beginPath(); c.arc(0, -5.5, 3.2, 0, 6.29); c.fill();
-      c.fillStyle = "#E8251E"; c.beginPath(); c.ellipse(0, 1, 5.6, 6.4, 0, 0, 6.29); c.fill();
+      c.fillStyle = "#E8251E"; c.beginPath(); c.ellipse(0, 1, 5.6, 6.4, 0, 0, 6.29); c.fill(); c.strokeStyle = "#2A2438"; c.lineWidth = .9; c.stroke();
       c.fillStyle = "#1A1A1A"; c.fillRect(-.5, -5, 1, 12);
       for (const [x, y] of [[-2.6, -1], [2.6, -1], [-2.8, 3.4], [2.8, 3.4]]) { c.beginPath(); c.arc(x, y, 1.2, 0, 6.29); c.fill(); }
       c.fillStyle = "rgba(255,255,255,.55)"; c.beginPath(); c.ellipse(-2, -2.5, 1.4, .8, -.5, 0, 6.29); c.fill();
@@ -2019,8 +2025,9 @@ function drawBugs(c) {
       c.fillStyle = "rgba(10,30,5,.2)"; c.beginPath(); c.ellipse(5, lift, 9 * f + 1, 3.5, 0, 0, 6.29); c.fill();
       c.rotate(b.ang);
       for (const sd of [-1, 1]) {
-        c.fillStyle = b.col[0]; c.beginPath(); c.ellipse(sd * 6.5 * f, -3, 6.5 * f, 6, sd * .5, 0, 6.29); c.fill();
-        c.fillStyle = b.col[1]; c.beginPath(); c.ellipse(sd * 4.5 * f, 4, 4.5 * f, 4.2, -sd * .4, 0, 6.29); c.fill();
+        c.strokeStyle = "#2A2438"; c.lineWidth = .8;
+        c.fillStyle = b.col[0]; c.beginPath(); c.ellipse(sd * 6.5 * f, -3, 6.5 * f, 6, sd * .5, 0, 6.29); c.fill(); c.stroke();
+        c.fillStyle = b.col[1]; c.beginPath(); c.ellipse(sd * 4.5 * f, 4, 4.5 * f, 4.2, -sd * .4, 0, 6.29); c.fill(); c.stroke();
       }
       c.fillStyle = "#3A2614"; c.beginPath(); c.ellipse(0, 0, 1.5, 6.5, 0, 0, 6.29); c.fill();
       c.strokeStyle = "#3A2614"; c.lineWidth = .8; c.beginPath(); c.moveTo(0, -6); c.lineTo(-2.8, -10.5); c.moveTo(0, -6); c.lineTo(2.8, -10.5); c.stroke();
@@ -2264,7 +2271,7 @@ function drawMower(c) {
   c.fillStyle = "#3A3A3E"; rrect(c, 20, -6, 12, 9, 3); c.fill(); // side chute
   const g = c.createLinearGradient(-20, -24, 20, 20); g.addColorStop(0, "#F04A3A"); g.addColorStop(1, "#B5221A");
   c.fillStyle = g; rrect(c, -20, -24, 40, 44, 12); c.fill();
-  c.strokeStyle = "rgba(0,0,0,.25)"; c.lineWidth = 1.5; c.stroke();
+  c.strokeStyle = "#2A2438"; c.lineWidth = 2.2; c.stroke();
   const e = c.createRadialGradient(-3, -6, 1, 0, -2, 12); e.addColorStop(0, "#8A8A92"); e.addColorStop(1, "#2C2C30");
   c.fillStyle = e; c.beginPath(); c.arc(0, -2, 11, 0, 6.29); c.fill();
   c.fillStyle = "#FFD23F"; c.beginPath(); c.arc(0, -2, 3, 0, 6.29); c.fill();
@@ -2414,29 +2421,33 @@ function popDraw() {
   c.clearRect(0, 0, P.W, P.H);
   c.save();
   if (P.flip >= 0) { c.translate(cx, 0); c.scale(Math.max(.02, Math.abs(Math.cos(P.flip * Math.PI))), 1); c.translate(-cx, 0); }
-  c.shadowColor = "rgba(120,40,90,.35)"; c.shadowBlur = 26; c.shadowOffsetY = 12;
+  // a flat cartoon drop shadow, then the body
+  c.save(); c.translate(0, 12); c.fillStyle = "rgba(60,30,70,.22)"; c.fill(P.path); c.restore();
   c.fillStyle = "#fff"; c.fill(P.path);
-  c.shadowColor = "transparent";
   c.save(); c.clip(P.path);
   const n = Math.round(2 * R / d);
   for (let j = 0; j < n; j++) { c.fillStyle = `hsl(${Math.round(j / (n - 1) * 290)},82%,66%)`; c.fillRect(cx - R - 2, cy - R + d * j - .5, 2 * R + 4, d + 1); }
   c.lineWidth = 10; c.strokeStyle = "rgba(255,255,255,.35)"; c.stroke(P.path);
   c.restore();
-  c.lineWidth = 1.5; c.strokeStyle = "rgba(90,30,70,.18)"; c.stroke(P.path);
+  c.lineWidth = 4; c.lineJoin = "round"; c.strokeStyle = "#2A2438"; c.stroke(P.path);
   for (const p of P.dots) {
     const { x, y, r, hue: h } = p;
     c.fillStyle = `hsl(${h},72%,52%)`; c.beginPath(); c.arc(x, y, r * 1.1, 0, 6.2832); c.fill();
     let g;
     if (!p.down) { // dome
       const rr = r * (1 - .1 * p.a);
-      g = c.createRadialGradient(x - r * .35, y - r * .42, r * .08, x, y, rr);
-      g.addColorStop(0, `hsl(${h},95%,88%)`); g.addColorStop(.55, `hsl(${h},85%,67%)`); g.addColorStop(1, `hsl(${h},76%,50%)`);
+      // toon dome: three flat bands and a crisp highlight
+      g = c.createRadialGradient(x - r * .3, y - r * .36, 0, x, y, rr);
+      g.addColorStop(0, `hsl(${h},95%,84%)`); g.addColorStop(.36, `hsl(${h},95%,84%)`); g.addColorStop(.37, `hsl(${h},85%,66%)`); g.addColorStop(.74, `hsl(${h},85%,66%)`); g.addColorStop(.75, `hsl(${h},76%,52%)`); g.addColorStop(1, `hsl(${h},76%,52%)`);
       c.fillStyle = g; c.beginPath(); c.arc(x, y, rr, 0, 6.2832); c.fill();
+      c.fillStyle = "rgba(255,255,255,.95)"; c.beginPath(); c.ellipse(x - r * .36, y - r * .4, r * .2, r * .12, -.6, 0, 6.2832); c.fill();
+      c.strokeStyle = "rgba(42,36,56,.7)"; c.lineWidth = Math.max(1.4, r * .08); c.beginPath(); c.arc(x, y, rr, 0, 6.2832); c.stroke();
     } else { // pushed in: lit from the far side, shadow inside the top-left rim
-      g = c.createRadialGradient(x + r * .28, y + r * .34, r * .08, x, y, r);
-      g.addColorStop(0, `hsl(${h},88%,74%)`); g.addColorStop(.62, `hsl(${h},80%,58%)`); g.addColorStop(1, `hsl(${h},72%,42%)`);
+      g = c.createRadialGradient(x + r * .28, y + r * .34, 0, x, y, r);
+      g.addColorStop(0, `hsl(${h},88%,72%)`); g.addColorStop(.55, `hsl(${h},88%,72%)`); g.addColorStop(.56, `hsl(${h},78%,56%)`); g.addColorStop(1, `hsl(${h},78%,56%)`);
       c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
-      c.strokeStyle = "rgba(60,10,40,.2)"; c.lineWidth = r * .2; c.beginPath(); c.arc(x, y, r * .86, Math.PI * .95, Math.PI * 1.55); c.stroke();
+      c.strokeStyle = "rgba(42,36,56,.35)"; c.lineWidth = r * .18; c.beginPath(); c.arc(x, y, r * .86, Math.PI * .95, Math.PI * 1.55); c.stroke();
+      c.strokeStyle = "rgba(42,36,56,.7)"; c.lineWidth = Math.max(1.4, r * .08); c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.stroke();
       if (p.a > 0) { c.fillStyle = `rgba(255,255,255,${(p.a * .35).toFixed(2)})`; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill(); }
     }
   }
@@ -2744,15 +2755,23 @@ function bdKey(i, down) {
 function setTheme(t) {
   t = BD_OLD[t] || t; if (!BD_THEMES[t]) t = "wood";
   const T = BD_THEMES[t]; BD.theme = t;
-  $("#sheet").dataset.theme = T.sheet;
   document.documentElement.style.setProperty("--boardbg", T.bg);
-  document.documentElement.style.setProperty("--sheetbg", { wood: "#C29567", cute: "#FFBCD7", blue: "var(--sheet)", scifi: "#0B0F17" }[T.sheet]);
   secBoard.querySelectorAll(".theme").forEach(b => b.setAttribute("aria-pressed", b.dataset.theme === t ? "true" : "false"));
   try { localStorage.setItem("fidget-board-theme", t); } catch (e) {}
   if (BD.scene) bdBuildBoard();
 }
 setTheme(pref("fidget-board-theme", "wood"));
 secBoard.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { setTheme(b.dataset.theme); S.tick(2200, .15, .03, "square"); buzz(10); }));
+// bubble wrap keeps its own look (it used to follow the board); it starts from whatever the board gave it before
+const SHEET_BG = { wood: "#C29567", cute: "#FFBCD7", blue: "var(--sheet)", scifi: "#0B0F17" }, secBub = $("#mode-bubbles");
+function setSheetTheme(t) {
+  if (!SHEET_BG[t]) t = "wood";
+  $("#sheet").dataset.theme = t; document.documentElement.style.setProperty("--sheetbg", SHEET_BG[t]);
+  secBub.querySelectorAll(".theme").forEach(b => b.setAttribute("aria-pressed", b.dataset.theme === t ? "true" : "false"));
+  savePref("fidget-bubble-theme", t);
+}
+setSheetTheme(pref("fidget-bubble-theme", BD_THEMES[BD.theme].sheet));
+secBub.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { setSheetTheme(b.dataset.theme); S.tick(2200, .15, .03, "square"); buzz(10); }));
 
 /* ---- the 3D board ---- */
 // the printed top of the plank: grain, sprinkles, stars, a grid, or beige plastic with vents and a TURBO label
