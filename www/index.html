@@ -1849,6 +1849,77 @@ const FLOWERS = [["#FFFFFF", "#FFD23F"], ["#FFE04A", "#F29A0E"], ["#B98CFF", "#F
   x.fillStyle = cc; x.beginPath(); x.arc(0, 0, r * .3, 0, 6.29); x.fill();
 }));
 
+/* ---- the 3D toon lawn: the meadow above still decides how every blade moves; this draws it as thousands of real
+   blades (one instanced mesh, bent on the GPU) seen through a tilted orthographic camera chosen so that each blade
+   stands exactly where its 2D simulation expects. Petals, leaves, bugs and the mower draw on a clear layer on top. ---- */
+const G3 = { on: false, scene: null, cam: null, mesh: null, ground: null, s: .01, th: 52 * Math.PI / 180 };
+function grass3DBuild() {
+  G3.on = false;
+  if (typeof THREE === "undefined" || G.season === "winter" || !mount3D(gSec)) return;
+  const s = G3.s, sin = Math.sin(G3.th), cos = Math.cos(G3.th), W = G.W, H = G.H, P = SEASONS[G.season];
+  if (!G3.scene) {
+    const sc = G3.scene = new THREE.Scene();
+    sc.add(new THREE.HemisphereLight(0xFFF6E0, 0x3A5A20, .65));
+    const key = new THREE.DirectionalLight(0xFFF1D6, .75); key.position.set(-4, 8, 3); sc.add(key);
+    G3.cam = new THREE.OrthographicCamera(0, 1, 0, -1, .1, 100);
+    // one blade: tapering to a point, five segments so it can curve
+    const pos = [], idx = [];
+    for (let i = 0; i < 5; i++) { const t = i / 5, w = 1 - t * .82; pos.push(-w, t, 0, w, t, 0); }
+    pos.push(0, 1, 0);
+    for (let i = 0; i < 4; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    idx.push(8, 9, 10);
+    G3.geo = new THREE.BufferGeometry(); G3.geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); G3.geo.setIndex(idx);
+    G3.mat = lookMat({ toon: true, color: 0xFFFFFF, side: THREE.DoubleSide });
+    G3.mat.onBeforeCompile = sh => {
+      sh.vertexShader = "attribute vec4 iBase;\nattribute vec3 iBend;\nattribute float iYaw;\nvarying float vH;\n" + sh.vertexShader
+        .replace("#include <beginnormal_vertex>", "vec3 objectNormal = normalize(vec3(-sin(iYaw), .45, cos(iYaw)));")
+        .replace("#include <begin_vertex>", `
+          float t = position.y, hgt = iBase.z * iBend.z * (1.0 - iBend.y * .5), lean = iBend.x * (.35 + t * .65);
+          float cy = cos(iYaw), sy = sin(iYaw), wx = position.x * iBase.w;
+          vec3 transformed = vec3(wx * cy, 0.0, wx * sy);
+          transformed.x += sin(lean) * hgt * t;
+          transformed.y = cos(lean) * hgt * t;
+          transformed.z += iBend.y * hgt * t * .5;
+          transformed += vec3(iBase.x, 0.0, iBase.y);
+          vH = t;`);
+      sh.fragmentShader = "varying float vH;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>\n  diffuseColor.rgb *= mix(.5, 1.15, vH);");
+    };
+    G3.mat.customProgramCacheKey = () => "lawn";
+    G3.groundMat = lookMat({ toon: true, color: 0xFFFFFF });
+    G3.ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), G3.groundMat); G3.ground.rotation.x = -Math.PI / 2; sc.add(G3.ground);
+  }
+  // the camera: x maps straight across, and a ground point at depth Z shows Z·sin(tilt) down the screen
+  const c = G3.cam; c.left = 0; c.right = W * s; c.top = 0; c.bottom = -H * s; c.near = .1; c.far = 60;
+  c.position.set(0, 30 * sin, 30 * cos); c.rotation.set(-G3.th, 0, 0); c.updateProjectionMatrix(); c.updateMatrixWorld();
+  const gw = W * s, gd = (H + 80) * s / sin;
+  G3.ground.scale.set(gw + 2, gd + 2, 1); G3.ground.position.set(gw / 2, 0, gd / 2 - .4);
+  G3.groundMat.color.set(P.ground[0]).convertSRGBToLinear(); G3.scene.background = new THREE.Color(P.ground[1]);
+  // the blades
+  if (G3.mesh) { G3.scene.remove(G3.mesh); G3.mesh.dispose(); }
+  const n = G.blades.length, geo = G3.geo.clone();
+  const base = new Float32Array(n * 4), yaw = new Float32Array(n), R = mulberry(n);
+  G.blades.forEach((b, i) => { b.i = i; base.set([b.x * s, b.y * s / sin, b.h0 * s / cos, b.w * s], i * 4); yaw[i] = (R() - .5) * 1.4; });
+  geo.setAttribute("iBase", new THREE.InstancedBufferAttribute(base, 4));
+  geo.setAttribute("iYaw", new THREE.InstancedBufferAttribute(yaw, 1));
+  G3.bend = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3); G3.bend.setUsage(THREE.DynamicDrawUsage); geo.setAttribute("iBend", G3.bend);
+  const m = G3.mesh = new THREE.InstancedMesh(geo, G3.mat, n); m.frustumCulled = false;
+  const I = new THREE.Matrix4(); for (let i = 0; i < n; i++) m.setMatrixAt(i, I);
+  m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
+  G.blades.forEach(grass3DColor);
+  G3.scene.add(m); G3.on = true;
+}
+function grass3DColor(b) {
+  if (!G3.mesh || b.i === undefined) return;
+  const c = G3.tmp || (G3.tmp = new THREE.Color()); c.setStyle(b.band.cols[b.k]).convertSRGBToLinear();
+  G3.mesh.instanceColor.setXYZ(b.i, c.r, c.g, c.b); G3.mesh.instanceColor.needsUpdate = true;
+}
+function grass3DRender() {
+  if (GL.canvas.parentNode !== gSec) mount3D(gSec);
+  const B = G3.bend.array;
+  for (const b of G.blades) { const j = b.i * 3; B[j] = b.a; B[j + 1] = b.pr; B[j + 2] = b.h / b.h0; }
+  G3.bend.needsUpdate = true;
+  const tm = GL.r.toneMapping; GL.r.toneMapping = THREE.NoToneMapping; GL.r.render(G3.scene, G3.cam); GL.r.toneMapping = tm;
+}
 function grassSetup(force) {
   const w = gcv.clientWidth, hh = gcv.clientHeight;
   if (!w || !hh) return;
@@ -1862,7 +1933,7 @@ function buildSeason() {
   G.blades = []; G.bands = []; G.parts = []; G.flakes = []; G.bugs = []; G.mower = null; G.branch = null; G.spawn = 0;
   gSec.dataset.season = s;
   if (s === "winter") {
-    makeStone(); makeSnow();
+    G3.on = false; makeStone(); makeSnow();
     for (let i = 0; i < 80; i++) G.flakes.push({ x: rnd(0, W), y: rnd(0, H), r: rnd(1, 3.2), ph: rnd(0, 6.28) });
     return;
   }
@@ -1885,6 +1956,7 @@ function buildSeason() {
   if (s === "spring") { makeBranch(); for (let i = 0; i < 50; i++) addPart("petal", rnd(0, W), rnd(H * .2, H), 0, { life: rnd(400, 2600) }); }
   if (s === "autumn") for (let i = 0; i < 70; i++) addPart("leaf", rnd(0, W), rnd(H * .1, H), 0);
   G.mower = s === "summer" ? { x: W / 2, y: H * .62, ang: 0, v: 0, cut: 0 } : null;
+  grass3DBuild();
   if (s === "spring") {
     for (let i = 0; i < 3; i++) G.bugs.push({ fly: true, x: rnd(40, W - 40), y: rnd(80, H - 160), vx: 0, vy: 0, ang: 0, ph: rnd(0, 6.28), tx: rnd(40, W - 40), ty: rnd(80, H - 160), wt: 0, rest: 0, col: pick(WINGS) });
     G.bugs.push({ fly: false, x: rnd(40, W - 40), y: rnd(H * .3, H - 140), h: rnd(0, 6.28) });
@@ -2075,7 +2147,17 @@ function meadowStep(ps, dt) {
   }
 }
 function meadowDraw() {
-  const c = gctx; c.fillStyle = G.ground; c.fillRect(0, 0, G.W, G.H);
+  const c = gctx;
+  if (G3.on) {
+    c.clearRect(0, 0, G.W, G.H);
+    for (const band of G.bands) for (const b of band.flowers) {
+      if (b.mown) continue;
+      const h = b.h * (1 - b.pr * .5); b.tx = b.x + Math.sin(b.a) * h; b.ty = b.y - Math.cos(b.a) * h;
+      c.drawImage(b.fl, b.tx - b.fs, b.ty - b.fs, b.fs * 2, b.fs * 2);
+    }
+    return;
+  }
+  c.fillStyle = G.ground; c.fillRect(0, 0, G.W, G.H);
   for (const band of G.bands) {
     for (let k = 0; k < band.buckets.length; k++) {
       const L = band.buckets[k]; if (!L.length) continue;
@@ -2124,7 +2206,7 @@ const CLIPS = ["#5DB534", "#78C94A", "#3E8F25", "#9BD86A"];
 function setBucket(b, k) {
   if (b.k === k) return;
   const L = b.band.buckets[b.k], i = L.indexOf(b); if (i >= 0) L.splice(i, 1);
-  b.band.buckets[k].push(b); b.k = k;
+  b.band.buckets[k].push(b); b.k = k; grass3DColor(b);
 }
 function mowerStep(ps, dt) {
   const m = G.mower, p = ps[0];
@@ -2206,7 +2288,7 @@ function grassFrame(now) {
     if (G.mower) mowerStep(ps, dt);
     // in summer the grass bends around the mower instead of the finger
     const m = G.mower, mp = m ? [{ x: m.x, y: m.y + 10, vx: Math.sin(m.ang) * m.v, vy: -Math.cos(m.ang) * m.v, sp: m.v }] : ps;
-    meadowStep(mp, dt); meadowDraw();
+    meadowStep(mp, dt); meadowDraw(); if (G3.on) grass3DRender();
   }
   if ((G.spawn -= dt) <= 0) {
     if (s === "spring") { spawnPetal(); G.spawn = rnd(10, 26); }
@@ -6208,7 +6290,7 @@ renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
-if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, bdFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, bdFrame, grassFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
