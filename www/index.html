@@ -189,6 +189,10 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 .cust-sticker img{width:100%;height:100%;display:block}
 .cust-sticker:active{transform:scale(.93)}
 .cust-note{margin:0 0 10px}
+.slime-toast{position:fixed;left:50%;top:38%;z-index:4;margin:0;transform:translate(-50%,-50%) scale(.4);opacity:0;pointer-events:none;
+  font-size:3rem;font-weight:700;color:#fff;-webkit-text-stroke:3px #2A2438;paint-order:stroke;text-shadow:0 5px 0 #2A2438}
+.slime-toast.on{animation:toast 1.6s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-8deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.1) rotate(3deg)}30%{transform:translate(-50%,-50%) scale(1) rotate(-2deg)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
 .cust-clear{margin-top:12px}
 .cust-clear.armed{background:#E5484D;color:#fff}
 .cust-shop{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -535,6 +539,7 @@ html[data-mode="twisty"]{background:var(--twbg,#2E2A36)}
   <section class="mode" id="mode-slime" aria-label="Slime">
     <canvas id="slime" aria-label="Slime filling the screen. Tap, drag or swirl it."></canvas>
     <p class="hint" id="hint">Tap, drag or swirl</p>
+    <p class="slime-toast" id="slimeToast" aria-live="polite"></p>
     <div class="slime-colors swatches" id="swatches" role="group" aria-label="Slime color"></div>
     <div class="toppings" role="toolbar" aria-label="Add toppings">
       <button class="top-btn" data-top="rod" aria-label="Add color sprinkles"><svg viewBox="0 0 30 30" stroke-linecap="round" stroke-width="3.4"><path d="M6 9l6-3" stroke="#FF5A5F"/><path d="M17 6l6 4" stroke="#4AA8FF"/><path d="M8 17l1 6" stroke="#FFC93C"/><path d="M15 15l7 2" stroke="#3ED598"/><path d="M19 23l5-3" stroke="#B57BFF"/></svg>Sprinkles</button>
@@ -749,6 +754,7 @@ html[data-mode="twisty"]{background:var(--twbg,#2E2A36)}
     <div class="seg" id="setTheme" role="group" aria-label="Theme"><button data-th="auto">Auto</button><button data-th="light">Light</button><button data-th="dark">Dark</button></div>
     <h3 id="setWell">Wellbeing</h3>
     <label class="row"><span>Calm mode<small>Quieter sound, softer haptics, fewer particles</small></span><input type="checkbox" class="tgl" id="setCalm"></label>
+    <label class="row"><span>Toppings overload<small>Keep adding slime toppings until it's covered</small></span><input type="checkbox" class="tgl" id="setOverload"></label>
     <label class="row"><span>Breathing guide<small>4 seconds in, 6 seconds out</small></span><input type="checkbox" class="tgl" id="setBreathe"></label>
     <div class="row"><span>Focus timer</span><div class="seg" id="setFocus" role="group" aria-label="Focus timer minutes"><button data-min="5">5</button><button data-min="10">10</button><button data-min="20">20</button><button data-min="0">Off</button></div></div>
   </div>
@@ -963,7 +969,7 @@ function slimeSetup(force) {
   if (!w || !hh) return;
   if (!force && w === W && hh === H) return;
   W = w; H = hh;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = slimeDpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
   CELL = Math.max(4, Math.round(Math.sqrt(W * H / 20000)));
@@ -1111,11 +1117,50 @@ function slimeStep(now) {
     bed.g.gain.setTargetAtTime(target, t, .09);
     bed.f.frequency.setTargetAtTime(130 + Math.min(380, speed * 12) + Math.sin(now * .005) * 35, t, .12);
   }
-  if (speed > 5 && now - lastWet > 220 && Math.random() < Math.min(.3, speed * .01)) { lastWet = now; S.wet(Math.min(.3, .1 + speed * .008)); }
+  if (speed > 5 && now - lastWet > 220 && Math.random() < Math.min(.3, speed * .01)) { lastWet = now; S.wet(Math.min(.3, .1 + speed * .008)); if (overloaded && tops.length > 400) S.crunch(Math.min(.5, .15 + speed * .01)); }
   if (speed > 3 && now - lastBuzz > 70) { lastBuzz = now; buzz(Math.min(12, 3 + speed * .2) | 0); }
 }
 
-let tops = [];
+let tops = [], slimeDpr = 1;
+// Toppings overload: with it on, toppings pile up into the thousands (each drawn from a cached sprite) instead of
+// recycling at 500; filling the slime sets off a little celebration. The cap lowers itself if a phone struggles.
+let overloadOn = pref("fidget-overload", "1") === "1", overloaded = false;
+const TOP_CAP = { max: 2400, ema: 16, last: 0, cutT: 0 };
+const topCap = () => overloadOn ? TOP_CAP.max : 500;
+const topSprites = new Map();
+function topSprite(t) {
+  const key = t.kind + t.col + (Math.round(t.sz * 2) / 2);
+  let c = topSprites.get(key); if (c) return c;
+  const d = slimeDpr, s = Math.round(t.sz * 2) / 2, n = Math.ceil(s * 3 + 8); c = document.createElement("canvas"); c.width = c.height = Math.ceil(n * d); c.n = n;
+  const x = c.getContext("2d"); x.scale(d, d); x.translate(n / 2, n / 2); x.fillStyle = "rgba(110,0,30,.25)";
+  if (t.kind === "heart") { x.translate(.8, 1.2); heart(s, x); x.translate(-.8, -1.2); x.fillStyle = t.col; heart(s, x); x.strokeStyle = "rgba(42,36,56,.6)"; x.lineWidth = Math.max(.9, s * .08); x.lineJoin = "round"; x.stroke(); }
+  else if (t.kind === "pearl") {
+    x.beginPath(); x.arc(.8, 1.2, s * .5, 0, 6.29); x.fill();
+    const g = x.createRadialGradient(-s * .15, -s * .15, 0, 0, 0, s * .55); g.addColorStop(0, "#fff"); g.addColorStop(1, "#E9D9DE");
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, s * .5, 0, 6.29); x.fill(); x.strokeStyle = "#2A2438"; x.lineWidth = Math.max(1, s * .09); x.stroke();
+  } else {
+    x.lineCap = "round"; x.lineWidth = s * .42;
+    x.strokeStyle = "rgba(110,0,30,.25)"; x.beginPath(); x.moveTo(-s * .6 + .8, 1.2); x.lineTo(s * .6 + .8, 1.2); x.stroke();
+    // sprinkles get a light outline so a whole pile still reads as bright colour
+    x.strokeStyle = "rgba(42,36,56,.5)"; x.lineWidth = s * .46 + 1.4; x.beginPath(); x.moveTo(-s * .6, 0); x.lineTo(s * .6, 0); x.stroke();
+    x.strokeStyle = t.col; x.lineWidth = s * .46; x.beginPath(); x.moveTo(-s * .6, 0); x.lineTo(s * .6, 0); x.stroke();
+    x.strokeStyle = "rgba(255,255,255,.5)"; x.lineWidth = s * .12; x.beginPath(); x.moveTo(-s * .45, -s * .08); x.lineTo(s * .2, -s * .08); x.stroke();
+  }
+  topSprites.set(key, c); return c;
+}
+function overloadBurst() {
+  overloaded = true;
+  // the whole slime gives a happy wobble, chimes run up, sprinkles rain, and "Overload!" pops up
+  // a few big, smooth bumps (per-cell noise would leave a speckled surface)
+  for (let b = 0; b < 7; b++) {
+    const bx = 2 + Math.random() * (gw - 4), by = 2 + Math.random() * (gh - 4), r = 4 + Math.random() * 5, amp = (Math.random() < .5 ? -1 : 1) * (.5 + Math.random() * .5), R = Math.ceil(r * 2);
+    for (let j = Math.max(1, (by - R) | 0); j <= Math.min(gh - 2, (by + R) | 0); j++) for (let i = Math.max(1, (bx - R) | 0); i <= Math.min(gw - 2, (bx + R) | 0); i++) hv[j * gw + i] += amp * Math.exp(-((i - bx) ** 2 + (j - by) ** 2) / (r * r));
+  }
+  [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => S.blip(f), i * 75));
+  S.sprinkle(); setTimeout(() => S.sprinkle(), 160);
+  [0, 90, 180, 320].forEach((d, i) => setTimeout(() => buzz(i === 3 ? 40 : 12), d));
+  const T = $("#slimeToast"); T.textContent = "Overload!"; T.classList.remove("on"); void T.offsetWidth; T.classList.add("on");
+}
 const TOPC = {
   rod: ["#FF5A5F", "#FFC93C", "#3ED598", "#4AA8FF", "#B57BFF", "#FFFFFF", "#FF9F45"],
   heart: ["#FFFFFF", "#FFD3E2", "#FF6FA5", "#E8164F", "#FFB6D0", "#FFFFFF"],
@@ -1124,7 +1169,7 @@ const TOPC = {
 const pick = arr => arr[(Math.random() * arr.length) | 0];
 function makeTop(kind, px, py, born) {
   const t = { kind, x: px / CELL + 1, y: py / CELL + 1, rot: Math.random() * 6.28, born };
-  if (kind === "rod") { t.col = pick(TOPC.rod); t.sz = 4 + Math.random() * 2.5; }
+  if (kind === "rod") { t.col = pick(TOPC.rod); t.sz = 5.5 + Math.random() * 2.5; }
   else if (kind === "heart") { t.col = pick(TOPC.heart); t.sz = 4.5 + Math.random() * 3; }
   else if (kind === "pearl") { t.sz = 3.5 + Math.random() * 2; }
   else { t.col = pick(TOPC.marble); t.sz = 11 + Math.random() * 4; }
@@ -1135,7 +1180,8 @@ function seedTops() {
   for (let i = 0; i < 80; i++) tops.push(makeTop(kinds[i % 3], Math.random() * W, Math.random() * H, 0));
 }
 function spawnTops(kind, n) {
-  const now = performance.now(), cxp = W * (.25 + Math.random() * .5), cyp = H * (.22 + Math.random() * .45);
+  // once the slime is busy, new handfuls land anywhere, so an overload covers the whole screen
+  const wide = tops.length > 300, now = performance.now(), cxp = W * (wide ? .06 + Math.random() * .88 : .25 + Math.random() * .5), cyp = H * (wide ? .05 + Math.random() * .78 : .22 + Math.random() * .45);
   const spread = kind === "marble" ? 90 : 75, made = [];
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * spread;
@@ -1144,7 +1190,9 @@ function spawnTops(kind, n) {
   }
   const mList = tops.filter(t => t.kind === "marble");
   if (mList.length > 36) { const drop = new Set(mList.slice(0, mList.length - 36)); tops = tops.filter(t => !drop.has(t)); }
-  if (tops.length > 500) tops.splice(0, tops.length - 500);
+  const cap = topCap();
+  if (tops.length > cap) tops.splice(0, tops.length - cap);
+  if (overloadOn && !overloaded && tops.length >= cap * .97) overloadBurst();
   return made;
 }
 function drawTops(now) {
@@ -1153,6 +1201,12 @@ function drawTops(now) {
     const x = Math.min(1, (now - t.born) / 240) - 1, sc = 1 + 2.70158 * x * x * x + 1.70158 * x * x;
     const X = (t.x - 1) * CELL, Y = (t.y - 1) * CELL, s = t.sz * sc;
     if (s <= 0) continue;
+    if (t.kind !== "marble") {
+      const sp = topSprite(t), d = slimeDpr, c = Math.cos(t.rot) * sc * d, si = Math.sin(t.rot) * sc * d;
+      cx.setTransform(c, si, -si, c, X * d, Y * d); cx.drawImage(sp, -sp.n / 2, -sp.n / 2, sp.n, sp.n);
+      continue;
+    }
+    cx.setTransform(slimeDpr, 0, 0, slimeDpr, 0, 0);
     cx.save(); cx.translate(X, Y);
     if (t.kind === "marble") {
       cx.fillStyle = "rgba(90,0,25,.3)"; cx.beginPath(); cx.ellipse(s * .2, s * .32, s * 1.02, s * .92, 0, 0, 6.29); cx.fill();
@@ -1179,10 +1233,12 @@ function drawTops(now) {
     }
     cx.restore();
   }
+  cx.setTransform(slimeDpr, 0, 0, slimeDpr, 0, 0);
 }
 document.querySelectorAll(".top-btn").forEach(b => b.addEventListener("click", () => {
   const kind = b.dataset.top; ac(); hint.classList.add("gone");
-  if (kind === "clear") { tops = []; S.slurp(); buzz(14); return; }
+  if (b._poured) { b._poured = false; return; }
+  if (kind === "clear") { tops = []; overloaded = false; S.slurp(); buzz(14); return; }
   if (kind === "marble") {
     spawnTops("marble", 5).forEach(t => setTimeout(() => { S.plop(); buzz(24); }, Math.max(0, t.born - performance.now())));
   } else {
@@ -1191,15 +1247,33 @@ document.querySelectorAll(".top-btn").forEach(b => b.addEventListener("click", (
   }
 }));
 
-function heart(s) {
-  cx.beginPath(); cx.moveTo(0, s * .45);
-  cx.bezierCurveTo(-s * 1.05, -s * .2, -s * .5, -s * 1, 0, -s * .4);
-  cx.bezierCurveTo(s * .5, -s * 1, s * 1.05, -s * .2, 0, s * .45); cx.fill();
+document.querySelectorAll(".top-btn").forEach(b => {
+  const kind = b.dataset.top; if (kind === "clear") return;
+  const stop = () => { clearTimeout(b._hold); clearInterval(b._pour); b._pour = null; };
+  b.addEventListener("pointerdown", () => {
+    stop(); ac();
+    b._hold = setTimeout(() => {
+      b._poured = true;
+      b._pour = setInterval(() => {
+        if (kind === "marble") { spawnTops("marble", 1); S.plop(); buzz(10); }
+        else { spawnTops(kind, kind === "rod" ? 14 : 9); if (Math.random() < .5) S.sprinkle(); buzz(4); }
+      }, kind === "marble" ? 220 : 110);
+    }, 320);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) b.addEventListener(ev, stop);
+});
+
+function heart(s, c = cx) {
+  c.beginPath(); c.moveTo(0, s * .45);
+  c.bezierCurveTo(-s * 1.05, -s * .2, -s * .5, -s * 1, 0, -s * .4);
+  c.bezierCurveTo(s * .5, -s * 1, s * 1.05, -s * .2, 0, s * .45); c.fill();
 }
 const L = (() => { const x = -.5, y = -.62, z = .6, n = Math.hypot(x, y, z); return [x / n, y / n, z / n]; })();
 const HV = (() => { const x = L[0], y = L[1], z = L[2] + 1, n = Math.hypot(x, y, z); return [x / n, y / n, z / n]; })();
 const sstep = (a, b, v) => { const t = v <= a ? 0 : v >= b ? 1 : (v - a) / (b - a); return t * t * (3 - 2 * t); };
 function slimeRender(now) {
+  const fdt = now - (TOP_CAP.last || now); TOP_CAP.last = now; if (fdt > 0 && fdt < 100) TOP_CAP.ema += (fdt - TOP_CAP.ema) * .05;
+  if (overloadOn && tops.length > 700 && TOP_CAP.ema > 26 && now - TOP_CAP.cutT > 2000) { TOP_CAP.cutT = now; TOP_CAP.max = Math.max(700, Math.round(tops.length * .8)); tops.splice(0, tops.length - TOP_CAP.max); }
   const d = img.data, gl = pal.b;
   for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) {
     const k = j * gw + i, p = k * 4;
@@ -1225,7 +1299,7 @@ function slimeRender(now) {
   for (let j = 0; j < gh; j++) { const a = j * gw * 4, b = a + (gw - 1) * 4; for (let c = 0; c < 3; c++) { d[a + c] = d[a + 4 + c]; d[b + c] = d[b - 4 + c]; } }
   ox.putImageData(img, 0, 0);
   cx.drawImage(off, 0, 0, gw, gh, -CELL * 1.5, -CELL * 1.5, gw * CELL, gh * CELL);
-  drawTops(now);
+  drawTops(performance.now()); // toppings are stamped with performance.now(), so draw them on the same clock
   // glitter
   const tt = now * .003;
   for (const p of parts) {
@@ -5737,7 +5811,7 @@ setSheet.addEventListener("click", e => { if (e.target === setSheet) closeSettin
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !setSheet.hidden) closeSettings(); });
 function syncSettings() {
   $("#setVol").value = Math.round(volume * 100); $("#setSfx").checked = soundOn; $("#setAmb").checked = ambienceOn;
-  $("#setHap").value = Math.round(hapK * 10); $("#setCalm").checked = calmOn; $("#setBreathe").checked = breatheOn;
+  $("#setHap").value = Math.round(hapK * 10); $("#setCalm").checked = calmOn; $("#setBreathe").checked = breatheOn; $("#setOverload").checked = overloadOn;
   document.querySelectorAll("#setTheme button").forEach(b => b.setAttribute("aria-pressed", b.dataset.th === themePref));
   document.querySelectorAll("#setFocus button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.min === focusMin && (focusMin === 0 || focusEnd > 0)));
 }
@@ -5749,6 +5823,7 @@ $("#setHap").addEventListener("input", e => { hapK = e.target.value / 10; savePr
 $("#setHap").addEventListener("change", () => buzz(20));
 $("#setHapTest").addEventListener("click", () => { buzz(20); setTimeout(() => buzz(8), 180); });
 $("#setCalm").addEventListener("change", e => setCalm(e.target.checked));
+$("#setOverload").addEventListener("change", e => { overloadOn = e.target.checked; savePref("fidget-overload", overloadOn ? "1" : "0"); if (!overloadOn && tops.length > 500) tops.splice(0, tops.length - 500); overloaded = false; });
 $("#setBreathe").addEventListener("change", e => setBreathe(e.target.checked));
 document.querySelectorAll("#setFocus button").forEach(b => b.addEventListener("click", () => { startFocus(+b.dataset.min); syncSettings(); }));
 
