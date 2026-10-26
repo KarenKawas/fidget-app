@@ -30,7 +30,7 @@ html,button{touch-action:manipulation}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--slimebg);transition:background .3s}
 html[data-mode="board"]{background:var(--boardbg,#A86A36)}
 html[data-mode="bubbles"]{background:var(--sheetbg,var(--sheet))}
-html[data-mode="dice"]{background:#2A160C}
+html[data-mode="dice"]{background:var(--dfelt,#4A2238)}
 html[data-mode="grass"]{background:var(--grassbg,#3F8226)}
 html[data-mode="pop"]{background:#F2E3CF}
 html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15122A 75%)}
@@ -505,7 +505,6 @@ html[data-mode="ice"]{background:#0B1626}
 .bub-size button[aria-pressed="true"]{background:#2A2438;color:#fff}
 
 .ico.dice{border-radius:0;background:linear-gradient(160deg,#FFD27A,#F2A51F 60%,#C47F0A);clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
-.table-rim{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 0 9px #6A3E1E,inset 0 0 0 12px #3A2212,inset 0 0 70px 24px rgba(0,0,0,.5)}
 .dice-hud{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;min-width:84px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
   background:rgba(25,16,10,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .dice-hud .lbl{display:block;font-size:.8rem;opacity:.75}
@@ -515,11 +514,36 @@ html[data-mode="ice"]{background:#0B1626}
 .chip{border-radius:10px;padding:3px 9px;font-weight:600;font-size:.95rem;box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .chip small{font-weight:500;opacity:.75;margin-right:3px}
 .chips.dim{opacity:.4}
-.tray{position:fixed;z-index:5;left:0;right:0;bottom:0;padding:26px 12px calc(env(safe-area-inset-bottom,0px) + 12px);
-  display:flex;flex-direction:column;align-items:center;gap:9px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.45))}
-.tray .row{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
-.ds-row button{border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:.8rem;font-weight:600;color:#fff;background:rgba(255,255,255,.14);cursor:pointer}
+/* the dice bag (bottom right) holds the dice and their colours; the character sheet (bottom left) holds roll, clear, tilt and the felt */
+.dbag,.dsheet{position:fixed;z-index:6;border:0;padding:0;cursor:pointer;background:none;-webkit-tap-highlight-color:transparent}
+.dbag{right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:68px;height:68px;filter:drop-shadow(0 5px 6px rgba(0,0,0,.45));transition:transform .2s ease}
+.dbag svg{width:100%;height:100%;display:block}
+.dbag:active,.dbag[aria-expanded="true"]{transform:scale(.94) rotate(-4deg)}
+.dsheet{left:-18px;bottom:calc(env(safe-area-inset-bottom,0px) - 40px);width:96px;height:120px;border-radius:4px;transform:rotate(14deg);transition:transform .25s ease;
+  background:#EED9B0;box-shadow:0 6px 14px rgba(0,0,0,.45);text-align:left;padding:10px 0 0 26px;display:flex;flex-direction:column;gap:6px}
+.dsheet b{font:700 .8rem Georgia,serif;color:#6E4A20;letter-spacing:.06em}
+.dsheet i{display:block;height:3px;width:48px;background:rgba(110,74,32,.45)}
+.dsheet i:nth-of-type(2){width:36px}
+.dsheet:hover,.dsheet:active,.dsheet[aria-expanded="true"]{transform:rotate(9deg) translateY(-12px)}
+.dpop{position:fixed;z-index:7;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);max-width:min(340px,calc(100vw - 24px));padding:12px 14px 14px;border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.45);
+  display:flex;flex-direction:column;gap:8px;animation:dpopIn .22s ease-out}
+.dpop[hidden]{display:none}
+@keyframes dpopIn{from{opacity:0;transform:translateY(14px) scale(.96)}}
+.dpop .row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.dpop .dbtn{width:44px}
+.dpop-h{margin:0;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.dbag-pop{right:12px;transform-origin:bottom right;color:#F6E9FF;background:#4A2766;outline:2px dashed rgba(232,198,106,.55);outline-offset:-7px}
+.dsheet-pop{left:12px;transform-origin:bottom left;color:#5A3A18;background:#EED9B0;border-radius:6px;font-family:Georgia,serif}
+.dsheet-pop .act{color:#5A3A18;background:rgba(110,74,32,.14);box-shadow:0 3px 0 rgba(110,74,32,.35);font-family:inherit}
+.ds-row button{border:0;border-radius:999px;padding:5px 11px 5px 6px;font:inherit;font-size:.8rem;font-weight:600;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;display:flex;align-items:center;gap:6px}
 .ds-row button[aria-pressed="true"]{background:#FFE27A;color:#2A2438}
+.sw{display:block;width:18px;height:18px;clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
+.sw-classic{background:linear-gradient(160deg,#FFD27A,#F2A51F 60%,#C47F0A)}
+.sw-glow{background:radial-gradient(circle,#E9FFEA,#8BEA9F)}
+.sw-neon{background:radial-gradient(circle,#15121F 45%,#00F0FF 50%,#15121F 62%)}
+.sw-blossom{background:radial-gradient(circle at 40% 40%,#FF8FB8 0 18%,#FFC4DA 22%)}
+.felt-sw{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;background:var(--f);box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.felt-sw[aria-pressed="true"]{border-color:#6E4A20}
 .dbtn{border:0;border-radius:12px;width:50px;padding:9px 0;font-weight:600;cursor:pointer;background:var(--c);color:var(--i);box-shadow:0 4px 0 rgba(0,0,0,.4)}
 .dbtn:active,.act:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.4)}
 .act{border:0;border-radius:999px;padding:9px 20px;font-weight:500;cursor:pointer;color:#fff;background:rgba(255,255,255,.18);box-shadow:0 3px 0 rgba(0,0,0,.35)}
@@ -686,14 +710,22 @@ html[data-mode="ice"]{background:#0B1626}
 
   <section class="mode" id="mode-dice" aria-label="Dice table">
     <canvas id="dicecv" aria-label="Dice table. Drag a die to throw it, tap a die to roll it, tap the table to roll them all, or turn on Tilt and tilt the phone."></canvas>
-    <div class="table-rim"></div>
     <div class="chips" id="dChips"></div>
     <div class="dice-hud" aria-live="polite"><span class="lbl">Total</span><span class="total" id="dTotal">…</span><span class="crit" id="dCrit"></span></div>
     <p class="dice-msg" id="diceMsg" hidden></p>
-    <div class="tray" id="tray">
-      <div class="row ds-row" id="dieStyles" role="group" aria-label="Dice style"><button data-ds="classic">Classic</button><button data-ds="glow">Glow</button><button data-ds="neon">Neon</button><button data-ds="blossom">Blossom</button></div>
+    <button class="dbag" id="dBag" aria-label="Dice bag: add dice and pick their colours" aria-expanded="false" aria-controls="dBagPop"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M20 22c-9 6-13 16-11 26 2 9 11 12 23 12s21-3 23-12c2-10-2-20-11-26z" fill="#5B2F7A"/><path d="M14 46c4 6 12 8 18 8s14-2 18-8" fill="none" stroke="#7E4CA6" stroke-width="3" stroke-linecap="round"/><path d="M19 22c4-4 22-4 26 0" fill="none" stroke="#E8C66A" stroke-width="4" stroke-linecap="round"/><path d="M24 14l8 6 8-6" fill="#3E1F55"/><circle cx="44" cy="25" r="3" fill="#E8C66A"/><path d="M44 28c2 4 1 8-2 10" fill="none" stroke="#E8C66A" stroke-width="2.5" stroke-linecap="round"/><path d="M32 6l7 4v8l-7 4-7-4v-8z" fill="#F5B921" stroke="#2A2438" stroke-width="1.6"/><path d="M25 10l7 4 7-4M32 14v8" fill="none" stroke="#2A2438" stroke-width="1.2"/></svg></button>
+    <div class="dpop dbag-pop" id="dBagPop" role="dialog" aria-label="Dice bag" hidden>
+      <p class="dpop-h">Add a die</p>
       <div class="row" id="dieBtns"></div>
+      <p class="dpop-h">Dice colours</p>
+      <div class="row ds-row" id="dieStyles" role="group" aria-label="Dice style"><button data-ds="classic"><i class="sw sw-classic"></i>Classic</button><button data-ds="glow"><i class="sw sw-glow"></i>Glow</button><button data-ds="neon"><i class="sw sw-neon"></i>Neon</button><button data-ds="blossom"><i class="sw sw-blossom"></i>Blossom</button></div>
+    </div>
+    <button class="dsheet" id="dSheet" aria-label="Character sheet: roll, clear, tilt and felt colour" aria-expanded="false" aria-controls="dSheetPop"><b>HERO</b><i></i><i></i><i></i></button>
+    <div class="dpop dsheet-pop" id="dSheetPop" role="dialog" aria-label="Character sheet" hidden>
+      <p class="dpop-h">Hero · Actions</p>
       <div class="row"><button class="act" id="rollAll">Roll all</button><button class="act" id="clearDice">Clear table</button><button class="act" id="shakeBtn" aria-pressed="false" hidden>Tilt: off</button></div>
+      <p class="dpop-h">Felt</p>
+      <div class="row" id="dFelts" role="group" aria-label="Felt colour"></div>
     </div>
   </section>
 
@@ -1795,16 +1827,10 @@ async function initDiceInner() {
   sun.position.set(-6, 20, 9); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 });
   sun.shadow.bias = -.0008; scene.add(sun);
-  const fc = document.createElement("canvas"); fc.width = fc.height = 256;
-  const fg = fc.getContext("2d"); fg.fillStyle = "#4A2238"; fg.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 6000; i++) { fg.fillStyle = Math.random() < .5 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.09)"; fg.fillRect(Math.random() * 256, Math.random() * 256, 1.5, 1.5); }
-  const ft = new THREE.CanvasTexture(fc); ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(24, 24); ft.encoding = THREE.sRGBEncoding;
+  const fc = D.fc = document.createElement("canvas"); fc.width = fc.height = 256;
+  const ft = D.ft = new THREE.CanvasTexture(fc); ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(24, 24); ft.encoding = THREE.sRGBEncoding;
   const table = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshStandardMaterial({ map: ft, roughness: 1 }));
   table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table); D.felt = table; table.userData.noInk = true;
-  // the tabletop around the rolling mat, and the props (placed in diceResize once the mat's size is known)
-  const wt = tbWoodTex({ base: "#5A3420", grain: "rgba(20,8,0,.35)" }); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(6, 6);
-  const wood = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ map: wt, roughness: .8 })); wood.rotation.x = -Math.PI / 2; wood.position.y = -.02; wood.receiveShadow = true; scene.add(wood); D.wood = wood; wood.userData.noInk = true;
-  D.props = new THREE.Group(); scene.add(D.props);
   D.candle = new THREE.PointLight(0xFFB060, .8, 0, 1); scene.add(D.candle);
 
   const world = new CANNON.World(); world.gravity.set(0, -34, 0);
@@ -1837,7 +1863,7 @@ function diceResize() {
     const v = new THREE.Vector3(nx, ny, .5).unproject(D.cam).sub(D.cam.position).normalize();
     const t = -D.cam.position.y / v.y; return D.cam.position.clone().add(v.multiplyScalar(t));
   };
-  const trayH = ($("#tray").offsetHeight || 120) - 20, hudH = 90;
+  const trayH = 30, hudH = 90; // the dice roll right down to the bottom edge; the bag and the sheet sit over the corners
   const bl = onFloor(-1, -1 + 2 * trayH / h), tl = onFloor(-1, 1 - 2 * hudH / h);
   const xh = Math.min(Math.abs(bl.x), Math.abs(tl.x)) - 1.1, zn = bl.z - 1.1, zf = tl.z + 1.1;
   D.b = { xh, zn, zf };
@@ -1849,26 +1875,37 @@ function diceResize() {
   D.dice.forEach(d => keepInside(d.body));
   dTable();
 }
-// the felt mat fills the screen inside a raised wooden tray rim
+// the felt fills the whole screen
 function dTable() {
-  const B = D.b, w = B.xh * 2 + .6, d = B.zn - B.zf + .6, cz = (B.zn + B.zf) / 2;
-  D.felt.geometry.dispose(); D.felt.geometry = new THREE.PlaneGeometry(w, d); D.felt.position.set(0, .005, cz);
-  D.felt.material.map.repeat.set(w / 3, d / 3);
-  for (const o of D.props.children.slice()) { D.props.remove(o); disposeTree(o); }
-  const add = (geo, col, x, y, z, o = {}) => { const m = new THREE.Mesh(geo, tbT(col, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; D.props.add(m); return m; };
-  const t = .5, h = .8, rim = 0x8A5A30;
-  add(new THREE.BoxGeometry(w + 2 * t, h, t), rim, 0, h / 2, B.zf - .3 - t / 2); add(new THREE.BoxGeometry(w + 2 * t, h, t), rim, 0, h / 2, B.zn + .3 + t / 2);
-  add(new THREE.BoxGeometry(t, h, d), rim, -w / 2 - t / 2, h / 2, cz); add(new THREE.BoxGeometry(t, h, d), rim, w / 2 + t / 2, h / 2, cz);
+  const B = D.b;
   // the candle is off screen in the far corner; its warm light still flickers over the felt
   D.candle.position.set(B.xh - 1, 10, B.zf + 3);
-  tbToonify(D.props, .04);
   dTableLight();
+}
+// felt colours: a brighter day felt in the light theme, a deeper one by candlelight in the dark theme
+const DFELT = {
+  burgundy: { label: "Burgundy", day: "#7E3A5C", night: "#4A2238" },
+  green: { label: "Green", day: "#3A8A66", night: "#1F4F3D" },
+  navy: { label: "Navy", day: "#3D5C92", night: "#1C2A48" },
+  purple: { label: "Purple", day: "#6C4A9E", night: "#33224F" },
+};
+D.feltName = pref("fidget-dice-felt", "burgundy"); if (!DFELT[D.feltName]) D.feltName = "burgundy";
+function dPaintFelt() {
+  const col = DFELT[D.feltName][document.documentElement.classList.contains("dark") ? "night" : "day"];
+  document.documentElement.style.setProperty("--dfelt", col);
+  if (!D.fc) return;
+  const g = D.fc.getContext("2d"); g.fillStyle = col; g.fillRect(0, 0, 256, 256);
+  const R = mulberry(7); for (let i = 0; i < 6000; i++) { g.fillStyle = R() < .5 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.09)"; g.fillRect(R() * 256, R() * 256, 1.5, 1.5); }
+  D.ft.needsUpdate = true;
+}
+function setFelt(name) {
+  D.feltName = name; savePref("fidget-dice-felt", name); dPaintFelt();
+  document.querySelectorAll("#dFelts button").forEach(b => b.setAttribute("aria-pressed", b.dataset.felt === name ? "true" : "false"));
 }
 // at night (dark theme) the room dims and the candle carries the light, which makes glow dice shine
 function dTableLight() {
-  if (!D.scene) return; D.dark = document.documentElement.classList.contains("dark");
-  // the toon shading keeps a floor of light, so the table and props are also darkened directly; the dice are left to the candle
-  for (const root of [D.felt, D.wood, D.props]) if (root) root.traverse(o => { const m = o.material; if (!m || !m.color || m.side === THREE.BackSide) return; if (!m.userData.c0) m.userData.c0 = m.color.clone(); m.color.copy(m.userData.c0).multiplyScalar(D.dark ? .4 : 1); });
+  dPaintFelt(); if (!D.scene) return; D.dark = document.documentElement.classList.contains("dark");
+  // the toon shading keeps a floor of light, so the felt itself is repainted darker at night (dPaintFelt above); the dice are left to the candle
   D.scene.traverse(o => { if (o.isHemisphereLight) o.intensity = D.dark ? .1 : .8; if (o.isDirectionalLight) o.intensity = D.dark ? .08 : .95; });
 }
 function keepInside(b) {
@@ -2050,12 +2087,34 @@ DORDER.forEach(t => {
   b.addEventListener("click", () => { addDie(t); S.clack(.5); });
   dieBtns.appendChild(b);
 });
-$("#rollAll").addEventListener("click", rollAll);
+$("#rollAll").addEventListener("click", () => { rollAll(); dPop(null); });
+const dPops = { bag: [$("#dBag"), $("#dBagPop")], sheet: [$("#dSheet"), $("#dSheetPop")] };
+function dPop(which) {
+  for (const k in dPops) { const [b, p] = dPops[k], on = k === which && p.hidden; p.hidden = !on; b.setAttribute("aria-expanded", on ? "true" : "false"); }
+}
+$("#dBag").addEventListener("click", () => {
+  dPop("bag"); const a = ac(); if (a && soundOn) { nz(a, "bandpass", 1600, 900, .8, .25, .2); setTimeout(() => S.clack(.35), 90); }
+});
+$("#dSheet").addEventListener("click", () => { dPop("sheet"); S.tick(900, .06, .03, "sine"); });
+// a tap outside an open pop-up just closes it, without rolling the dice underneath
+$("#mode-dice").addEventListener("pointerdown", e => {
+  const open = Object.values(dPops).find(([b, p]) => !p.hidden); if (!open) return;
+  if (open[0].contains(e.target) || open[1].contains(e.target)) return;
+  dPop(null); e.stopPropagation(); e.preventDefault();
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && mode === "dice") dPop(null); });
+for (const k in DFELT) {
+  const b = document.createElement("button"); b.className = "felt-sw"; b.dataset.felt = k; b.setAttribute("aria-label", DFELT[k].label + " felt");
+  b.style.setProperty("--f", DFELT[k].day); b.setAttribute("aria-pressed", k === D.feltName ? "true" : "false");
+  b.addEventListener("click", () => { setFelt(k); S.tick(1200, .06, .03, "sine"); });
+  $("#dFelts").appendChild(b);
+}
+dPaintFelt();
 $("#clearDice").addEventListener("click", () => {
   if (!D.ready) return;
   D.dice.forEach(d => { D.scene.remove(d.mesh); D.world.removeBody(d.body); });
   D.dice = []; D.rolling = false; showResults(); S.thud(.5);
-  saveDiceSet();
+  saveDiceSet(); dPop(null);
 });
 function saveDiceSet() { try { localStorage.setItem("fidget-dice-set", JSON.stringify(D.dice.map(d => d.type))); } catch (e) {} }
 
