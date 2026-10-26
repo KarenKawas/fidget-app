@@ -30,7 +30,7 @@ html,button{touch-action:manipulation}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--slimebg);transition:background .3s}
 html[data-mode="board"]{background:var(--boardbg,#A86A36)}
 html[data-mode="bubbles"]{background:var(--sheetbg,var(--sheet))}
-html[data-mode="dice"]{background:#3A2212}
+html[data-mode="dice"]{background:#2A160C}
 html[data-mode="grass"]{background:var(--grassbg,#3F8226)}
 html[data-mode="pop"]{background:#F2E3CF}
 html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15122A 75%)}
@@ -518,6 +518,8 @@ html[data-mode="ice"]{background:#0B1626}
 .tray{position:fixed;z-index:5;left:0;right:0;bottom:0;padding:26px 12px calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex;flex-direction:column;align-items:center;gap:9px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.45))}
 .tray .row{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+.ds-row button{border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:.8rem;font-weight:600;color:#fff;background:rgba(255,255,255,.14);cursor:pointer}
+.ds-row button[aria-pressed="true"]{background:#FFE27A;color:#2A2438}
 .dbtn{border:0;border-radius:12px;width:50px;padding:9px 0;font-weight:600;cursor:pointer;background:var(--c);color:var(--i);box-shadow:0 4px 0 rgba(0,0,0,.4)}
 .dbtn:active,.act:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.4)}
 .act{border:0;border-radius:999px;padding:9px 20px;font-weight:500;cursor:pointer;color:#fff;background:rgba(255,255,255,.18);box-shadow:0 3px 0 rgba(0,0,0,.35)}
@@ -689,6 +691,7 @@ html[data-mode="ice"]{background:#0B1626}
     <div class="dice-hud" aria-live="polite"><span class="lbl">Total</span><span class="total" id="dTotal">…</span><span class="crit" id="dCrit"></span></div>
     <p class="dice-msg" id="diceMsg" hidden></p>
     <div class="tray" id="tray">
+      <div class="row ds-row" id="dieStyles" role="group" aria-label="Dice style"><button data-ds="classic">Classic</button><button data-ds="glow">Glow</button><button data-ds="neon">Neon</button><button data-ds="blossom">Blossom</button></div>
       <div class="row" id="dieBtns"></div>
       <div class="row"><button class="act" id="rollAll">Roll all</button><button class="act" id="clearDice">Clear table</button><button class="act" id="shakeBtn" aria-pressed="false" hidden>Tilt: off</button></div>
     </div>
@@ -1705,14 +1708,25 @@ function buildGeo(def) {
   return g;
 }
 
-function faceMat(def, fi, col) {
+const DSTYLES = {
+  classic: { label: "Classic" },
+  glow: { label: "Glow", body: "#C9F5CF", ink: "#1E7A44", edge: "rgba(120,255,160,.55)" },
+  neon: { label: "Neon", body: "#15121F", edge: true },
+  blossom: { label: "Blossom", body: "#FFC4DA", ink: "#B8306A", petals: true },
+};
+const DNEON = { d4: "#FF4FD8", d6: "#00F0FF", d8: "#7CFF6B", d10: "#FFD23F", d12: "#FF8A3D", d20: "#B78CFF" };
+D.style = pref("fidget-dice-style", "classic"); if (!DSTYLES[D.style]) D.style = "classic";
+function faceMat(def, fi, col0) {
+  const St = DSTYLES[D.style], neon = D.style === "neon", col = { body: St.body || col0.body, ink: neon ? DNEON[def.type] : St.ink || col0.ink };
   const Sz = 256, c = document.createElement("canvas"); c.width = c.height = Sz;
   const g = c.getContext("2d");
   g.fillStyle = col.body; g.fillRect(0, 0, Sz, Sz);
+  // cherry blossom resin: little petals suspended in pale pink
+  if (St.petals) { const R = mulberry(fi * 31 + def.type.length); for (let k = 0; k < 7; k++) { g.save(); g.translate(R() * Sz, R() * Sz); g.rotate(R() * 6.3); g.fillStyle = R() < .5 ? "rgba(255,150,190,.75)" : "rgba(255,255,255,.8)"; for (let p = 0; p < 5; p++) { g.rotate(1.2566); g.beginPath(); g.ellipse(0, 7, 4, 7, 0, 0, 6.3); g.fill(); } g.restore(); } }
   const U = def.uvs[fi].map(([u, v]) => [u * Sz, (1 - v) * Sz]);
   g.beginPath(); U.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
   g.lineJoin = "round";
-  g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = Sz * .08; g.stroke();
+  g.strokeStyle = neon ? col.ink : St.edge || "rgba(255,255,255,.25)"; g.lineWidth = Sz * (neon ? .05 : .08); g.stroke();
   g.strokeStyle = "rgba(0,0,0,.28)"; g.lineWidth = Sz * .018; g.stroke();
   let inr = 1e9;
   for (let i = 0; i < U.length; i++) {
@@ -1735,15 +1749,19 @@ function faceMat(def, fi, col) {
     if (lab === "6" || lab === "9") g.fillRect(Sz / 2 - fs * .2, Sz / 2 + fs * .43, fs * .4, fs * .07);
   }
   const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
-  return new THREE.MeshStandardMaterial({ map: tex, roughness: .28, metalness: .04 });
+  const m = new THREE.MeshStandardMaterial({ map: tex, roughness: .28, metalness: .04 });
+  // neon: the numbers and edges glow; glow-in-the-dark: the whole die gives off a soft green light; blossom: clear resin
+  if (neon) { m.emissiveMap = tex; m.emissive = new THREE.Color(1, 1, 1); }
+  if (D.style === "glow") { m.emissiveMap = tex; m.emissive = new THREE.Color(.45, 1, .55); m.emissiveIntensity = .55; }
+  if (St.petals) { m.transparent = true; m.opacity = .94; m.roughness = .15; m.emissiveMap = tex; m.emissive = new THREE.Color(.14, .06, .09); }
+  return m;
 }
 
 function assets(type) {
-  if (!D.defs[type]) {
-    const def = dieDef(type); D.defs[type] = def; D.geos[type] = buildGeo(def);
-    D.mats[type] = def.faces.map((_, i) => faceMat(def, i, DCOL[type]));
-  }
-  return [D.defs[type], D.geos[type], D.mats[type]];
+  if (!D.defs[type]) { const def = dieDef(type); D.defs[type] = def; D.geos[type] = buildGeo(def); }
+  const key = type + ":" + D.style;
+  if (!D.mats[key]) D.mats[key] = D.defs[type].faces.map((_, i) => faceMat(D.defs[type], i, DCOL[type]));
+  return [D.defs[type], D.geos[type], D.mats[key]];
 }
 
 function diceError(e) {
@@ -1778,11 +1796,18 @@ async function initDiceInner() {
   Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 });
   sun.shadow.bias = -.0008; scene.add(sun);
   const fc = document.createElement("canvas"); fc.width = fc.height = 256;
-  const fg = fc.getContext("2d"); fg.fillStyle = "#2C6E53"; fg.fillRect(0, 0, 256, 256);
+  const fg = fc.getContext("2d"); fg.fillStyle = "#4A2238"; fg.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 6000; i++) { fg.fillStyle = Math.random() < .5 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.09)"; fg.fillRect(Math.random() * 256, Math.random() * 256, 1.5, 1.5); }
   const ft = new THREE.CanvasTexture(fc); ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(24, 24); ft.encoding = THREE.sRGBEncoding;
   const table = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshStandardMaterial({ map: ft, roughness: 1 }));
-  table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table);
+  table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table); D.felt = table;
+  // the tabletop around the rolling mat, and the props (placed in diceResize once the mat's size is known)
+  const wt = tbWoodTex({ base: "#5A3420", grain: "rgba(20,8,0,.35)" }); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(6, 6);
+  const wood = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ map: wt, roughness: .8 })); wood.rotation.x = -Math.PI / 2; wood.position.y = -.02; wood.receiveShadow = true; scene.add(wood); D.wood = wood;
+  D.props = new THREE.Group(); scene.add(D.props);
+  D.candle = new THREE.PointLight(0xFFB060, .8, 30, 1.6); scene.add(D.candle);
+  D.flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: tbCanvas(64, 96, x => { const g2 = x.createRadialGradient(32, 60, 2, 32, 52, 34); g2.addColorStop(0, "#FFF6D0"); g2.addColorStop(.4, "#FFB040"); g2.addColorStop(1, "rgba(255,120,30,0)"); x.fillStyle = g2; x.beginPath(); x.ellipse(32, 56, 16, 34, 0, 0, 6.3); x.fill(); }), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  scene.add(D.flame);
 
   const world = new CANNON.World(); world.gravity.set(0, -34, 0);
   world.broadphase = new CANNON.NaiveBroadphase(); world.solver.iterations = 14; world.allowSleep = true;
@@ -1816,7 +1841,7 @@ function diceResize() {
   };
   const trayH = ($("#tray").offsetHeight || 120) - 20, hudH = 90;
   const bl = onFloor(-1, -1 + 2 * trayH / h), tl = onFloor(-1, 1 - 2 * hudH / h);
-  const xh = Math.min(Math.abs(bl.x), Math.abs(tl.x)) - 1.1, zn = bl.z - 1.1, zf = tl.z + 1.1;
+  const xh = Math.min(Math.abs(bl.x), Math.abs(tl.x)) - 1.1, zn = bl.z - 1.1, zf = tl.z + 4.2; // the top strip is the table, with the props
   D.b = { xh, zn, zf };
   const [L, R, F, N] = D.walls, Y = new CANNON.Vec3(0, 1, 0);
   L.position.set(-xh, 0, 0); L.quaternion.setFromAxisAngle(Y, Math.PI / 2);
@@ -1824,6 +1849,40 @@ function diceResize() {
   F.position.set(0, 0, zf); F.quaternion.set(0, 0, 0, 1);
   N.position.set(0, 0, zn); N.quaternion.setFromAxisAngle(Y, Math.PI);
   D.dice.forEach(d => keepInside(d.body));
+  dTable();
+}
+// the felt mat sits inside a raised wooden tray; a character sheet, a candle and a little hero stand just beyond it
+function dTable() {
+  const B = D.b, w = B.xh * 2 + .6, d = B.zn - B.zf + .6, cz = (B.zn + B.zf) / 2;
+  D.felt.geometry.dispose(); D.felt.geometry = new THREE.PlaneGeometry(w, d); D.felt.position.set(0, .005, cz);
+  D.felt.material.map.repeat.set(w / 3, d / 3);
+  for (const o of D.props.children.slice()) { D.props.remove(o); disposeTree(o); }
+  const add = (geo, col, x, y, z, o = {}) => { const m = new THREE.Mesh(geo, tbT(col, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; D.props.add(m); return m; };
+  const t = .5, h = .8, rim = 0x8A5A30;
+  add(new THREE.BoxGeometry(w + 2 * t, h, t), rim, 0, h / 2, B.zf - .3 - t / 2); add(new THREE.BoxGeometry(w + 2 * t, h, t), rim, 0, h / 2, B.zn + .3 + t / 2);
+  add(new THREE.BoxGeometry(t, h, d), rim, -w / 2 - t / 2, h / 2, cz); add(new THREE.BoxGeometry(t, h, d), rim, w / 2 + t / 2, h / 2, cz);
+  // a parchment character sheet, a candle and a little hero, just past the far edge
+  const zf = B.zf - 2.1;
+  const sheet = add(new THREE.PlaneGeometry(3.2, 4.2), 0xFFFFFF, -B.xh + 1, .02, zf - .6, { map: tbCanvas(128, 168, (x, w2, h2) => {
+    x.fillStyle = "#EED9B0"; x.fillRect(0, 0, w2, h2); x.fillStyle = "#6E4A20"; x.font = "700 16px serif"; x.fillText("HERO", 10, 22);
+    x.fillStyle = "rgba(110,74,32,.55)"; for (let l = 0; l < 10; l++) x.fillRect(10, 34 + l * 12, 60 + (l * 37) % 48, 3);
+    x.strokeStyle = "#6E4A20"; x.lineWidth = 2; for (let k = 0; k < 3; k++) x.strokeRect(84, 34 + k * 40, 34, 32);
+  }) });
+  sheet.rotation.set(-Math.PI / 2, 0, .12);
+  add(new THREE.CylinderGeometry(.45, .5, 1.6, 16), 0xF2EAD8, B.xh - 1.2, .8, zf);
+  add(new THREE.CylinderGeometry(.9, 1, .2, 20), 0xC9A24A, B.xh - 1.2, .1, zf);
+  D.candle.position.set(B.xh - 1.2, 2.4, zf); D.flame.position.set(B.xh - 1.2, 2.1, zf);
+  const hero = new THREE.Group(); hero.position.set(B.xh - 3, 0, zf - .3); D.props.add(hero);
+  for (const [geo, col, y] of [[new THREE.CylinderGeometry(.5, .5, .15, 16), 0x2A2438, .07], [new THREE.CylinderGeometry(.25, .35, .9, 12), 0x5A6ACB, .6], [new THREE.SphereGeometry(.26, 12, 10), 0xF2C9A0, 1.25]]) { const m = new THREE.Mesh(geo, tbT(col)); m.position.y = y; m.castShadow = true; hero.add(m); }
+  tbToonify(D.props, .04);
+  dTableLight();
+}
+// at night (dark theme) the room dims and the candle carries the light, which makes glow dice shine
+function dTableLight() {
+  if (!D.scene) return; D.dark = document.documentElement.classList.contains("dark");
+  // the toon shading keeps a floor of light, so the table and props are also darkened directly; the dice are left to the candle
+  for (const root of [D.felt, D.wood, D.props]) if (root) root.traverse(o => { const m = o.material; if (!m || !m.color || o.userData.noInk || m.side === THREE.BackSide) return; if (!m.userData.c0) m.userData.c0 = m.color.clone(); m.color.copy(m.userData.c0).multiplyScalar(D.dark ? .4 : 1); });
+  D.scene.traverse(o => { if (o.isHemisphereLight) o.intensity = D.dark ? .1 : .8; if (o.isDirectionalLight) o.intensity = D.dark ? .08 : .95; });
 }
 function keepInside(b) {
   const B = D.b, p = b.position;
@@ -1845,11 +1904,28 @@ function onHit(d, e) {
   if (v > .2) buzz(Math.round(4 + v * 16));
 }
 
+// cherry blossom dice: a few petals drift slowly inside the clear resin
+function dPetals(mesh) {
+  const old = mesh.getObjectByName("petals"); if (old) mesh.remove(old);
+  if (D.style !== "blossom") return;
+  if (!D.petalMat) D.petalMat = new THREE.SpriteMaterial({ map: tbCanvas(64, 64, x => { x.translate(32, 32); for (let p = 0; p < 5; p++) { x.rotate(1.2566); x.fillStyle = "#FF8FB8"; x.beginPath(); x.ellipse(0, 11, 7, 12, 0, 0, 6.3); x.fill(); } x.fillStyle = "#FFE27A"; x.beginPath(); x.arc(0, 0, 4, 0, 6.3); x.fill(); }), depthTest: false, transparent: true });
+  const g = new THREE.Group(); g.name = "petals";
+  for (let i = 0; i < 4; i++) { const s = new THREE.Sprite(D.petalMat); s.scale.setScalar(.34 + Math.random() * .14); s.position.set(rnd(-.3, .3), rnd(-.3, .3), rnd(-.3, .3)); s.userData.ph = Math.random() * 6.28; g.add(s); }
+  mesh.add(g);
+}
+function setDiceStyle(st) {
+  D.style = st; savePref("fidget-dice-style", st);
+  document.querySelectorAll("#dieStyles button").forEach(b => b.setAttribute("aria-pressed", b.dataset.ds === st ? "true" : "false"));
+  if (!D.ready) return;
+  for (const d of D.dice) { d.mesh.material = assets(d.type)[2]; dPetals(d.mesh); }
+  dTableLight();
+}
+document.querySelectorAll("#dieStyles button").forEach(b => { b.setAttribute("aria-pressed", b.dataset.ds === D.style ? "true" : "false"); b.addEventListener("click", () => { setDiceStyle(b.dataset.ds); S.tick(1500, .08, .03, "sine"); }); });
 function addDie(type) {
   if (!D.ready) return;
   if (D.dice.length >= 14) { const m = $("#diceMsg"); m.hidden = false; m.textContent = "The table’s full. Clear it to add more."; setTimeout(() => m.hidden = true, 1600); return; }
   const [def, geo, mats] = assets(type);
-  const mesh = new THREE.Mesh(geo, mats); mesh.castShadow = true; D.scene.add(mesh);
+  const mesh = new THREE.Mesh(geo, mats); mesh.castShadow = true; D.scene.add(mesh); dPetals(mesh);
   const body = new CANNON.Body({ mass: 1, material: D.mDice });
   body.addShape(new CANNON.ConvexPolyhedron(def.sv.map(v => new CANNON.Vec3(v[0], v[1], v[2])), def.faces.map(f => f.slice())));
   body.linearDamping = .08; body.angularDamping = .1; body.allowSleep = true; body.sleepSpeedLimit = .15; body.sleepTimeLimit = .4;
@@ -1974,6 +2050,8 @@ function diceFrame(now) {
     if (now - (D.rollStart || now) > 7000) D.settle = 1; // never get stuck waiting on a jittery die
     if (D.settle > .3) { D.rolling = false; showResults(); }
   }
+  if (D.style === "blossom") for (const d of D.dice) { const g = d.mesh.getObjectByName("petals"); if (g) g.children.forEach(s => { s.userData.ph += .01; s.position.y += Math.sin(s.userData.ph) * .002; s.material.rotation = s.userData.ph; }); }
+  if (D.candle) { const f = .85 + Math.sin(now * .013) * .08 + Math.sin(now * .031) * .06; D.candle.intensity = (D.dark ? 1.8 : .7) * f; D.flame.scale.set(.6 * f, .95 * f, 1); }
   toonRender(D.r, D.scene, D.cam, TOON_INK.dice);
 }
 
@@ -7337,6 +7415,7 @@ function applyTheme() {
   const root = document.documentElement;
   if (themePref === "auto") root.removeAttribute("data-theme"); else root.dataset.theme = themePref;
   root.classList.toggle("dark", themePref === "dark" || (themePref === "auto" && darkQ.matches));
+  dTableLight();
 }
 document.querySelectorAll("#setTheme button").forEach(b => b.addEventListener("click", () => { themePref = b.dataset.th; savePref("fidget-theme", themePref); applyTheme(); syncSettings(); S.tick(1500, .08, .03, "sine"); }));
 (darkQ.addEventListener ? darkQ.addEventListener("change", applyTheme) : darkQ.addListener(applyTheme));
