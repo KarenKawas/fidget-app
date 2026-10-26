@@ -65,6 +65,34 @@ button{font:inherit;color:inherit}
 .fab svg{width:22px;height:22px;stroke:#2A2438;stroke-width:2.4;stroke-linecap:round}
 .scrim{position:fixed;inset:0;z-index:30;background:rgba(20,14,30,.4);opacity:0;pointer-events:none;transition:opacity .25s}
 .scrim.open{opacity:1;pointer-events:auto}
+/* the toy tray: a wooden drawer pulled out of the toy box */
+.toytray{position:fixed;z-index:40;left:0;right:0;bottom:0;max-height:66vh;transform:translateY(calc(104% + var(--pull,0px)));transition:transform .34s cubic-bezier(.3,1.15,.4,1);display:flex}
+.toytray.open{transform:translateY(var(--pull,0px))}
+.tray-wood{flex:1;display:flex;flex-direction:column;margin:0 8px;padding:6px 12px calc(env(safe-area-inset-bottom,0px) + 12px);border-radius:26px 26px 0 0;
+  border:3px solid #2A2438;border-bottom:0;box-shadow:0 -6px 24px rgba(0,0,0,.3);
+  background:repeating-linear-gradient(92deg,rgba(110,62,26,.10) 0 2px,transparent 2px 13px),linear-gradient(180deg,var(--trayWood,#F4F1EA),color-mix(in srgb,var(--trayWood,#F4F1EA) 80%,#8A5A30))}
+.tray-handle{align-self:center;border:0;background:none;padding:8px 30px;cursor:grab}
+.tray-handle span{display:block;width:46px;height:6px;border-radius:3px;background:rgba(42,36,56,.35)}
+.tray-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 8px}
+.tray-plate{padding:5px 14px;border-radius:8px;font-weight:600;font-size:.95rem;color:#5A3E16;background:linear-gradient(180deg,#F7DE8E,#D9A93E);border:2px solid #2A2438;box-shadow:inset 0 1px 0 #FFF2C0}
+.tray-tool{width:44px;height:44px;border-radius:50%;border:2.5px solid #2A2438;background:#FFF6E6;color:#2A2438;display:grid;place-items:center;cursor:pointer;box-shadow:0 3px 0 #2A2438}
+.tray-tool svg{width:22px;height:22px}
+.tray-tool[aria-pressed="true"]{background:#9FE3C4}
+.tray-tool:active{transform:translateY(3px);box-shadow:0 0 0 #2A2438}
+.tray-felt{flex:1;min-height:0;overflow-y:auto;border-radius:18px;padding:10px;border:3px solid #2A2438;
+  background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.06),transparent 60%),repeating-radial-gradient(circle at 50% 50%,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),#4A3B5E;box-shadow:inset 0 6px 14px rgba(0,0,0,.45)}
+.tray-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tray-slot{border:0;border-radius:16px;padding:4px 2px 6px;cursor:pointer;background:rgba(0,0,0,.18);box-shadow:inset 0 3px 8px rgba(0,0,0,.35);color:#F3EEF8;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit}
+.tray-slot[aria-current="true"]{background:rgba(255,230,160,.22);box-shadow:inset 0 0 0 2px rgba(255,220,140,.7),inset 0 3px 8px rgba(0,0,0,.3)}
+.tray-slot:focus-visible{outline:3px solid #FFE27A;outline-offset:1px}
+.tray-pic{width:100%;aspect-ratio:1;display:grid;place-items:center;animation:traybob 3s ease-in-out infinite}
+.tray-pic img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 2px rgba(0,0,0,.35))}
+.tray-pic .ico{width:60%;height:60%}
+.tray-name{font-size:.72rem;font-weight:600;line-height:1.1;text-align:center}
+@keyframes traybob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.tray-slot.lift .tray-pic{animation:traylift .5s cubic-bezier(.3,1.4,.5,1) forwards}
+@keyframes traylift{to{transform:translateY(-30px) scale(1.6) rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.tray-pic{animation:none}.tray-slot.lift .tray-pic{animation:none;transform:scale(1.2)}}
 .drawer{
   position:fixed; z-index:40; top:0; bottom:0; left:0; width:min(300px,82vw);
   background:var(--surface); color:var(--ink);
@@ -769,11 +797,11 @@ html[data-mode="ice"]{background:#0B1626}
 
 <button class="fab" id="menuBtn"
 
- aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
-  <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+ aria-label="Open the toy tray" aria-expanded="false" aria-controls="toyTray">
+  <svg viewBox="0 0 24 24" fill="none" stroke-linejoin="round"><path d="M3.5 9.5h17v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M2.5 9.5l2-5h15l2 5"/><path d="M10 13.5h4"/></svg>
 </button>
 <div class="scrim" id="scrim"></div>
-<nav class="drawer" id="drawer" aria-label="Modes">
+<nav class="drawer" id="drawer" aria-hidden="true" hidden>
   <h2>DigiFidget</h2>
   <div class="modes">
   <button class="mode-btn" data-mode="home" aria-current="true"><span class="ico home"><svg viewBox="0 0 44 44" fill="none" stroke="#6E6680" stroke-width="2.4" stroke-linejoin="round"><path d="M10 21l12-10 12 10v12a2 2 0 0 1-2 2h-6v-8h-8v8h-6a2 2 0 0 1-2-2z"/></svg></span>Home</button>
@@ -792,8 +820,18 @@ html[data-mode="ice"]{background:#0B1626}
   <button class="mode-btn" data-mode="twisty" aria-current="false"><span class="ico twisty"><svg viewBox="0 0 36 36" fill="none" stroke-linecap="round" stroke-width="5.5"><path d="M6 26a8 8 0 0 1 8-8" stroke="#B9E8C8"/><path d="M14 18a8 8 0 0 0 8-8" stroke="#7CC4F0"/><path d="M22 10a8 8 0 0 1 8 8" stroke="#B9E8C8"/><path d="M30 18v6" stroke="#7CC4F0"/></svg></span>Twisty</button>
   <button class="mode-btn" data-mode="rocks" aria-current="false"><span class="ico rocks"><svg viewBox="0 0 36 36"><ellipse cx="18" cy="30" rx="11" ry="4" fill="#7D776E"/><ellipse cx="18" cy="23.5" rx="8" ry="3.6" fill="#A49C90"/><ellipse cx="17" cy="17.5" rx="6.5" ry="3" fill="#8E8A84"/><ellipse cx="18.5" cy="12" rx="5" ry="2.8" fill="#B3A99B"/><ellipse cx="18" cy="7" rx="3.4" ry="2.4" fill="#6F6B66"/></svg></span>Rock piling</button>
   </div>
-  <div class="pills"><button class="pill" id="drawerSettings">Settings</button><button class="pill" id="drawerBreathe" aria-pressed="false">Breathe</button></div>
 </nav>
+<div class="toytray" id="toyTray" role="dialog" aria-modal="true" aria-label="Toy tray: pick a toy" hidden>
+  <div class="tray-wood">
+    <button class="tray-handle" id="trayHandle" aria-label="Close the toy tray"><span></span></button>
+    <div class="tray-top">
+      <button class="tray-tool" id="drawerSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg></button>
+      <span class="tray-plate" id="trayPlate">My DigiFidgets</span>
+      <button class="tray-tool" id="drawerBreathe" aria-pressed="false" aria-label="Breathing guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19l8-8"/></svg></button>
+    </div>
+    <div class="tray-felt"><div class="tray-grid" id="trayGrid"></div></div>
+  </div>
+</div>
 
 <div class="breathe" id="breathe" hidden aria-hidden="true"><span class="b-ring" id="breatheRing"></span><span class="b-txt" id="breatheTxt">Breathe in</span></div>
 <button class="focus-pill" id="focusPill" hidden></button>
@@ -1029,20 +1067,12 @@ function ensureBed() {
 /* ================= menu + modes ================= */
 let mode = "home";
 const drawer = $("#drawer"), scrim = $("#scrim"), menuBtn = $("#menuBtn");
-function openDrawer() { drawer.classList.add("open"); scrim.classList.add("open"); menuBtn.setAttribute("aria-expanded", "true"); S.tick(1200, 0.12); setTimeout(() => drawer.querySelector('[aria-current="true"]').focus(), 50); }
-function closeDrawer() { drawer.classList.remove("open"); scrim.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }
-menuBtn.addEventListener("click", openDrawer);
-scrim.addEventListener("click", closeDrawer);
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
 // never zoom: block iOS pinch gestures and double-tap zoom on top of the viewport settings
 ["gesturestart", "gesturechange", "dblclick"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
-// swipe drawer closed
-let dsx = null;
-drawer.addEventListener("pointerdown", e => dsx = e.clientX);
-drawer.addEventListener("pointerup", e => { if (dsx !== null && dsx - e.clientX > 60) closeDrawer(); dsx = null; });
 
 function setMode(m) {
-  mode = m;
+  mode = m; trayNote(m);
   document.querySelectorAll(".mode").forEach(el => el.classList.toggle("active", el.id === "mode-" + m));
   document.querySelectorAll(".mode-btn").forEach(b => b.setAttribute("aria-current", b.dataset.mode === m ? "true" : "false"));
   document.documentElement.dataset.mode = m;
@@ -7839,6 +7869,99 @@ $("#custClear").addEventListener("click", e => {
 custSheet.addEventListener("click", e => { if (e.target === custSheet) closeCustomise(); });
 $("#custName").addEventListener("input", e => { TB.name = e.target.value.slice(0, 16); savePref("fidget-box-name", TB.name); if (TB.scene) tbRelabel(); });
 $("#tbSettings").addEventListener("click", () => openSettings());
+
+/* ================= the toy tray ================= */
+// The menu is a wooden pull-out drawer of the toy box: the same little 3D toys rest in felt slots, the ones you played
+// most recently first. Tap one and it lifts out, and you're carried into its mode with its colour. The toys are rendered
+// once as snapshots by the shared 3D engine, so the tray costs nothing while it's open, even over the 2D toys.
+var tray = $("#toyTray"), trayGrid = $("#trayGrid"); // (var: closeDrawer can be called before this line runs)
+const TRAY = { thumbs: {}, built: false, sy: null };
+const trayRecent = () => { try { return JSON.parse(pref("fidget-recent", "[]")) || []; } catch (e) { return []; } };
+function trayNote(m) { if (m === "home") return; const r = trayRecent().filter(x => x !== m); r.unshift(m); savePref("fidget-recent", JSON.stringify(r.slice(0, 15))); }
+function trayOrder() {
+  const all = Object.keys(MODE_INFO), rec = trayRecent().filter(m => all.includes(m));
+  return ["home", ...rec, ...all.filter(m => !rec.includes(m))];
+}
+// a tiny crate for "back to the box"
+function trayCrate() {
+  const g = new THREE.Group(), st = TB_STYLES[TB.style] || TB_STYLES.white, wood = tbT(0xFFFFFF, { map: tbWoodTex(st) });
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
+  add(new THREE.BoxGeometry(.7, .42, .5), wood, 0, .21, 0);
+  const lid = add(new THREE.BoxGeometry(.74, .06, .54), wood, 0, .5, -.12); lid.rotation.x = -.55;
+  add(new THREE.SphereGeometry(.05, 12, 8), tbT(0xEC5C9A), 0, .58, .1);
+  for (const [x, c] of [[-.18, 0xFF6FA8], [.05, 0x8B4FD8], [.22, 0x7CC4F0]]) add(new THREE.SphereGeometry(.09, 14, 10), tbT(c), x, .44, .02);
+  tbToonify(g, .02); return g;
+}
+// photograph each toy once, three-quarter view, on a transparent background
+function trayThumbs() {
+  if (TRAY.built || !ensure3D() || typeof TB_TOY === "undefined") return;
+  const r = GL.r, S = 160, dpr = r.getPixelRatio(), px = Math.round(S * dpr);
+  if (GL.w < S || GL.h < S) { GL.w = Math.max(GL.w, S); GL.h = Math.max(GL.h, S); r.setSize(GL.w, GL.h, false); }
+  const sc = new THREE.Scene(); lookLights(sc, { keyPos: [-3, 6, 4], keyI: .8, hemi: .7, fillI: .3 });
+  const cam = new THREE.PerspectiveCamera(30, 1, .05, 50), out = document.createElement("canvas"); out.width = out.height = px; const ox = out.getContext("2d");
+  const tm = r.toneMapping, cc = r.getClearColor(new THREE.Color()), ca = r.getClearAlpha();
+  r.toneMapping = THREE.NoToneMapping; r.setClearColor(0, 0); r.setScissorTest(true); r.setScissor(0, 0, S, S); r.setViewport(0, 0, S, S);
+  for (const m of ["home", ...Object.keys(MODE_INFO)]) {
+    const toy = m === "home" ? trayCrate() : tbToy(m); sc.add(toy);
+    const box = new THREE.Box3().setFromObject(toy), c = box.getCenter(new THREE.Vector3()), rad = box.getSize(new THREE.Vector3()).length() / 2;
+    const d = rad / Math.sin(15 * Math.PI / 180) * 1.05; cam.position.set(c.x + d * .55, c.y + d * .62, c.z + d * .56); cam.lookAt(c);
+    r.clear(); r.render(sc, cam);
+    ox.clearRect(0, 0, px, px); ox.drawImage(GL.canvas, 0, GL.canvas.height - px, px, px, 0, 0, px, px);
+    TRAY.thumbs[m] = out.toDataURL("image/png"); sc.remove(toy); disposeTree(toy);
+  }
+  r.setScissorTest(false); r.setViewport(0, 0, GL.w, GL.h); r.toneMapping = tm; r.setClearColor(cc, ca);
+  TRAY.built = true;
+}
+function trayFill() {
+  trayThumbs(); trayGrid.innerHTML = "";
+  for (const m of trayOrder()) {
+    const b = document.createElement("button"); b.className = "tray-slot"; b.dataset.mode = m;
+    const name = m === "home" ? "Toy box" : MODE_NAME[m] || m; b.setAttribute("aria-label", m === "home" ? "Back to the toy box" : name);
+    if (m === mode) b.setAttribute("aria-current", "true");
+    const pic = document.createElement("span"); pic.className = "tray-pic";
+    if (TRAY.thumbs[m]) { const img = new Image(); img.src = TRAY.thumbs[m]; img.alt = ""; pic.append(img); } else pic.append(icoFor(m));
+    pic.style.animationDelay = (-Math.random() * 3).toFixed(2) + "s";
+    const lab = document.createElement("span"); lab.className = "tray-name"; lab.textContent = name;
+    b.append(pic, lab); b.addEventListener("click", () => trayPick(b, m)); trayGrid.append(b);
+  }
+  const nm = (TB.name || "").trim(); $("#trayPlate").textContent = (nm ? (/s$/i.test(nm) ? nm + "'" : nm + "'s") : "My") + " DigiFidgets";
+  tray.style.setProperty("--trayWood", (TB_STYLES[TB.style] || TB_STYLES.white).base);
+}
+function trayPick(b, m) {
+  if (tray.classList.contains("picking")) return;
+  if (m === mode) { closeDrawer(); return; }
+  tray.classList.add("picking"); b.classList.add("lift");
+  const a = ac(); if (a && soundOn) { nz(a, "lowpass", 1400, 400, 1, .1, .08); tone(a, "sine", 520, 780, .1, .12, .04); } buzz(10);
+  setTimeout(() => {
+    const tint = m === "home" ? "#F1E4D3" : (TB_TOY[m] && TB_TOY[m].tint) || "#FFFFFF";
+    tbFade.style.background = tint; tbFade.classList.add("on");
+    setTimeout(() => { closeDrawer(true); setMode(m); setTimeout(() => tbFade.classList.remove("on"), 80); }, 260);
+  }, 280);
+}
+function openDrawer() {
+  trayFill(); tray.hidden = false; void tray.offsetWidth; tray.classList.add("open"); scrim.classList.add("open"); menuBtn.setAttribute("aria-expanded", "true");
+  const a = ac(); if (a && soundOn) { nz(a, "bandpass", 300, 800, 3, .1, .32, 0, .12); setTimeout(() => tone(a, "sine", 130, 80, .2, .12), 260); }
+  buzz(8); setTimeout(() => { const cur = trayGrid.querySelector('[aria-current="true"]') || trayGrid.firstChild; cur && cur.focus(); }, 60);
+}
+function closeDrawer(quiet) {
+  if (!tray) return;
+  if (!tray.classList.contains("open")) return;
+  tray.classList.remove("open", "picking"); scrim.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false");
+  if (quiet !== true) { const a = ac(); if (a && soundOn) nz(a, "bandpass", 700, 250, 3, .08, .25, 0, .06); }
+  setTimeout(() => { if (!tray.classList.contains("open")) tray.hidden = true; }, 320);
+}
+menuBtn.addEventListener("click", () => tray.classList.contains("open") ? closeDrawer() : openDrawer());
+scrim.addEventListener("click", () => closeDrawer());
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeDrawer();
+  if (!tray.classList.contains("open") || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+  const slots = [...trayGrid.children], i = slots.indexOf(document.activeElement); if (i < 0) return;
+  e.preventDefault(); const j = clamp(i + { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -4, ArrowDown: 4 }[e.key], 0, slots.length - 1); slots[j].focus();
+});
+// pull the tray down by its handle to close it
+$("#trayHandle").addEventListener("pointerdown", e => { TRAY.sy = e.clientY; e.currentTarget.setPointerCapture(e.pointerId); });
+$("#trayHandle").addEventListener("pointermove", e => { if (TRAY.sy !== null) tray.style.setProperty("--pull", Math.max(0, e.clientY - TRAY.sy) + "px"); });
+$("#trayHandle").addEventListener("pointerup", e => { const dy = TRAY.sy === null ? 0 : e.clientY - TRAY.sy; TRAY.sy = null; tray.style.setProperty("--pull", "0px"); if (dy > 60 || Math.abs(dy) < 6) closeDrawer(); });
 
 /* ================= loop + resize ================= */
 window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); if (mode === "twisty") twistySetup(); if (mode === "stones") stonesSetup(); if (mode === "ice") iceSetup(); });
