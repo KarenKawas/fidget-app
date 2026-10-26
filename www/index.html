@@ -3576,6 +3576,7 @@ const IC_FISH = [
   { id: "golden", name: "Golden fish", rarity: "Very rare", w: .2, len: .8, col: "#F5B921", back: "#E08A10", fin: "#FFE07A", shine: true, fact: "Legend says spotting one brings a lucky week." },
   { id: "glow", name: "Glow fish", rarity: "Very rare", w: .2, len: .7, col: "#2FE6CF", back: "#1B8F9E", fin: "#9BFFF0", glow: true, night: true, fact: "Only seen at night, glowing softly under the ice." },
 ];
+const IC_FISH_K = 1.7; // fish are drawn this much bigger than their nominal length, so their detail reads through the ice
 const IC_RARE = { Common: "#8E9AA6", Uncommon: "#3FAE6A", Rare: "#4A8CF0", "Very rare": "#B867F0" };
 
 /* ---- the snow: a heightfield you push around ---- */
@@ -3596,9 +3597,9 @@ function icFresh(full) {
   icUpload(0, 0, IC.gx - 1, IC.gz - 1);
 }
 function icUpload(i0, j0, i1, j1) {
-  const P = IC.snow.geometry.attributes.position;
-  for (let j = Math.max(0, j0); j <= Math.min(IC.gz - 1, j1); j++) for (let i = Math.max(0, i0); i <= Math.min(IC.gx - 1, i1); i++) P.setY(icIdx(i, j), IC.h[icIdx(i, j)]);
-  P.needsUpdate = true; IC.normals = true;
+  const P = IC.snow.geometry.attributes.position, T = IC.htex.image.data;
+  for (let j = Math.max(0, j0); j <= Math.min(IC.gz - 1, j1); j++) for (let i = Math.max(0, i0); i <= Math.min(IC.gx - 1, i1); i++) { const k = icIdx(i, j); P.setY(k, IC.h[k]); T[k * 4] = Math.min(255, IC.h[k] * 255); }
+  P.needsUpdate = true; IC.normals = true; IC.htex.needsUpdate = true;
 }
 // one brush stamp: snow under the finger is pushed out to a ring around it, mostly to the sides, with clumps thrown off
 function icBrush(x, z, mx, mz) {
@@ -3648,31 +3649,65 @@ function icClumpStep(dt) {
 }
 
 /* ---- fish ---- */
-function icFishTex(sp) {
+// a 3D toon fish: a rounded body in two halves (the back half bends as it swims), a dark back fading to a pale belly,
+// the species' pattern, a dorsal fin, flapping side fins, a forked tail and big eyes, all inked
+function icBodyGeo(front, wf) {
+  // the profile along the fish (y here, turned to x below): round at the nose, fullest just ahead of the middle, thin at the tail
+  const pts = [];
+  if (front) for (let i = 0; i <= 10; i++) { const t = i / 10, y = -.04 + t * .54; pts.push(new THREE.Vector2(.5 * Math.pow(Math.cos(t * Math.PI / 2), .55) + .001, y)); }
+  else for (let i = 0; i <= 10; i++) { const t = i / 10, y = .02 - t * .5; pts.push(new THREE.Vector2(Math.max(.05, .5 * (1 - Math.pow(t, 1.5) * .9)), y)); }
+  if (!front) pts.reverse();
+  const g = new THREE.LatheGeometry(pts, 18); g.rotateZ(-Math.PI / 2);
+  return g;
+}
+function icBodyColors(geo, sp) {
+  const P = geo.attributes.position, c = new Float32Array(P.count * 3), back = new THREE.Color(sp.back).convertSRGBToLinear(), mid = new THREE.Color(sp.col).convertSRGBToLinear(), belly = new THREE.Color(sp.belly || sp.col).convertSRGBToLinear().lerp(new THREE.Color(1, 1, 1), sp.belly ? 0 : .35), tmp = new THREE.Color();
+  for (let i = 0; i < P.count; i++) {
+    const y = P.getY(i), z = P.getZ(i), up = y / (Math.hypot(y, z) || 1); // +1 along the back, -1 under the belly
+    if (up > 0) tmp.copy(mid).lerp(back, Math.min(1, up * 1.3)); else tmp.copy(mid).lerp(belly, Math.min(1, -up * 1.4));
+    c.set([tmp.r, tmp.g, tmp.b], i * 3);
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(c, 3));
+}
+function icPatternTex(sp) {
+  // patterns across the body: u runs round the body, v runs nose to tail; white where there is no pattern
   return tbCanvas(256, 128, (x, w, h) => {
-    // u runs nose to tail around the body; the top of the texture is the fish's back
-    const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, sp.back); g.addColorStop(.55, sp.col); g.addColorStop(1, sp.belly || sp.col); x.fillStyle = g; x.fillRect(0, 0, w, h);
-    const R = mulberry(sp.id.length * 13);
-    if (sp.bands) { x.fillStyle = "rgba(40,40,20,.45)"; for (let k = 0; k < 6; k++) x.fillRect(w * (.18 + k * .11), 0, w * .045, h * .7); }
-    if (sp.spots) { x.fillStyle = sp.spots; for (let k = 0; k < 60; k++) { x.beginPath(); x.arc(R() * w, R() * h * .7, 2 + R() * 3, 0, 6.3); x.fill(); } }
-    if (sp.patches) { x.fillStyle = sp.patches; for (let k = 0; k < 5; k++) { x.beginPath(); x.ellipse(R() * w, R() * h * .6, 14 + R() * 24, 10 + R() * 16, R() * 3, 0, 6.3); x.fill(); } }
-    if (sp.shine) { x.fillStyle = "rgba(255,255,220,.6)"; for (let k = 0; k < 80; k++) x.fillRect(R() * w, R() * h, 2, 2); }
+    x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, w, h); const R = mulberry(sp.id.length * 13);
+    if (sp.bands) { x.fillStyle = "rgba(40,40,20,.55)"; for (let k = 0; k < 6; k++) x.fillRect(0, h * (.12 + k * .13), w, h * .05); }
+    if (sp.spots) { x.fillStyle = sp.spots; for (let k = 0; k < 70; k++) { x.beginPath(); x.arc(R() * w, R() * h, 2 + R() * 3, 0, 6.3); x.fill(); } }
+    if (sp.patches) { x.fillStyle = sp.patches; for (let k = 0; k < 7; k++) { x.beginPath(); x.ellipse(R() * w, R() * h, 16 + R() * 26, 10 + R() * 14, R() * 3, 0, 6.3); x.fill(); } }
+    if (sp.shine) { x.fillStyle = "rgba(255,255,210,.9)"; for (let k = 0; k < 90; k++) x.fillRect(R() * w, R() * h, 2, 2); }
   });
 }
 function icFishMesh(sp) {
-  const g = new THREE.Group(), L = sp.len, wid = L * (sp.round ? .42 : sp.slim ? .2 : .3);
-  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), tbT(0xFFFFFF, { map: icFishTex(sp) }));
-  body.scale.set(L * .5, wid * .8, wid * .5); body.rotation.x = Math.PI / 2; g.add(body);
-  if (sp.glow) { body.material.emissive = new THREE.Color(sp.col).convertSRGBToLinear().multiplyScalar(.7); }
+  const g = new THREE.Group(), L = sp.len * IC_FISH_K, wf = sp.round ? .46 : sp.slim ? .2 : .32, W = L * wf, H = W * (sp.round ? 1.15 : .85);
+  const map = (sp.bands || sp.spots || sp.patches || sp.shine) ? icPatternTex(sp) : null;
+  const bodyMat = tbT(0xFFFFFF, { map, vertexColors: true });
+  if (sp.glow) bodyMat.emissive = new THREE.Color(sp.col).convertSRGBToLinear().multiplyScalar(.75);
   const finMat = tbT(sp.fin, { side: THREE.DoubleSide });
-  // tail: a flat fan that wags; side fins
-  const tailShape = new THREE.Shape(); tailShape.moveTo(0, 0); tailShape.lineTo(-L * .32, L * .18); tailShape.quadraticCurveTo(-L * .24, 0, -L * .32, -L * .18); tailShape.lineTo(0, 0);
-  const tail = new THREE.Mesh(new THREE.ShapeGeometry(tailShape), finMat); tail.rotation.x = -Math.PI / 2;
-  const tailPivot = new THREE.Group(); tailPivot.position.x = -L * .46; tailPivot.add(tail); g.add(tailPivot);
-  for (const s of [-1, 1]) { const f = new THREE.Mesh(new THREE.CircleGeometry(L * .12, 12, 0, Math.PI), finMat); f.rotation.set(-Math.PI / 2, 0, s * .9); f.position.set(L * .08, 0, s * wid * .5); g.add(f); }
-  if (sp.whiskers) for (const s of [-1, 1]) { const wk = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, L * .4, 4), tbT(0x2A2438)); wk.rotation.set(0, 0, Math.PI / 2); wk.rotation.y = s * .5; wk.position.set(L * .62, 0, s * wid * .3); g.add(wk); }
-  tbToonify(g, .012);
-  g.userData.tail = tailPivot; return g;
+  if (sp.glow) finMat.emissive = new THREE.Color(sp.fin).convertSRGBToLinear().multiplyScalar(.5);
+  const part = (geo, mat, parent) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; parent.add(m); return m; };
+  // the front half, with eyes and side fins
+  const fg = icBodyGeo(true, wf); icBodyColors(fg, sp); const front = part(fg, bodyMat, g); front.scale.set(L, H, W);
+  for (const s of [-1, 1]) {
+    const eye = part(new THREE.SphereGeometry(L * .065, 12, 8), tbT(0xFFFFFF), g); eye.position.set(L * .3, H * .2, s * W * .34);
+    const pup = new THREE.Mesh(new THREE.SphereGeometry(L * .04, 10, 8), new THREE.MeshBasicMaterial({ color: 0x1E1A26 })); pup.position.set(L * .025, L * .01, s * L * .03); pup.userData.noInk = true; eye.add(pup);
+    const finPiv = new THREE.Group(); finPiv.position.set(L * .1, -H * .1, s * W * .45); g.add(finPiv);
+    const fin = part(new THREE.CircleGeometry(L * .13, 12, 0, Math.PI), finMat, finPiv); fin.rotation.set(-Math.PI / 2, 0, s > 0 ? Math.PI * 1.15 : -Math.PI * .15);
+    finPiv.userData.side = s; (g.userData.fins = g.userData.fins || []).push(finPiv);
+  }
+  // the dorsal fin along the back
+  const dShape = new THREE.Shape(); dShape.moveTo(-L * .18, 0); dShape.quadraticCurveTo(-L * .05, H * .55, L * .14, 0); dShape.lineTo(-L * .18, 0);
+  const dorsal = part(new THREE.ShapeGeometry(dShape), finMat, g); dorsal.position.y = H * .42;
+  // the back half bends at the middle, and the tail bends again at its end
+  const rear = new THREE.Group(); g.add(rear);
+  const rg = icBodyGeo(false, wf); icBodyColors(rg, sp); part(rg, bodyMat, rear).scale.set(L, H, W);
+  const tailPiv = new THREE.Group(); tailPiv.position.x = -L * .46; rear.add(tailPiv);
+  const tShape = new THREE.Shape(); tShape.moveTo(L * .03, 0); tShape.lineTo(-L * .3, L * .2); tShape.quadraticCurveTo(-L * .2, 0, -L * .3, -L * .2); tShape.lineTo(L * .03, 0);
+  const tail = part(new THREE.ShapeGeometry(tShape), finMat, tailPiv); tail.rotation.x = -Math.PI / 2 + .25;
+  if (sp.whiskers) for (const s of [-1, 1]) { const wk = part(new THREE.CylinderGeometry(.01, .006, L * .45, 4), tbT(0x2A2438), g); wk.rotation.set(0, s * .5, Math.PI / 2); wk.position.set(L * .62, -H * .1, s * W * .3); }
+  tbToonify(g, .014);
+  g.userData.rear = rear; g.userData.tail = tailPiv; return g;
 }
 function icPick() {
   const night = document.documentElement.classList.contains("dark") || new Date().getHours() >= 20 || new Date().getHours() < 6;
@@ -3695,10 +3730,11 @@ function icFishStep(dt) {
     f.a += clamp(da, -1.6 * dt, 1.6 * dt);
     const sp = (.45 + (f.scare > 0 ? 2.4 : 0)) * (f.sp.len < .7 ? 1.2 : 1); f.v += (sp - f.v) * Math.min(1, dt * 2); f.scare -= dt;
     f.x += Math.cos(f.a) * f.v * dt; f.z -= Math.sin(f.a) * f.v * dt;
-    f.m.position.set(f.x, f.y, f.z); f.m.rotation.y = f.a + Math.sin(f.ph) * .06; f.m.userData.tail.rotation.y = Math.sin(f.ph) * .45;
+    f.m.position.set(f.x, f.y, f.z); f.m.rotation.y = f.a + Math.sin(f.ph) * .07; f.m.userData.rear.rotation.y = Math.sin(f.ph - .6) * .32; f.m.userData.tail.rotation.y = Math.sin(f.ph - 1.4) * .5;
+    for (const fp of f.m.userData.fins) fp.rotation.y = fp.userData.side * (.2 + Math.sin(f.ph * .7) * .25);
     // discovering: enough of the fish under clear ice for a moment
     if (!IC.found.has(f.sp.id)) {
-      let clear = 0; for (let k = -2; k <= 2; k++) { const t = k / 2 * f.sp.len * .4; if (icHeightAt(f.x + Math.cos(f.a) * t, f.z - Math.sin(f.a) * t) < .1) clear++; }
+      let clear = 0; for (let k = -2; k <= 2; k++) { const t = k / 2 * f.sp.len * IC_FISH_K * .4; if (icHeightAt(f.x + Math.cos(f.a) * t, f.z - Math.sin(f.a) * t) < .1) clear++; }
       f.seen = clear >= 2 ? f.seen + dt : Math.max(0, f.seen - dt * .5);
       if (f.seen > .8) icDiscover(f.sp);
     }
@@ -3786,12 +3822,23 @@ function iceBuild() {
   st.wrapS = st.wrapT = THREE.RepeatWrapping; st.repeat.set(3, 5);
   const snowMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, map: st, roughness: .95 });
   snowMat.onBeforeCompile = sh => {
-    sh.vertexShader = "varying float vH;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vH = position.y;");
+    sh.uniforms.uSnowH = snowMat.userData.h;
+    // the edge of the snow is read from a smoothly filtered height texture rather than the mesh's corners, so cleared
+    // paths have round, clean curves (the mesh alone gives zig-zags along its triangles)
+    sh.vertexShader = "varying vec2 vG;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+  vG = vec2(((position.x + ${(IC.sx / 2).toFixed(2)}) / ${(IC.sx).toFixed(2)} * ${(IC.gx - 1).toFixed(2)} + .5) / ${(IC.gx).toFixed(2)}, ((position.z + ${(IC.sz / 2).toFixed(2)}) / ${(IC.sz).toFixed(2)} * ${(IC.gz - 1).toFixed(2)} + .5) / ${(IC.gz).toFixed(2)});`);
     // thin snow turns icy blue at the edges, and where it's gone the ice shows through
-    sh.fragmentShader = "varying float vH;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>\n  diffuseColor.a = smoothstep(.05, .12, vH); if (diffuseColor.a < .01) discard;\n  diffuseColor.rgb *= mix(vec3(.8, .9, 1.0), vec3(1.0), smoothstep(.08, .26, vH));");
+    sh.fragmentShader = "uniform sampler2D uSnowH;\nvarying vec2 vG;\n" + sh.fragmentShader.replace("#include <color_fragment>", `#include <color_fragment>
+  vec2 px = vec2(.6 / ${(IC.gx).toFixed(2)}, .6 / ${(IC.gz).toFixed(2)});
+  float hh = (texture2D(uSnowH, vG).r * 2.0 + texture2D(uSnowH, vG + px).r + texture2D(uSnowH, vG - px).r + texture2D(uSnowH, vG + vec2(px.x, -px.y)).r + texture2D(uSnowH, vG + vec2(-px.x, px.y)).r) / 6.0;
+  diffuseColor.a = smoothstep(.05, .1, hh); if (diffuseColor.a < .01) discard;
+  diffuseColor.rgb *= mix(vec3(.8, .9, 1.0), vec3(1.0), smoothstep(.08, .26, hh));`);
   };
   snowMat.customProgramCacheKey = () => "snowh";
   snowMat.transparent = true;
+  IC.htex = new THREE.DataTexture(new Uint8Array(IC.gx * IC.gz * 4).fill(255), IC.gx, IC.gz, THREE.RGBAFormat);
+  IC.htex.magFilter = IC.htex.minFilter = THREE.LinearFilter; IC.htex.generateMipmaps = false; IC.htex.needsUpdate = true;
+  snowMat.userData.h = { value: IC.htex };
   IC.snow = new THREE.Mesh(geo, snowMat); IC.snow.renderOrder = 3; IC.snow.receiveShadow = IC.snow.castShadow = true; sc.add(IC.snow);
   IC.h = new Float32Array(IC.gx * IC.gz); IC.base = new Float32Array(IC.gx * IC.gz); icFresh(true);
   IC.clumpMat = tbT(0xFFFFFF);
