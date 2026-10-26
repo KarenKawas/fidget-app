@@ -3559,7 +3559,7 @@ document.documentElement.style.setProperty("--stbg", ST_TIMES[ST.time].hor);
 // A frozen lake under thick snow. Brush the snow aside (it piles up at the edges and clumps tumble off) to uncover dark,
 // clear ice with fish swimming below. Keep a fish in view for a moment to discover it; the journal collects all twelve.
 const secIce = $("#mode-ice"), iceHint = $("#iceHint"), iceCard = $("#iceCard");
-const IC = { W: 0, scene: null, cam: null, gx: 72, gz: 128, sx: 9, sz: 16, h: null, base: null, fish: [], ptrs: new Map(), last: 0, t: 0,
+const IC = { W: 0, scene: null, cam: null, gx: 84, gz: 168, sx: 10, sz: 20, h: null, base: null, fish: [], ptrs: new Map(), last: 0, t: 0,
   clumps: [], found: new Set(), refillT: 0, dirty: null, bed: null, sndT: 0 };
 try { (JSON.parse(pref("fidget-ice-found", "[]")) || []).forEach(id => IC.found.add(id)); } catch (e) {}
 const IC_FISH = [
@@ -3607,7 +3607,7 @@ function icBrush(x, z, mx, mz) {
   for (let j = Math.floor(cj - rj); j <= Math.ceil(cj + rj); j++) for (let i = Math.floor(ci - ri); i <= Math.ceil(ci + ri); i++) {
     if (i < 0 || j < 0 || i >= IC.gx || j >= IC.gz) continue;
     const wx = -IC.sx / 2 + i / (IC.gx - 1) * IC.sx, wz = -IC.sz / 2 + j / (IC.gz - 1) * IC.sz, dx = wx - x, dz = wz - z, d = Math.hypot(dx, dz), k = icIdx(i, j);
-    if (d < r) { const cut = IC.h[k] * (d < r * .75 ? 1 : .7); IC.h[k] -= cut; taken += cut; }
+    if (d < r) { const e = d / r, cut = IC.h[k] * (e < .55 ? 1 : 1 - (e - .55) / .45 * .85); IC.h[k] -= cut; taken += cut; }
     else if (d < r * 2.2) {
       const nx = dx / d, nz = dz / d, side = Math.abs(nx * mz - nz * mx), ahead = Math.max(0, nx * mx + nz * mz);
       // snow is shoved out to the sides of the stroke (not ahead, or it would just plough along in front of you)
@@ -3622,6 +3622,12 @@ function icBrush(x, z, mx, mz) {
   // clumps tumble off the sides of the stroke
   if (taken > .25 && Math.random() < .5) for (const sgn of [-1, 1]) if (Math.random() < .6) icClump(x + mz * sgn * r * 1.3, z - mx * sgn * r * 1.3, mz * sgn * rnd(.6, 1.4) + mx * .5, -mx * sgn * rnd(.6, 1.4) + mz * .5, Math.min(.16, .06 + taken * .03));
   return taken;
+}
+// the sound of pushing soft snow: a low, muffled swoosh with a gentle squeak on top, slow to rise and fall
+function icMush(v) {
+  const a = ac(); if (!a || !soundOn) return;
+  nz(a, "lowpass", 520 + Math.random() * 120, 220, .7, .16 * v, .32, 0, .07);
+  nz(a, "bandpass", 900 + Math.random() * 300, 600, 1.2, .045 * v, .26, .03, .06);
 }
 function icClump(x, z, vx, vz, s) {
   if (!IC.clumpGeo) IC.clumpGeo = lumpy(new THREE.IcosahedronGeometry(1, 1), mulberry(7), .25);
@@ -3782,10 +3788,11 @@ function iceBuild() {
   snowMat.onBeforeCompile = sh => {
     sh.vertexShader = "varying float vH;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vH = position.y;");
     // thin snow turns icy blue at the edges, and where it's gone the ice shows through
-    sh.fragmentShader = "varying float vH;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>\n  if (vH < .08) discard;\n  diffuseColor.rgb *= mix(vec3(.72, .86, 1.0), vec3(1.0), smoothstep(.08, .22, vH));");
+    sh.fragmentShader = "varying float vH;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>\n  diffuseColor.a = smoothstep(.05, .12, vH); if (diffuseColor.a < .01) discard;\n  diffuseColor.rgb *= mix(vec3(.8, .9, 1.0), vec3(1.0), smoothstep(.08, .26, vH));");
   };
   snowMat.customProgramCacheKey = () => "snowh";
-  IC.snow = new THREE.Mesh(geo, snowMat); IC.snow.receiveShadow = IC.snow.castShadow = true; sc.add(IC.snow);
+  snowMat.transparent = true;
+  IC.snow = new THREE.Mesh(geo, snowMat); IC.snow.renderOrder = 3; IC.snow.receiveShadow = IC.snow.castShadow = true; sc.add(IC.snow);
   IC.h = new Float32Array(IC.gx * IC.gz); IC.base = new Float32Array(IC.gx * IC.gz); icFresh(true);
   IC.clumpMat = tbT(0xFFFFFF);
   // falling snowflakes
@@ -3798,7 +3805,8 @@ function iceBuild() {
 function iceSetup() {
   if (typeof THREE === "undefined" || !mount3D(secIce)) return;
   if (!IC.scene) iceBuild();
-  const asp = IC.cam.aspect = GL.w / GL.h, t = Math.tan(19 * Math.PI / 180), d = Math.max((IC.sz / 2 - .6) / t, (IC.sx / 2 - .4) / (t * asp));
+  // fit the camera inside the snow field on every screen shape, so the edge of the field is never seen
+  const asp = IC.cam.aspect = GL.w / GL.h, t = Math.tan(19 * Math.PI / 180), d = Math.min((IC.sz / 2 - 1.2) / t, (IC.sx / 2 - .5) / (t * asp));
   IC.cam.position.set(0, d * .985, d * .17); IC.cam.lookAt(0, 0, .3); IC.cam.updateProjectionMatrix(); IC.W = GL.w;
 }
 function iceFrame(now) {
@@ -3837,7 +3845,7 @@ on3D(secIce, "pointermove", e => {
   for (let k = 1; k <= n; k++) taken += icBrush(P.p.x + dx * k / n, P.p.z + dz * k / n, dx / l, dz / l);
   P.p = p;
   const now = performance.now();
-  if (taken > .05 && now - IC.sndT > 70) { IC.sndT = now; S.snow(Math.min(1, .3 + taken * .15)); buzz(Math.min(8, 2 + taken * .5) | 0); }
+  if (taken > .05 && now - IC.sndT > 110) { IC.sndT = now; icMush(Math.min(1, .3 + taken * .12)); buzz(Math.min(6, 2 + taken * .3) | 0); }
 });
 const iceEnd = e => {
   const P = IC.ptrs.get(e.pointerId); if (!P) return; IC.ptrs.delete(e.pointerId);
@@ -3885,7 +3893,7 @@ let TW_SAMP = null; // three points along each link's arc (made once three.js ha
 const TW_REACH = 3.6; // pieces stay within this distance of the centre (what a portrait screen shows)
 // the piece's points (at their final notches), in world space
 function twPoints(p, root = p.root) {
-  TW_SAMP = TW_SAMP || [15, 45, 75].map(d => d * Math.PI / 180).map(a => new THREE.Vector3(TW_R * Math.sin(a), TW_R - TW_R * Math.cos(a), 0));
+  TW_SAMP = TW_SAMP || [0, 15, 30, 45, 60, 75, 90].map(d => d * Math.PI / 180).map(a => new THREE.Vector3(TW_R * Math.sin(a), TW_R - TW_R * Math.cos(a), 0));
   const out = [], M = root.clone(), R = new THREE.Matrix4();
   p.segs.forEach((s, i) => { if (i) M.multiply(twEnd()).multiply(R.makeRotationX(s.tt)); for (const pt of TW_SAMP) out.push(pt.clone().applyMatrix4(M)); });
   return out;
@@ -3966,7 +3974,7 @@ function twLayout() {
   const p = twPiece(new THREE.Matrix4(), snake);
   // centre the snake over the mat
   const F = twFrames(p), c = new THREE.Vector3(); F.forEach(M => c.add(new THREE.Vector3().setFromMatrixPosition(M))); c.divideScalar(F.length);
-  p.root.makeTranslation(-c.x, 1.6 - c.y, -c.z);
+  p.root.makeTranslation(-c.x, 1.6 - c.y, -c.z); twSettle(p, true);
   twPiece(new THREE.Matrix4().makeRotationY(.6).setPosition(2.9, .9, .3), [0, Q], 13);
   twPiece(new THREE.Matrix4().makeRotationY(-1.2).setPosition(-3.1, .9, -.4), [0], 15);
   twPiece(new THREE.Matrix4().makeRotationY(2.2).setPosition(1.6, .9, -3.2), [0], 16);
