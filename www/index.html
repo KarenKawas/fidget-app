@@ -38,6 +38,11 @@ html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE
 html[data-mode="zen"].zen-night{background:radial-gradient(circle at 82% 10%,#F6F2DC 0 22px,rgba(246,242,220,.22) 26px,rgba(246,242,220,0) 64px),radial-gradient(ellipse at 50% 45%,#1E2446,#0A0C1A 80%)}
 html.zen-night #mode-zen .hint{color:rgba(220,228,255,.75)}
 html[data-mode="cradle"]{background:#F1E6D6}
+/* desk mode: the office dims to a soft lamp-lit glow while the cradle keeps going */
+.desk-dim{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity 2.5s ease;background:radial-gradient(ellipse at 35% 45%,rgba(30,20,10,.35),rgba(10,8,20,.82) 75%);display:flex;align-items:flex-end;justify-content:center}
+.desk-dim span{margin-bottom:calc(env(safe-area-inset-bottom,0px) + 40px);color:rgba(255,236,200,.55);font-size:.85rem;letter-spacing:.05em}
+#mode-cradle.desk .desk-dim{opacity:1}
+#mode-cradle.desk ~ .fab,html[data-mode="cradle"] #mode-cradle.desk #cHint{opacity:.15}
 #mode-cradle #cHint{color:#5A4636!important;text-shadow:none!important}
 html[data-mode="rocks"]{background:linear-gradient(180deg,#7FB6DE,#E9F1F3 45%,#E0BE88 46%)}
 html[data-mode="cube"]{background:radial-gradient(ellipse at 50% 40%,#F6F3FA,#D9D0E8 80%)}
@@ -736,6 +741,7 @@ html[data-mode="ice"]{background:#0B1626}
 
   <section class="mode" id="mode-cradle" aria-label="Newton's cradle. Pull a ball to the side and let go; drag the background to look around.">
     <p class="hint" id="cHint">Pull a ball out and let go</p>
+    <div class="desk-dim" aria-hidden="true"><span>Desk mode · touch to wake</span></div>
   </section>
   <section class="mode" id="mode-cube" aria-label="Dodec, a twelve-sided fidget toy. Drag to turn it, then press, roll, flick and spin the controls on each side.">
     <p class="hint" id="cubeHint">Drag to turn it · play with every side</p>
@@ -5865,12 +5871,29 @@ function ncDesk(sc) {
   L(new THREE.CylinderGeometry(.06, .06, 1.4, 10), 0x5CC8B8, 1.0, 2.6, 0).rotation.z = -1.1;
   const shade = L(new THREE.ConeGeometry(.55, .7, 24, 1, true), 0xFFC93C, 1.6, 2.7, 0); shade.rotation.z = -2.2; shade.material.side = THREE.DoubleSide;
   // a stack of books with a mug, a pencil cup and a little plant on the right
-  [[2.2, .32, 1.5, 0xE5484D, .1], [2.0, .28, 1.4, 0x5CC8B8, -.08], [1.8, .3, 1.3, 0xFFC93C, .05]].reduce((y, [w, h, d, c, r]) => { add(new THREE.BoxGeometry(w, h, d), c, 4.2, y + h / 2, -2.4).rotation.y = r; return y + h; }, -.26);
-  add(new THREE.CylinderGeometry(.32, .28, .6, 20), 0xF4F1EA, 4.3, .94, -2.4);
+  [[2.2, .32, 1.5, 0xE5484D, .1], [2.0, .28, 1.4, 0x5CC8B8, -.08], [1.8, .3, 1.3, 0xFFC93C, .05]].reduce((y, [w, h, d, c, r]) => { add(new THREE.BoxGeometry(w, h, d), c, 7.4, y + h / 2, -2.6).rotation.y = r; return y + h; }, -.26);
+  add(new THREE.CylinderGeometry(.32, .28, .6, 20), 0xF4F1EA, 7.5, .94, -2.6);
   add(new THREE.CylinderGeometry(.26, .24, .7, 20), 0xB57BFF, -4.6, .09, .9);
   for (let i = 0; i < 6; i++) { const p = add(new THREE.CylinderGeometry(.03, .03, .9, 6), [0xFFC93C, 0xE5484D, 0x4AA8FF][i % 3], -4.6 + Math.cos(i) * .1, .55, .9 + Math.sin(i) * .1); p.rotation.set(Math.sin(i * 2) * .2, 0, Math.cos(i * 2) * .2); }
   add(new THREE.CylinderGeometry(.35, .28, .55, 18), 0xE7A27C, 5.4, .02, .4);
   for (let i = 0; i < 5; i++) { const lf = add(new THREE.SphereGeometry(.3, 12, 8), 0x4FA24A, 5.4 + Math.cos(i * 1.3) * .25, .55 + (i % 2) * .2, .4 + Math.sin(i * 1.3) * .25); lf.scale.set(1, .5, .7); lf.rotation.y = i; }
+  // the office: a monitor with a slow screensaver behind the cradle, a keyboard, and a pinboard of notes
+  const mon = new THREE.Group(); mon.position.set(4.6, -.26, -3.3); mon.rotation.y = -.45; g.add(mon);
+  const M = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, tbT(col)); m.position.set(x, y, z); m.castShadow = true; mon.add(m); return m; };
+  M(new THREE.BoxGeometry(1.4, .08, .9), 0x2A2438, 0, .04, 0); M(new THREE.BoxGeometry(.18, 1.6, .18), 0x2A2438, 0, .8, -.1);
+  M(new THREE.BoxGeometry(4.2, 2.6, .22), 0x2A2438, 0, 2.6, 0);
+  NC.scrC = document.createElement("canvas"); NC.scrC.width = 96; NC.scrC.height = 60; NC.scrTex = new THREE.CanvasTexture(NC.scrC); NC.scrTex.encoding = THREE.sRGBEncoding;
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 2.35), new THREE.MeshBasicMaterial({ map: NC.scrTex })); scr.position.set(0, 2.6, .12); scr.userData.noInk = true; mon.add(scr);
+  const kb = add(new THREE.BoxGeometry(3.4, .14, 1.1), 0xF4F1EA, 3.4, -.19, 1.9); kb.rotation.y = -.3;
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) { const k = new THREE.Mesh(new THREE.BoxGeometry(.28, .06, .24), tbT(0xDCD6CC)); k.position.set(-1.35 + c * .34, .1, -.32 + r * .32); kb.add(k); }
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.2), new THREE.MeshBasicMaterial({ map: tbCanvas(256, 168, (x, w, h) => {
+    x.fillStyle = "#C9935C"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(0,0,0,.08)"; for (let i = 0; i < 400; i++) x.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    for (const [px, py, c, r] of [[30, 26, "#FFE27A", -.1], [110, 20, "#9FE3C4", .08], [180, 34, "#F4A6B8", -.05], [60, 96, "#A9D8FF", .06], [150, 100, "#FFE27A", -.08]]) {
+      x.save(); x.translate(px, py); x.rotate(r); x.fillStyle = c; x.fillRect(0, 0, 54, 46); x.fillStyle = "rgba(42,36,56,.35)"; for (let l = 0; l < 3; l++) x.fillRect(8, 12 + l * 10, 36 - l * 8, 3); x.fillStyle = "#E5484D"; x.beginPath(); x.arc(27, 4, 4, 0, 6.3); x.fill(); x.restore();
+    }
+    x.strokeStyle = "#2A2438"; x.lineWidth = 8; x.strokeRect(0, 0, w, h);
+  }) }));
+  board.position.set(-4.2, 5.2, -4.95); sc.add(board);
   tbToonify(g, .03); sc.add(g);
   // a warm pool from the lamp
   const spot = new THREE.SpotLight(0xFFD49A, .6, 14, .9, .8, 1.2); spot.position.set(-2.4, 3.4, -2.2); spot.target.position.set(0, 0, 0); sc.add(spot); sc.add(spot.target);
@@ -5906,13 +5929,38 @@ function cradleBuild() {
   NC.strings = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x6E6A70, transparent: true, opacity: .8 })); sc.add(NC.strings);
   NC.plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); NC.v = new THREE.Vector3();
 }
+function ncScreenStep(t) {
+  if (!NC.scrC || (NC.scrT = (NC.scrT || 0) + 1) % 8) return;
+  const x = NC.scrC.getContext("2d"), w = 96, h = 60, g = x.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "#1E2A4A"); g.addColorStop(1, "#3A2E5E"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  // a slow, calm screensaver: soft bubbles drifting up
+  for (let i = 0; i < 6; i++) { const yy = h - ((t * 6 + i * 13) % (h + 10)), xx = 12 + i * 15 + Math.sin(t * .6 + i) * 4; x.fillStyle = `hsla(${200 + i * 25},70%,70%,.6)`; x.beginPath(); x.arc(xx, yy, 4 + (i % 3), 0, 6.3); x.fill(); }
+  NC.scrTex.needsUpdate = true;
+}
+function ncDeskMode(dt) {
+  NC.idle = (NC.idle || 0) + dt;
+  const wait = typeof focusEnd !== "undefined" && focusEnd > Date.now() ? 15 : 60, on = NC.idle > wait;
+  if (on !== !!NC.desk) { NC.desk = on; secCradle.classList.toggle("desk", on); }
+  if (on) {
+    // keep it clacking: if the cradle has nearly stopped, nudge the end ball out again
+    const e = NC.th.reduce((s, v, i) => s + Math.abs(v) + Math.abs(NC.om[i]) * .3, 0);
+    if (e < .05 && (NC.nudge = (NC.nudge || 0) + dt) > 4) { NC.nudge = 0; NC.th[0] = -.55; NC.om[0] = 0; }
+  }
+  const a = actx; if (!a) return;
+  if (!NC.hum) { const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = noise(a); s.loop = true; f.type = "lowpass"; f.frequency.value = 180; g.gain.value = 0; s.connect(f).connect(g).connect(out(a)); s.start(); NC.hum = { g }; }
+  NC.hum.g.gain.setTargetAtTime(mode === "cradle" && soundOn && ambienceOn ? (on ? .035 : .02) : 0, a.currentTime, .6);
+  // the odd soft keyboard tap from the next desk over
+  if (on && soundOn && ambienceOn && Math.random() < dt * .6) for (let k = 0, n = 2 + Math.random() * 5 | 0; k < n; k++) setTimeout(() => { const b = ac(); if (b) nz(b, "bandpass", 2400 + Math.random() * 800, 1800, 3, .012, .03); }, k * rnd(90, 160));
+}
+function ncWake() { NC.idle = 0; if (NC.desk) { NC.desk = false; secCradle.classList.remove("desk"); } }
 function cradleFrame(now) {
   const dts = clamp((now - (NC.last || now - 16.7)) / 1000, .004, .04); NC.last = now;
+  ncDeskMode(dts); ncScreenStep(now / 1000);
   let hitV = 0; const sub = 12;
   for (let k = 0; k < sub; k++) hitV = Math.max(hitV, cradleStep(dts / sub));
   if (hitV > .09 && now - NC.hit > 35) {
     NC.hit = now; const v = Math.min(1, hitV / 3.2);
-    S.dong(.3 + v * .7);
+    S.dong((.3 + v * .7) * (NC.desk ? .45 : 1));
     if (now - NC.bz > 60) { NC.bz = now; buzz(Math.round(6 + v * 18)); }
   }
   const pos = NC.strings.geometry.attributes.position.array;
@@ -5926,7 +5974,7 @@ function cradleFrame(now) {
   toonRender(GL.r, NC.scene, NC.cam, TOON_INK.cradle);
 }
 on3D(secCradle, "pointerdown", e => {
-  if (!NC.scene) return;
+  if (!NC.scene) return; ncWake();
   GL.canvas.setPointerCapture(e.pointerId); ac(); cHint.classList.add("gone");
   NC.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (NC.ptrs.size === 2) { NC.grab = null; NC.orbit = null; const [a, b] = [...NC.ptrs.values()]; NC.pinch = Math.hypot(a.x - b.x, a.y - b.y) || 1; return; }
@@ -8179,6 +8227,7 @@ if (location.hash) window.__fidget = { IC, iceFrame, icBrush, icHeightAt, icPick
   if (mode !== "zen" && Z.bed) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .1);
   if (mode === "cradle" && NC.W) cradleFrame(now || 0);
   if (mode === "cube" && CB.W) cubeFrame(now || 0);
+  if (mode !== "cradle" && NC.hum) NC.hum.g.gain.setTargetAtTime(0, actx.currentTime, .2);
   if (mode === "board" && BD.W) bdFrame(now || 0);
   if (mode === "twisty" && TW.W) twistyFrame(now || 0);
   else if (TW.tv) TW.tv.g.gain.setTargetAtTime(0, actx.currentTime, .2);
