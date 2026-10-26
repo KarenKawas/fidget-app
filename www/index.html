@@ -1355,7 +1355,6 @@ function heart(s, c = cx) {
 }
 const L = (() => { const x = -.5, y = -.62, z = .6, n = Math.hypot(x, y, z); return [x / n, y / n, z / n]; })();
 const HV = (() => { const x = L[0], y = L[1], z = L[2] + 1, n = Math.hypot(x, y, z); return [x / n, y / n, z / n]; })();
-const sstep = (a, b, v) => { const t = v <= a ? 0 : v >= b ? 1 : (v - a) / (b - a); return t * t * (3 - 2 * t); };
 function slimeRender(now) {
   const fdt = now - (TOP_CAP.last || now); TOP_CAP.last = now; if (fdt > 0 && fdt < 100) TOP_CAP.ema += (fdt - TOP_CAP.ema) * .05;
   if (overloadOn && tops.length > 700 && TOP_CAP.ema > 26 && now - TOP_CAP.cutT > 2000) { TOP_CAP.cutT = now; TOP_CAP.max = Math.max(700, Math.round(tops.length * .8)); tops.splice(0, tops.length - TOP_CAP.max); }
@@ -1370,14 +1369,12 @@ function slimeRender(now) {
     const s16 = s4 * s4 * s4 * s4;
     const cav = h[k - 1] + h[k + 1] + h[k - gw] + h[k + gw] - 4 * h[k];
     const rim = (1 - nzz) * (1 - nzz) * 1.2;
-    // cartoon slime: the light falls in three bands (softened by the smooth upscale), the sheen becomes a crisp painted
-    // highlight, and the deepest folds get a plum ink line
-    const raw = .5 + .58 * dif + h[k] * .03 - cav * .32, shade = .7 + .17 * sstep(.56, .66, raw) + .16 * sstep(.86, .96, raw);
-    const sr = s16 * 70 + s4 * 12, sheen = 150 * sstep(10, 16, sr) + 36 * sstep(3, 6, sr);
-    const ink = .75 * sstep(.16, .3, cav), keep = 1 - ink;
-    d[p] = (cr[k] * 255 * shade + sheen * (.55 + .45 * gl[0]) + rim * gl[0] * 90) * keep + 42 * ink;
-    d[p + 1] = (cg[k] * 255 * shade + sheen * (.55 + .45 * gl[1]) + rim * gl[1] * 90) * keep + 36 * ink;
-    d[p + 2] = (cb[k] * 255 * shade + sheen * (.55 + .45 * gl[2]) + rim * gl[2] * 90) * keep + 56 * ink;
+    // soft shading: dents go darker as fingers press in, so the slime feels like it gives way
+    let shade = .5 + .58 * dif + h[k] * .03 - cav * .32; if (shade < .2) shade = .2;
+    const sheen = s16 * 70 + s4 * 12;
+    d[p] = cr[k] * 255 * shade + sheen * (.55 + .45 * gl[0]) + rim * gl[0] * 90;
+    d[p + 1] = cg[k] * 255 * shade + sheen * (.55 + .45 * gl[1]) + rim * gl[1] * 90;
+    d[p + 2] = cb[k] * 255 * shade + sheen * (.55 + .45 * gl[2]) + rim * gl[2] * 90;
   }
   // copy edge pixels so the scaled image has no dark rim
   for (let i = 0; i < gw; i++) { const a = i * 4, b = ((gh - 1) * gw + i) * 4; for (let c = 0; c < 3; c++) { d[a + c] = d[a + gw * 4 + c]; d[b + c] = d[b - gw * 4 + c]; } }
@@ -2801,6 +2798,8 @@ function lookToon(root, o = {}) {
     if (!o.ink || x.isInstancedMesh || flat || x.userData.noInk || mats[0].transparent || (o.skip && o.skip(x))) return;
     if (!g.boundingSphere) g.computeBoundingSphere();
     const s = x.getWorldScale(new THREE.Vector3()), r = g.boundingSphere.radius * Math.max(s.x, s.y, s.z), [f, lo, hi] = o.ink;
+    // backdrops (the sky dome, the sand, the sea, distant hills) never get ink: a shell that far away flickers into stripes
+    if (r > 12 || mats[0].side === THREE.BackSide || mats[0].fog === false) return;
     // the ink shell lives in the mesh's own (possibly scaled) space
     lookInk(x, clamp(r * f, lo, hi) / Math.max(s.x, s.y, s.z, 1e-4));
   });
@@ -3034,8 +3033,7 @@ function bdPlankTex(t) {
     if (t === "retro") {
       x.fillStyle = "rgba(0,0,0,.06)"; for (let i = 0; i < 5000; i++) x.fillRect(R() * w, R() * h, 1, 1);
       x.fillStyle = "rgba(60,54,44,.55)"; for (let k = 0; k < 7; k++) x.fillRect(w - 170 + k * 18, h - 110, 9, 70);
-      x.font = "600 26px Fredoka, sans-serif"; x.fillStyle = "#5A5448"; x.textAlign = "left"; x.fillText("TURBO", w - 150, 70); x.fillText("POWER", w / 2 - 44, 300);
-      x.strokeStyle = "#5A5448"; x.lineWidth = 3; x.strokeRect(w - 160, 36, 130, 50);
+      x.font = "600 26px Fredoka, sans-serif"; x.fillStyle = "#5A5448"; x.textAlign = "left"; x.fillText("POWER", w / 2 - 44, 300);
     }
   });
 }
@@ -3224,15 +3222,16 @@ function stWater() {
   const U = ST.wu = { uTime: { value: 0 }, uRip: { value: Array.from({ length: ST_RIPS }, () => new THREE.Vector4(0, 0, -99, 0)) },
     uDeep: { value: new THREE.Color() }, uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSun: { value: new THREE.Color() },
     uSunDir: { value: new THREE.Vector3() }, uFogC: { value: new THREE.Color() }, uFogN: { value: 14 }, uFogF: { value: 75 } };
-  const m = new THREE.ShaderMaterial({ uniforms: U,
+  // high precision: the ripple maths uses world positions far out on the lake, which break up at a phone's medium precision
+  const m = new THREE.ShaderMaterial({ uniforms: U, precision: "highp",
     vertexShader: `varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: `
       uniform float uTime; uniform vec4 uRip[${ST_RIPS}]; uniform vec3 uDeep, uTop, uHor, uSun, uSunDir, uFogC; uniform float uFogN, uFogF;
       varying vec3 vW;
       void main() {
-        vec2 p = vW.xz, g = vec2(0.0);
+        vec2 p = vW.xz, g = vec2(0.0); float tm = mod(uTime, 628.3185);
         // a slow, gentle swell everywhere so the lake is never glassy-dead
-        g += vec2(cos(p.x * .7 + uTime * .6) * .012 + cos((p.x + p.y) * 1.9 - uTime) * .006, cos(p.y * .9 - uTime * .5) * .014 + cos((p.y - p.x) * 2.3 + uTime * 1.3) * .005);
+        g += vec2(cos(p.x * .7 + tm * .6) * .012 + cos((p.x + p.y) * 1.9 - tm) * .006, cos(p.y * .9 - tm * .5) * .014 + cos((p.y - p.x) * 2.3 + tm * 1.3) * .005) * (1.0 - smoothstep(25.0, 70.0, length(p - cameraPosition.xz)));
         float crest = 0.0;
         for (int i = 0; i < ${ST_RIPS}; i++) {
           vec4 r = uRip[i]; float age = uTime - r.z;
@@ -3273,11 +3272,24 @@ function stNewHand() {
   m.position.set(0, .55, 3.6); m.scale.setScalar(.01); ST.scene.add(m);
   ST.hand = { m, flat, born: ST.t };
 }
+// how good a throw is (0 to 1): a brisk flick (with a sweet spot), a straight swipe, and a hand that speeds up into release
+function stSkill(fl) {
+  const sp = Math.hypot(fl.vx, fl.vy), speed = sp < 3400 ? sp / 3400 : sp < 5400 ? 1 : Math.max(.6, 1 - (sp - 5400) / 6000);
+  const P = fl.path || [], a = P[0], b = P[P.length - 1];
+  let straight = .7;
+  if (P.length > 3) {
+    const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1; let dev = 0;
+    for (const p of P) dev = Math.max(dev, Math.abs((p.x - a.x) * dy - (p.y - a.y) * dx) / L);
+    straight = clamp(1 - dev / (L * .25), 0, 1);
+  }
+  return clamp(speed * .5 + straight * .3 + clamp(fl.accel ?? .5, 0, 1) * .2, 0, 1);
+}
 function stThrow(fl) {
   const H = ST.hand; if (!H) return;
-  const sp = Math.hypot(fl.vx, fl.vy), speed = clamp(sp / 170, 6, 24), yaw = clamp(Math.atan2(fl.vx, -fl.vy) * .75, -.6, .6);
-  const el = (5 + Math.random() * 5) * Math.PI / 180;
-  const s = { m: H.m, flat: H.flat, p: H.m.position.clone(), v: new THREE.Vector3(Math.sin(yaw) * Math.cos(el) * speed, Math.sin(el) * speed, -Math.cos(yaw) * Math.cos(el) * speed), spin: speed * 2.5, skips: 0, sink: 0 };
+  const sp = Math.hypot(fl.vx, fl.vy), q = stSkill(fl), speed = clamp(sp / 230, 5, 17), yaw = clamp(Math.atan2(fl.vx, -fl.vy) * .75, -.6, .6);
+  // good throws leave the hand low and flat; sloppy ones loft
+  const el = (4 + (1 - q) * 7 + Math.random() * 2.5) * Math.PI / 180;
+  const s = { m: H.m, flat: H.flat, q, p: H.m.position.clone(), v: new THREE.Vector3(Math.sin(yaw) * Math.cos(el) * speed, Math.sin(el) * speed, -Math.cos(yaw) * Math.cos(el) * speed), spin: speed * 2.5, skips: 0, sink: 0 };
   ST.stones.push(s); ST.hand = null; ST.skips = 0; stCount.textContent = "0";
   const a = ac(); if (a && soundOn) nz(a, "bandpass", 700, 1800, 1, .1, .25); buzz(8);
   setTimeout(() => { if (ST.scene && !ST.hand) stNewHand(); }, 650);
@@ -3290,10 +3302,15 @@ function stDrop(x, z) {
 function stSplash(x, z, n, power) {
   for (let i = 0; i < n; i++) { const a = rnd(0, 6.28), s = ST.splash[ST.splashI++ % ST.splash.length]; Object.assign(s, { x, y: .02, z, vx: Math.cos(a) * rnd(.3, 1.3) * power, vy: rnd(1.5, 3.2) * power, vz: Math.sin(a) * rnd(.3, 1.3) * power }); }
 }
-function stPlip(k) {
+function stPlip(k, small) {
   const a = ac(); if (!a || !soundOn) return;
-  const f = 620 * Math.pow(1.12, Math.min(k, 14));
-  tone(a, "sine", f * 1.4, f, .16, .07); nz(a, "highpass", 2500, 5000, 1.5, .05, .05);
+  const f = 620 * Math.pow(1.12, Math.min(k, 14)) * (small ? 1.25 : 1);
+  tone(a, "sine", f * 1.4, f, small ? .07 : .16, small ? .04 : .07); nz(a, "highpass", 2500, 5000, 1.5, small ? .02 : .05, .05);
+}
+// every ten skips: a cheer of chimes and a bigger pop
+function stMilestone(n) {
+  [784, 988, 1175, 1568].slice(0, 2 + n / 20 | 0).forEach((f, i) => setTimeout(() => S.blip(f), i * 80)); buzz(24);
+  stPop.textContent = n + " skips!"; stPop.hidden = false; stPop.classList.remove("on"); void stPop.offsetWidth; stPop.classList.add("on"); clearTimeout(stPop._t); stPop._t = setTimeout(() => { stPop.hidden = true; stPop.textContent = "New best!"; }, 1600);
 }
 function stPlop(big) {
   const a = ac(); if (!a || !soundOn) return;
@@ -3305,19 +3322,24 @@ function stStep(dt) {
     s.v.y -= ST_G * dt; s.p.addScaledVector(s.v, dt);
     s.m.rotation.y += s.spin * dt; s.m.rotation.x = Math.sin(ST.t * 3 + s.spin) * .08;
     if (s.p.y <= 0 && s.v.y < 0) {
-      const vh = Math.hypot(s.v.x, s.v.z), ang = Math.atan2(-s.v.y, vh), lim = ((s.flat ? 24 : 15) + (s.skips ? 0 : 4)) * Math.PI / 180;
-      // a skip needs a shallow angle and enough speed; every bounce costs speed, and luck runs out eventually
-      if (!s.drop && vh > 3.2 && ang < lim && Math.random() > s.skips * .025) {
-        s.skips++; s.p.y = 0; s.v.y = Math.max(1.2, -s.v.y * .62); s.v.x *= .8; s.v.z *= .8; s.spin *= .9;
-        stRipple(s.p.x, s.p.z, .55); stSplash(s.p.x, s.p.z, 5, .5); stPlip(s.skips); buzz(Math.min(14, 5 + s.skips));
+      const vh = Math.hypot(s.v.x, s.v.z), ang = Math.atan2(-s.v.y, vh), lim = ((s.flat ? 24 : 15) + (s.skips ? 0 : 9)) * Math.PI / 180, q = s.q || 0;
+      // a skip needs a shallow angle and speed. Skill decides how much speed each bounce keeps; luck is a small chance of
+      // catching the water, lower for good throws. Slow flat stones finish with a run of tiny pitty-pat hops. Max 50.
+      const luck = .008 + (1 - q) * .06 + s.skips * .0008, patter = vh <= 3.2 && vh > 1.1 && s.flat && q > .6;
+      if (!s.drop && s.skips < 50 && (vh > 3.2 || patter) && ang < lim && Math.random() > luck) {
+        s.skips++; s.p.y = 0;
+        const keep = patter ? .86 : .78 + .17 * q * q + (s.flat ? .01 : -.05);
+        s.v.y = patter ? .55 + Math.random() * .2 : Math.max(.9, -s.v.y * .55); s.v.x *= keep; s.v.z *= keep; s.spin *= .95;
+        stRipple(s.p.x, s.p.z, patter ? .3 : .55); stSplash(s.p.x, s.p.z, patter ? 2 : 5, patter ? .3 : .5); stPlip(s.skips, patter); buzz(patter ? 4 : Math.min(14, 5 + s.skips * .4));
         ST.skips = s.skips; stCount.textContent = s.skips; stSkipPop(s.p, s.skips);
+        if (s.skips === 10 || s.skips === 20 || s.skips === 30 || s.skips === 40 || s.skips === 50) stMilestone(s.skips);
       } else {
         s.sink = .001; s.p.y = 0; stRipple(s.p.x, s.p.z, s.drop ? 1.1 : .9); stSplash(s.p.x, s.p.z, 12, s.drop ? .8 : .6); stPlop(s.drop || !s.skips); buzz(s.drop ? 16 : 10);
         if (!s.drop && s.skips) stScore(s.skips);
       }
     }
     s.m.position.copy(s.p);
-    if (s.p.z < -110) s.dead = true;
+    if (s.p.z < -185) s.dead = true;
   }
   for (const s of ST.stones.filter(s => s.dead)) { ST.scene.remove(s.m); s.m.geometry.dispose(); }
   ST.stones = ST.stones.filter(s => !s.dead);
@@ -3390,7 +3412,7 @@ function stBuild() {
   // mist drifting low over the water
   ST.mist = [];
   const mt = soft(0, g => { g.addColorStop(0, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)"); });
-  for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mt, transparent: true, depthWrite: false, opacity: .5 })); s.position.set(rnd(-30, 30), rnd(.8, 2.5), rnd(-60, -12)); s.scale.set(rnd(18, 34), rnd(3, 6), 1); s.userData.v = rnd(.2, .6) * (Math.random() < .5 ? -1 : 1); sc.add(s); ST.mist.push(s); }
+  for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mt, transparent: true, depthWrite: false, opacity: .5, fog: false })); s.renderOrder = 5 + i; s.position.set(rnd(-30, 30), rnd(.8, 2.5), rnd(-60, -12)); s.scale.set(rnd(18, 34), rnd(3, 6), 1); s.userData.v = rnd(.2, .6) * (Math.random() < .5 ? -1 : 1); sc.add(s); ST.mist.push(s); }
   // spray
   const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(120 * 3).fill(-100), 3));
   ST.spray = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xF0F6FA, size: .07, transparent: true, opacity: .9, depthWrite: false })); ST.spray.frustumCulled = false; sc.add(ST.spray);
@@ -3427,18 +3449,23 @@ function stonesFrame(now) {
 on3D(secSt, "pointerdown", e => {
   if (!ST.scene) return;
   GL.canvas.setPointerCapture(e.pointerId); ac(); stEnsureBed(); stHint.classList.add("gone");
-  ST.hold = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), hist: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
+  ST.hold = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), hist: [{ x: e.clientX, y: e.clientY, t: performance.now() }], path: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
 });
 on3D(secSt, "pointermove", e => {
   const H = ST.hold; if (!H || H.id !== e.pointerId) return;
   const now = performance.now(); H.hist.push({ x: e.clientX, y: e.clientY, t: now }); while (H.hist.length > 2 && now - H.hist[0].t > 110) H.hist.shift();
+  H.path.push({ x: e.clientX, y: e.clientY, t: now }); if (H.path.length > 40) H.path.shift();
   // the stone follows your thumb a little as you wind up
   if (ST.hand) { const dx = (e.clientX - H.x0) / 300, dy = (e.clientY - H.y0) / 300; ST.hand.m.position.set(clamp(dx, -.6, .6), clamp(.55 - dy * .6, .3, 1.1), 3.6 + clamp(dy, -.3, .4) * .5); }
 });
 const stEnd = e => {
   const H = ST.hold; if (!H || H.id !== e.pointerId) return; ST.hold = null;
   const a = H.hist[0], b = H.hist[H.hist.length - 1], dt = Math.max(.016, (b.t - a.t) / 1000), vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt;
-  if (vy < -500 && performance.now() - b.t < 120 && ST.hand) return stThrow({ vx, vy });
+  if (vy < -500 && performance.now() - b.t < 120 && ST.hand) {
+    // speeding up into the release: the last stretch faster than the swipe as a whole
+    const P = H.path, p0 = P[0], tot = Math.hypot(b.x - p0.x, b.y - p0.y) / Math.max(.016, (b.t - p0.t) / 1000);
+    return stThrow({ vx, vy, path: P, accel: clamp((Math.hypot(vx, vy) / Math.max(1, tot) - .8) / .8, 0, 1) });
+  }
   if (Math.hypot(e.clientX - H.x0, e.clientY - H.y0) < 12 && performance.now() - H.t0 < 350) {
     const p = rayAt(e, ST.cam).ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
     if (p && p.z < 3) stDrop(p.x, p.z);
@@ -5783,7 +5810,7 @@ function rkWet(rk) {
   const wet = RK.time === "storm"; m.color.copy(m.userData.dry.c).multiplyScalar(wet ? .7 : 1); m.roughness = wet ? Math.min(m.userData.dry.r, .32) : m.userData.dry.r;
 }
 function rkStormStep(dt) {
-  if (RK.time !== "storm") { if (RK.flash) { RK.flash = 0; RK.hemi.intensity = RK_TIMES[RK.time].hemi[2]; RK.sky.material.color.setHex(0xFFFFFF); } return; }
+  if (RK.time !== "storm") { if (RK.flash) { RK.flash = 0; RK.flashExp = 1; RK.hemi.intensity = RK_TIMES[RK.time].hemi[2]; RK.sky.material.color.setHex(0xFFFFFF); if (RK.bolt) { RK.bolt.visible = false; RK.boltGlow.material.opacity = 0; } } return; }
   // rain falls slanted by the wind and is recycled round wherever you're looking
   const D = RK.drops, P = RK.rain.geometry.attributes.position.array, wind = 2.2 + Math.sin(RK.gust * .9) * 1.2, SP = RK.splash.geometry.attributes.position.array;
   for (let i = 0; i < RK_RAIN; i++) {
@@ -5805,14 +5832,37 @@ function rkStormStep(dt) {
   // thunder: a soft flash over the sea, then a low rumble a moment later. Reduced motion gets a slow glow instead
   if (RK.thunder && (RK.boltT -= dt) <= 0) {
     RK.boltT = rnd(14, 34); RK.flash = 1; RK.flashSlow = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!RK.flashSlow) rkBolt();
     const a = ac(), far = rnd(.9, 2.6);
     if (a && soundOn && ambienceOn) setTimeout(() => { nz(a, "lowpass", 180, 55, .7, .16, 3.4, 0, .5); nz(a, "lowpass", 90, 40, .5, .12, 4.2, .3, 1.2); buzz(20); }, far * 1000);
   }
   if (RK.flash > 0) {
     RK.flash = Math.max(0, RK.flash - dt * (RK.flashSlow ? .9 : 2.6));
     const f = RK.flashSlow ? Math.sin(RK.flash * Math.PI) * .5 : RK.flash * (RK.flash > .55 && RK.flash < .75 ? .35 : 1);
-    RK.hemi.intensity = RK_TIMES.storm.hemi[2] + f * 1.1; RK.sky.material.color.setScalar(1 + f * .6);
+    RK.hemi.intensity = RK_TIMES.storm.hemi[2] + f * 2.4; RK.sky.material.color.setScalar(1 + f * 1.4); RK.flashExp = 1 + f * .9;
+    // the bolt itself flickers out
+    if (RK.bolt) { RK.bolt.visible = RK.flash > .25 && !(RK.flash > .55 && RK.flash < .7); RK.boltGlow.material.opacity = RK.bolt.visible ? .8 * RK.flash : 0; }
+  } else RK.flashExp = 1;
+}
+// a jagged, branching bolt far out over the sea
+function rkBolt() {
+  if (!RK.bolt) {
+    RK.boltMat = new THREE.MeshBasicMaterial({ color: 0xF4F0FF, fog: false });
+    RK.bolt = new THREE.Group(); RK.scene.add(RK.bolt);
+    RK.boltGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: rkSoftSprite("boltglow", (x, N) => { const g = x.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2); g.addColorStop(0, "rgba(230,225,255,1)"); g.addColorStop(.3, "rgba(190,190,255,.45)"); g.addColorStop(1, "rgba(160,170,255,0)"); x.fillStyle = g; x.fillRect(0, 0, N, N); }), transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+    RK.scene.add(RK.boltGlow);
   }
+  for (const m of RK.bolt.children.slice()) { RK.bolt.remove(m); m.geometry.dispose(); }
+  const x0 = RK.tx + rnd(-14, 14), z0 = RK.tz - rnd(28, 40), top = 34, bot = RK_SEA;
+  const path = (x, y, z, toY, seg, wob, r) => {
+    const pts = [new THREE.Vector3(x, y, z)];
+    for (let i = 1; i <= seg; i++) { x += rnd(-wob, wob); z += rnd(-wob, wob) * .4; pts.push(new THREE.Vector3(x, y + (toY - y) * i / seg, z)); }
+    const cp = new THREE.CurvePath(); for (let i = 1; i < pts.length; i++) cp.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
+    RK.bolt.add(new THREE.Mesh(new THREE.TubeGeometry(cp, seg * 2, r, 4, false), RK.boltMat)); return pts;
+  };
+  const main = path(x0, top, z0, bot, 14, 2.6, .32);
+  for (let b = 0; b < 3; b++) { const p = main[2 + (Math.random() * 8 | 0)]; path(p.x, p.y, p.z, p.y - rnd(6, 14), 5, 2.2, .16); }
+  RK.boltGlow.position.set(x0, top * .4, z0); RK.boltGlow.scale.setScalar(46); RK.bolt.visible = true;
 }
 function rkSkyStep(dt) {
   const T = RK_TIMES[RK.time];
@@ -6041,7 +6091,7 @@ function rocksFrame(now) {
     RK.bed.rain.g.gain.setTargetAtTime(amb && storm ? .11 : 0, t, .6);
   }
   if (RK.dirty && !H && now - RK.saveT > 2500) { RK.saveT = now; rkSave(); }
-  GL.r.toneMappingExposure = RK_TIMES[RK.time].exp; toonRender(GL.r, RK.scene, RK.cam, TOON_INK.rocks); GL.r.toneMappingExposure = 1.05;
+  GL.r.toneMappingExposure = RK_TIMES[RK.time].exp * (RK.flashExp || 1); toonRender(GL.r, RK.scene, RK.cam, TOON_INK.rocks); GL.r.toneMappingExposure = 1.05;
 }
 
 // a turn about the vertical axis (cannon 0.6.2's setFromAxisAngle returns nothing, so it can't be chained)
@@ -6054,7 +6104,7 @@ on3D(secRocks, "pointerdown", e => {
   RK.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (RK.ptrs.size === 2) {
     const [a, b] = [...RK.ptrs.values()];
-    RK.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x) };
+    RK.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), my: (a.y + b.y) / 2 };
     RK.orbit = null; return;
   }
   if (RK.ptrs.size > 2) return;
@@ -6080,12 +6130,17 @@ on3D(secRocks, "pointermove", e => {
   if (RK.pinch && RK.ptrs.size >= 2) {
     const [a, b] = [...RK.ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, ang = Math.atan2(b.y - a.y, b.x - a.x);
     let da = ang - RK.pinch.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
+    const my = (a.y + b.y) / 2, dmy = my - (RK.pinch.my ?? my);
     if (RK.hold) {
-      // second finger twisting: turn the held rock
+      // second finger twisting turns the held rock; moving both fingers up or down tilts it toward or away from you
       const q = rkYaw(-da), b2 = RK.hold.rk.body;
       b2.quaternion.copy(q.mult(b2.quaternion)); RK.hold.moved = true; RK.hold.rk.heading -= da;
+      if (Math.abs(dmy) > .5) {
+        const r = new THREE.Vector3(1, 0, 0).applyQuaternion(RK.cam.quaternion).setY(0).normalize(), qt = new CANNON.Quaternion();
+        qt.setFromAxisAngle(new CANNON.Vec3(r.x, 0, r.z), dmy * .014); b2.quaternion.copy(qt.mult(b2.quaternion)); RK.hold.tilted = true;
+      }
     } else { RK.zoom = clamp(RK.zoom * d / RK.pinch.d, .55, 2.4); RK.yaw += da; rkCamera(); }
-    RK.pinch = { d, ang }; return;
+    RK.pinch = { d, ang, my }; return;
   }
   const H = RK.hold;
   if (H && H.id === e.pointerId) {
@@ -6110,7 +6165,14 @@ const rkEnd = e => {
   const fl = rkFlick(H); if (fl) return rkThrow(rk, fl);
   // a tap rolls it onto its next resting face (flat, on its side, on its end, or a broken face), keeping its heading
   let q0 = null;
-  if (!H.moved && performance.now() - H.t0 < 300) {
+  // after a two-finger tilt, it settles onto whichever resting face is now nearest the ground
+  if (H.tilted) {
+    q0 = new THREE.Quaternion(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+    let best = 0, by = 2; rk.rests.forEach((d, i) => { const y = new THREE.Vector3(...d).normalize().applyQuaternion(q0).y; if (y < by) { by = y; best = i; } });
+    rk.rest = best;
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(...rk.rests[best]).normalize(), new THREE.Vector3(0, -1, 0));
+    q.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rk.heading)); b.quaternion.set(q.x, q.y, q.z, q.w);
+  } else if (!H.moved && performance.now() - H.t0 < 300) {
     q0 = new THREE.Quaternion(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
     rk.rest = (rk.rest + 1) % rk.rests.length;
     const d = new THREE.Vector3(...rk.rests[rk.rest]).normalize(), q = new THREE.Quaternion().setFromUnitVectors(d, new THREE.Vector3(0, -1, 0));
@@ -6123,6 +6185,7 @@ const rkEnd = e => {
   const L = rkLanding(rk, H.x, H.z, H.verdict ? 1.15 : 1);
   // honour what the ghost showed: green means it stays
   const stable = H.verdict === null ? L.stable : H.verdict;
+  if (pref("fidget-rocks-tip", "") !== "1") { savePref("fidget-rocks-tip", "1"); rkHint.textContent = "Tip: tap a rock to flip it · two fingers to tilt and turn"; rkHint.classList.remove("gone"); setTimeout(() => rkHint.classList.add("gone"), 5000); }
   rk.place = { t: 0, y0: b.position.y, y1: L.y, stable, sup: L.sup, cx: L.cx, cz: L.cz, dx: H.x - H.sx, dz: H.z - H.sz, q0, q1: q0 && new THREE.Quaternion(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w) };
 };
 on3D(secRocks, "pointerup", rkEnd); on3D(secRocks, "pointercancel", rkEnd);
@@ -7127,7 +7190,7 @@ renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
-if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, stStep, stNewHand, stSkill, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
