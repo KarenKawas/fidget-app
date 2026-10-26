@@ -294,6 +294,7 @@ html[data-mode="ice"]{background:#0B1626}
 #mode-twisty .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
 #mode-twisty .tw-btns{position:absolute;left:0;right:0;bottom:74px;z-index:3;display:flex;justify-content:center;gap:10px}
 #mode-twisty .tw-btns .newsheet{position:static;transform:none}
+#mode-twisty .tw-icon{padding:10px 12px;display:grid;place-items:center}#mode-twisty .tw-icon svg{width:22px;height:22px}
 #mode-twisty .hint{bottom:128px}
 #mode-twisty.light .hint{color:#5A4E6A;text-shadow:none}
 #mode-board .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
@@ -785,7 +786,7 @@ html[data-mode="ice"]{background:#0B1626}
 
   <section class="mode" id="mode-twisty" aria-label="Twisty: a chain of clicky links. Drag a link to twist it a quarter turn at a time, or tap it for one notch. Pull a link well away to pop it off, bring a socket to a loose peg to connect, drag the first link of a piece to move it, and drag empty space to look around.">
     <p class="hint" id="twHint">Drag a link to twist it · pull hard to pop it off</p>
-    <div class="tw-btns"><button class="newsheet" id="twAdd">+ Link</button><button class="newsheet" id="twTidy">Tidy</button><button class="newsheet" id="twReset">New</button></div>
+    <div class="tw-btns"><button class="newsheet" id="twAdd">+ Link</button><button class="newsheet" id="twTidy">Tidy</button><button class="newsheet tw-icon" id="twCenter" aria-label="Recenter on your biggest chain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button><button class="newsheet" id="twReset">New</button></div>
     <div class="themes" role="group" aria-label="Twisty colours">
       <button class="theme" data-tw="mint" aria-pressed="true"><i style="background:linear-gradient(135deg,#B9E8C8 50%,#7CC4F0 50%)"></i>Mint</button>
       <button class="theme" data-tw="rainbow" aria-pressed="false"><i style="background:conic-gradient(#FF8FA3,#FFC36B,#FFE577,#8FE0A5,#86C9FF,#B79CFF,#FF8FA3)"></i>Rainbow</button>
@@ -4109,7 +4110,24 @@ function twSettle(p, now, centre) {
   to.y += TW_T - low;
   const want = centre ? new THREE.Vector3(centre.x, 0, centre.z) : new THREE.Vector3(c.x, 0, c.z), r = Math.hypot(want.x, want.z);
   if (r > TW_REACH) want.multiplyScalar(TW_REACH / r);
-  to.x += want.x - c.x; to.z += want.z - c.z;
+  // where every other piece is (or is settling to)
+  const others = [];
+  for (const q of TW.pieces) {
+    if (q === p || (TW.drag && TW.drag.p === q)) continue;
+    const off = q.settle ? q.settle.to.clone().sub(new THREE.Vector3().setFromMatrixPosition(q.root)) : null;
+    for (const v of twPoints(q)) others.push(off ? v.add(off) : v);
+  }
+  const clear = (dx, dz) => { for (const v of P) for (const u of others) { const x = v.x + dx - u.x, y = v.y + (TW_T - low) - u.y, z = v.z + dz - u.z; if (x * x + y * y + z * z < TW_SOLID * TW_SOLID) return false; } return true; };
+  let best = [want.x - c.x, want.z - c.z];
+  if (!clear(...best)) {
+    // rings around the wanted spot, nearest first, staying within reach of the middle
+    search: for (let rr = .5; rr <= 5; rr += .5) for (let k = 0; k < 12; k++) {
+      const a = k / 12 * Math.PI * 2 + rr, x = want.x + Math.cos(a) * rr, z = want.z + Math.sin(a) * rr;
+      if (Math.hypot(x, z) > TW_REACH + 1.2) continue;
+      if (clear(x - c.x, z - c.z)) { best = [x - c.x, z - c.z]; break search; }
+    }
+  }
+  to.x += best[0]; to.z += best[1];
   if (now) { p.root.setPosition(to); p.settle = null; }
   else p.settle = { t: 0, from, to };
   TW.dirty = true;
@@ -4123,6 +4141,12 @@ function twSettleStep(dt) {
   }
 }
 // gather every piece into a neat ring around the middle
+function twRecenter() {
+  const big = TW.pieces.reduce((a, b) => (!a || b.segs.length > a.segs.length ? b : a), null); if (!big) return;
+  const P = twPoints(big), c = new THREE.Vector3(); P.forEach(v => c.add(v)); c.divideScalar(P.length);
+  TW.tgtGoal = new THREE.Vector3(c.x, Math.max(.6, c.y), c.z); TW.zoomGoal = clamp(1.6 - big.segs.length * .04, 1, 1.5);
+  S.tick(1500, .08, .03, "sine"); buzz(6);
+}
 function twTidy() {
   const n = TW.pieces.length;
   TW.pieces.forEach((p, i) => { const a = i / n * Math.PI * 2, r = n > 1 ? Math.min(3.2, 1.2 + n * .22) : 0; twSettle(p, false, { x: Math.cos(a) * r, z: Math.sin(a) * r }); });
@@ -4219,8 +4243,9 @@ function twBuild() {
 }
 function twCamera() {
   const d = (TW.W && TW.cam.aspect < 1 ? 15 / TW.cam.aspect * .62 : 15) / TW.zoom, cp = Math.cos(TW.pitch);
-  TW.cam.position.set(Math.sin(TW.yaw) * cp * d, 1 + Math.sin(TW.pitch) * d, Math.cos(TW.yaw) * cp * d);
-  TW.cam.lookAt(0, 1, 0); TW.cam.updateProjectionMatrix(); TW.cam.updateMatrixWorld();
+  const T = TW.tgt || (TW.tgt = new THREE.Vector3(0, 1, 0));
+  TW.cam.position.set(T.x + Math.sin(TW.yaw) * cp * d, T.y + Math.sin(TW.pitch) * d, T.z + Math.cos(TW.yaw) * cp * d);
+  TW.cam.lookAt(T); TW.cam.updateProjectionMatrix(); TW.cam.updateMatrixWorld();
 }
 function twistySetup() {
   if (typeof THREE === "undefined" || !mount3D(secTw)) return;
@@ -4232,6 +4257,7 @@ function twistyFrame(now) {
   // joints that were let go ease into their notch
   for (const p of TW.pieces) for (const s of p.segs) if (s.th !== s.tt && !(TW.drag && TW.drag.p === p && TW.drag.s === s)) { s.th += (s.tt - s.th) * Math.min(1, dt * 14); if (Math.abs(s.tt - s.th) < 1e-3) s.th = s.tt; }
   twSettleStep(dt);
+  if (TW.tgtGoal) { const k = Math.min(1, dt * 5); TW.tgt.lerp(TW.tgtGoal, k); TW.zoom += (TW.zoomGoal - TW.zoom) * k; twCamera(); if (TW.tgt.distanceTo(TW.tgtGoal) < .01) TW.tgtGoal = null; }
   for (const p of TW.pieces) { const F = twFrames(p); p.segs.forEach((s, i) => { s.g.matrix.copy(F[i]); s.g.matrixWorldNeedsUpdate = true; }); }
   // the snap ring pulses while a carried piece is in range, and bursts when it clicks on
   const R = TW.snapRing, D = TW.drag;
@@ -4301,7 +4327,7 @@ on3D(secTw, "pointerdown", e => {
   if (!TW.scene) return;
   GL.canvas.setPointerCapture(e.pointerId); ac(); twHint.classList.add("gone");
   TW.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now() });
-  if (TW.ptrs.size === 2) { const [a, b] = [...TW.ptrs.values()]; TW.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x) }; TW.orbit = null; return; }
+  if (TW.ptrs.size === 2) { const [a, b] = [...TW.ptrs.values()]; TW.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; TW.orbit = null; TW.tgtGoal = null; return; }
   if (TW.drag) return;
   const links = []; for (const p of TW.pieces) for (const s of p.segs) links.push(s.g.children[0]);
   const h = rayAt(e, TW.cam).intersectObjects(links, false)[0];
@@ -4322,7 +4348,11 @@ on3D(secTw, "pointermove", e => {
   if (TW.pinch && TW.ptrs.size >= 2) {
     const [a, b] = [...TW.ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, ang = Math.atan2(b.y - a.y, b.x - a.x);
     let da = ang - TW.pinch.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
-    TW.zoom = clamp(TW.zoom * d / TW.pinch.d, .6, 2.2); TW.yaw += da; TW.pinch = { d, ang }; twCamera(); return;
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, k = 15 / TW.zoom / Math.max(300, GL.h) * 1.1;
+    const right = new THREE.Vector3(Math.cos(TW.yaw), 0, -Math.sin(TW.yaw)), fwd = new THREE.Vector3(-Math.sin(TW.yaw), 0, -Math.cos(TW.yaw));
+    TW.tgt.addScaledVector(right, -(mx - TW.pinch.mx) * k).addScaledVector(fwd, (my - TW.pinch.my) * k / Math.max(.4, Math.sin(TW.pitch)));
+    const tr = Math.hypot(TW.tgt.x, TW.tgt.z); if (tr > 7) { TW.tgt.x *= 7 / tr; TW.tgt.z *= 7 / tr; }
+    TW.zoom = clamp(TW.zoom * d / TW.pinch.d, .6, 2.2); TW.yaw += da; TW.pinch = { d, ang, mx, my }; twCamera(); return;
   }
   if (TW.orbit && TW.orbit.id === e.pointerId) { TW.yaw -= (e.clientX - px) * .007; TW.pitch = clamp(TW.pitch + (e.clientY - py) * .005, .2, 1.45); twCamera(); return; }
   const D = TW.drag; if (!D || D.id !== e.pointerId) return;
@@ -4356,7 +4386,7 @@ const twEndPtr = e => {
   if (TW.orbit && TW.orbit.id === e.pointerId) {
     TW.orbit = null;
     // a double-tap on empty space eases back to the starting view
-    if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 10) { const now = performance.now(); if (now - TW.lastTap < 330) { TW.yaw = .55; TW.pitch = .9; TW.zoom = 1.05; twCamera(); buzz(6); TW.lastTap = 0; } else TW.lastTap = now; }
+    if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 10) { const now = performance.now(); if (now - TW.lastTap < 330) { TW.yaw = .55; TW.pitch = .9; TW.zoom = 1.05; TW.tgt.set(0, 1, 0); TW.tgtGoal = null; twCamera(); buzz(6); TW.lastTap = 0; } else TW.lastTap = now; }
     return;
   }
   const D = TW.drag; if (!D || D.id !== e.pointerId) return; TW.drag = null;
@@ -4383,6 +4413,7 @@ secTw.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => 
 $("#twReset").addEventListener("click", () => { if (!TW.scene) return; twLayout(); S.whoosh(); buzz(12); });
 $("#twAdd").addEventListener("click", () => { if (TW.scene) twAddLink(); });
 $("#twTidy").addEventListener("click", () => { if (TW.scene) twTidy(); });
+$("#twCenter").addEventListener("click", () => { if (TW.scene) twRecenter(); });
 twRestyle(TW.style);
 
 /* ================= fidget spinner ================= */
