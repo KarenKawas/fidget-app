@@ -46,6 +46,7 @@
 - **Twisty packs:** more colourways (glitter, metallic, pastel marble) as paid packs, alongside stickers and slime toppings.
 - **Board looper:** a long press on REC records a loop that keeps playing while you jam on top, layer after layer.
 
+- **Strings (new mode idea):** strings you pull and pluck, like a little harp or washtub bass, with bends and slides; a sibling to the board.
 ## Foldable iPhone support (not started)
 
 **Goal:** DigiFidget should feel at home on Apple's foldable iPhone, both on the narrow cover screen and on the large, nearly square inner screen. Folding or unfolding mid-play must not lose anything.
