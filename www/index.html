@@ -216,6 +216,13 @@ html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 .tb-tag b{display:block;font-size:1.25rem}.tb-tag span{font-size:.85rem;opacity:.75}
 .tb-fade{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0;transition:opacity .35s ease}
 .tb-fade.on{opacity:1}
+/* a door frame that grows past you as you walk through it into the next room */
+.doorway{position:fixed;inset:0;z-index:61;pointer-events:none;display:grid;place-items:center;opacity:0}
+.doorway i{width:46vw;height:70vh;border-radius:22vw 22vw 0 0;box-shadow:0 0 0 200vmax rgba(42,36,56,.92);border:10px solid #8A5A30}
+.doorway.go{animation:doorfade .55s ease-in forwards}
+.doorway.go i{animation:doorgrow .55s ease-in forwards}
+@keyframes doorfade{0%{opacity:0}20%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes doorgrow{from{transform:scale(.55)}to{transform:scale(3.2)}}
 .cust-name{width:100%;font:inherit;font-size:16px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:transparent;color:var(--ink);user-select:text;-webkit-user-select:text}
 .cust-row{display:flex;gap:10px;flex-wrap:wrap}
 .cust-sw{width:46px;height:46px}
@@ -940,6 +947,7 @@ DISCLAIMER THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
   </div>
 </div>
 <div class="tb-fade" id="tbFade" aria-hidden="true"></div>
+<div class="doorway" id="doorway" aria-hidden="true"><i></i></div>
 <div class="sheet-wrap" id="customise" hidden>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="custTitle">
     <div class="sheet-head"><h2 id="custTitle">Customise your box</h2><button class="sheet-x" id="custClose" aria-label="Close">✕</button></div>
@@ -8272,6 +8280,11 @@ function trayPick(b, m) {
   setTimeout(() => {
     const tint = m === "home" ? "#F1E4D3" : (TB_TOY[m] && TB_TOY[m].tint) || "#FFFFFF";
     tbFade.style.background = tint; tbFade.classList.add("on");
+    // walking through the house to the toy's room: a doorway swings past, with two soft footsteps
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const dw = $("#doorway"); dw.classList.remove("go"); void dw.offsetWidth; dw.classList.add("go");
+      const a2 = ac(); if (a2 && soundOn) [0, 220].forEach(t => setTimeout(() => nz(a2, "lowpass", 500, 140, 1, .07, .09), t));
+    }
     setTimeout(() => { closeDrawer(true); setMode(m); setTimeout(() => tbFade.classList.remove("on"), 80); }, 260);
   }, 280);
 }
