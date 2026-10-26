@@ -5796,16 +5796,18 @@ const CTRL = {
     CB.faceMat = fm;
     const mesh = part(g, new THREE.CircleGeometry(.44, 48), fm, 0, 0, .004);
     mesh.castShadow = false;
-    const F = { state: "", until: 0, held: null, touch: performance.now(), blinkAt: performance.now() + 3000, spinT: 0, dizzyUntil: 0, snd: 0, ink: "#1E1A26" };
+    const F = { state: "", until: 0, held: null, touch: performance.now(), blinkAt: performance.now() + 3000, spinT: 0, dizzyUntil: 0, snd: 0, ink: "#1E1A26", petFrom: 0, loved: false, spinLong: 0, koUntil: 0 };
     const arc = (cx, cy, r, a0, a1, w) => { x.lineWidth = w; x.beginPath(); x.arc(cx, cy, r, a0, a1); x.stroke(); };
     const eyeRound = cx => {
       x.fillStyle = F.ink; x.beginPath(); x.arc(cx, 108, 25, 0, 6.3); x.fill();
       x.fillStyle = "#FFFFFF"; x.beginPath(); x.arc(cx - 8, 99, 8, 0, 6.3); x.fill(); x.beginPath(); x.arc(cx + 9, 117, 4, 0, 6.3); x.fill();
     };
     const omega = () => { arc(117, 150, 11, 0, Math.PI, 7); arc(139, 150, 11, 0, Math.PI, 7); };
+    const heart = (cx, cy) => { x.beginPath(); x.moveTo(cx, cy + 22); x.bezierCurveTo(cx - 36, cy - 2, cx - 22, cy - 32, cx, cy - 12); x.bezierCurveTo(cx + 22, cy - 32, cx + 36, cy - 2, cx, cy + 22); x.closePath(); };
+    const sparkle = (cx, cy, r) => { x.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 - Math.PI / 2, rr = i % 2 ? r * .32 : r; x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.closePath(); x.fill(); };
     function draw(s) {
       x.clearRect(0, 0, 256, 256); x.strokeStyle = x.fillStyle = F.ink; x.lineCap = x.lineJoin = "round";
-      const blush = s === "content" || s === "giggle" ? 1 : .75, br = s === "content" ? 15 : 12;
+      const blush = s === "content" || s === "giggle" || s === "love" ? 1 : .75, br = s === "content" || s === "love" ? 15 : 12;
       x.fillStyle = `rgba(255,120,165,${blush})`; for (const bx of [50, 206]) { x.beginPath(); x.arc(bx, 150, br, 0, 6.3); x.fill(); }
       x.strokeStyle = x.fillStyle = F.ink;
       if (s === "idle" || s === "happy" || s === "grumpy") { eyeRound(78); eyeRound(178); }
@@ -5819,7 +5821,26 @@ const CTRL = {
         x.beginPath(); x.moveTo(102, 140); x.lineTo(154, 140); x.quadraticCurveTo(154, 192, 128, 192); x.quadraticCurveTo(102, 192, 102, 140); x.fill();
         x.fillStyle = "#FF7FA8"; x.beginPath(); x.ellipse(128, 178, 15, 9, 0, 0, 6.3); x.fill();
       }
-      if (s === "content") arc(128, 140, 16, Math.PI * .15, Math.PI * .85, 7);
+      if (s === "content" || s === "love") arc(128, 140, 16, Math.PI * .15, Math.PI * .85, 7);
+      // petted for a while: heart eyes
+      if (s === "love") for (const cx of [78, 178]) { heart(cx, 106); x.fillStyle = "#FF4F86"; x.fill(); x.lineWidth = 5; x.strokeStyle = F.ink; x.stroke(); x.fillStyle = "rgba(255,255,255,.85)"; x.beginPath(); x.arc(cx - 9, 98, 5, 0, 6.3); x.fill(); x.fillStyle = F.ink; }
+      // the start of a big spin: starry eyes and a little "o"
+      if (s === "star") {
+        for (const cx of [78, 178]) { x.fillStyle = F.ink; x.beginPath(); x.arc(cx, 108, 26, 0, 6.3); x.fill(); x.fillStyle = "#FFFFFF"; sparkle(cx, 108, 17); }
+        x.fillStyle = F.ink; sparkle(34, 62, 12); sparkle(222, 58, 14); sparkle(228, 124, 8);
+        x.beginPath(); x.ellipse(128, 160, 10, 13, 0, 0, 6.3); x.fill();
+      }
+      // spun far too long: knocked out, tongue out
+      if (s === "ko") {
+        x.lineWidth = 9; x.beginPath(); for (const cx of [78, 178]) { x.moveTo(cx - 18, 90); x.lineTo(cx + 18, 126); x.moveTo(cx + 18, 90); x.lineTo(cx - 18, 126); } x.stroke();
+        x.lineWidth = 7; x.beginPath(); x.moveTo(104, 150); x.lineTo(152, 150); x.stroke();
+        x.fillStyle = "#FF7FA8"; x.beginPath(); x.moveTo(126, 150); x.lineTo(150, 150); x.lineTo(150, 160); x.arc(138, 160, 12, 0, Math.PI); x.closePath(); x.fill(); x.lineWidth = 4; x.stroke(); x.fillStyle = F.ink;
+      }
+      // woken from a nap: wide eyes and raised brows
+      if (s === "startled") {
+        for (const cx of [78, 178]) { x.fillStyle = "#FFFFFF"; x.beginPath(); x.arc(cx, 110, 26, 0, 6.3); x.fill(); x.lineWidth = 6; x.stroke(); x.fillStyle = F.ink; x.beginPath(); x.arc(cx, 110, 9, 0, 6.3); x.fill(); arc(cx, 76, 22, Math.PI * 1.2, Math.PI * 1.8, 6); }
+        x.lineWidth = 6; x.beginPath(); x.ellipse(128, 162, 9, 12, 0, 0, 6.3); x.stroke();
+      }
       if (s === "dizzy") { x.lineWidth = 7; x.beginPath(); for (let px = 100; px <= 156; px += 2) x.lineTo(px, 160 + Math.sin((px - 100) / 56 * Math.PI * 3) * 6); x.stroke(); }
       if (s === "grumpy") { x.beginPath(); x.moveTo(98, 150); x.quadraticCurveTo(128, 136, 158, 150); x.quadraticCurveTo(164, 168, 150, 170); x.quadraticCurveTo(128, 160, 106, 170); x.quadraticCurveTo(92, 168, 98, 150); x.fill(); }
       if (s === "sleepy") { x.beginPath(); x.ellipse(128, 156, 9, 11, 0, 0, 6.3); x.fill(); x.font = "600 30px Fredoka, sans-serif"; x.fillText("z", 196, 62); x.font = "600 22px Fredoka, sans-serif"; x.fillText("z", 220, 40); }
@@ -5833,21 +5854,34 @@ const CTRL = {
       // other controls (and turning the toy) report here
       poke(kind) {
         F.touch = performance.now();
+        if (ctrl.wake()) return;
         if (kind === "grump") show("grumpy", 1300);
         else if (kind === "control" && (F.until < F.touch + 300 || F.state !== "grumpy")) show("happy", 800);
       },
       setInk(c) { F.ink = c; const s = F.state; F.state = ""; show(s || "idle", Math.max(0, F.until - performance.now())); },
-      down(p) { moved = 0; last = [p.sx, p.sy]; },
+      // touched while napping: a startled little jump awake
+      wake() { if (F.state !== "sleepy") return false; show("startled", 900); S.blip(1760); buzz(8); return true; },
+      down(p) { moved = 0; last = [p.sx, p.sy]; F.petFrom = performance.now(); F.loved = false; ctrl.wake(); },
       move(p) {
         moved += Math.hypot(p.sx - last[0], p.sy - last[1]); last = [p.sx, p.sy];
-        if (moved > 12) { show("content", 1200); const now = performance.now(); if (now - F.snd > 160) { F.snd = now; S.rustle(.2); buzz(2); } }
+        if (moved > 12) {
+          const now = performance.now();
+          // stroked for a couple of seconds: heart eyes
+          if (now - F.petFrom > 2000) { show("love", 1500); if (!F.loved) { F.loved = true; S.blip(1046); setTimeout(() => S.blip(1318), 110); buzz(6); } }
+          else if (F.state !== "startled") show("content", 1200); if (now - F.snd > 160) { F.snd = now; S.rustle(.2); buzz(2); } }
       },
-      up() { if (moved <= 12) { show("giggle", 900); S.blip(1320); setTimeout(() => S.blip(1568), 90); buzz(10); } },
+      up() { if (moved <= 12 && F.state !== "startled") { show("giggle", 900); S.blip(1320); setTimeout(() => S.blip(1568), 90); buzz(10); } },
       step() {
         const now = performance.now();
         // spun hard: dizzy for as long as it keeps turning, then woozy for 2 more seconds
         const sp = CB.spin ? CB.spin.angle : 0;
+        // a big spin starts: starstruck for a moment, before the dizziness sets in
+        if (sp > .15 && F.spinT === 0 && F.dizzyUntil < now && F.koUntil < now) show("star", 700);
         F.spinT = sp > .06 ? F.spinT + 1 : Math.max(0, F.spinT - 2);
+        // kept spinning flick after flick for about 4 seconds: knocked out
+        F.spinLong = sp > .06 ? F.spinLong + 1 : Math.max(0, F.spinLong - .5);
+        if (F.spinLong > 240) { F.spinLong = 0; F.koUntil = now + 2600; F.until = 0; S.thud(.4); buzz(20); }
+        if (F.koUntil > now) return show("ko");
         if (F.spinT > 8 || (F.dizzyUntil > now && sp > .02)) F.dizzyUntil = now + 2000;
         if (F.until > now) return;
         if (F.dizzyUntil > now) return show("dizzy");
