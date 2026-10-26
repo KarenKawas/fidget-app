@@ -44,6 +44,7 @@
 - **Sticker packs:** wire up in-app purchases at store-release time, using RevenueCat or the native store plugins. The packs are one-time buys and cosmetic only. Seasonal, Kawaii and Space are already on the shop shelf, marked "Coming soon".
 - **Toon look:** every mode is now toon (3D modes through `lookToon`, 2D modes restyled by hand). A Soft/Toon switch could come later if people ask for it.
 - **Twisty packs:** more colourways (glitter, metallic, pastel marble) as paid packs, alongside stickers and slime toppings.
+- **Board looper:** a long press on REC records a loop that keeps playing while you jam on top, layer after layer.
 
 ## Foldable iPhone support (not started)
 
