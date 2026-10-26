@@ -32,7 +32,7 @@ html[data-mode="board"]{background:var(--boardbg,#A86A36)}
 html[data-mode="bubbles"]{background:var(--sheetbg,var(--sheet))}
 html[data-mode="dice"]{background:#3A2212}
 html[data-mode="grass"]{background:var(--grassbg,#3F8226)}
-html[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.55) 0 3px,transparent 3.5px) 0 0/28px 28px,#FBE3EE}
+html[data-mode="pop"]{background:#F2E3CF}
 html[data-mode="spin"]{background:radial-gradient(ellipse at 50% 40%,#3B3460,#15122A 75%)}
 html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE8E1 80%)}
 html[data-mode="zen"].zen-night{background:radial-gradient(circle at 82% 10%,#F6F2DC 0 22px,rgba(246,242,220,.22) 26px,rgba(246,242,220,0) 64px),radial-gradient(ellipse at 50% 45%,#1E2446,#0A0C1A 80%)}
@@ -181,7 +181,7 @@ html.dark .fab{background:rgba(40,36,56,.78)}
 html.dark .fab svg{stroke:#F1EDF8}
 html.dark .pill[aria-pressed="true"],html.dark .seg button[aria-pressed="true"]{background:#F1EDF8;color:#231F30}
 html.dark[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.08) 0 3px,transparent 3.5px) 0 0/28px 28px,#3A2232}
-html.dark #mode-pop .hint{color:#F3C9DD}
+html.dark #mode-pop .hint{color:#6A4A30}
 html.dark[data-mode="zen"]:not(.zen-night){background:radial-gradient(ellipse at 50% 45%,#3A3A42,#1A1A20 80%)}
 html.dark[data-mode="cradle"]{background:linear-gradient(180deg,#2C2824,#141210)}
 html.dark[data-mode="cube"]:not(.dodec-night){background:radial-gradient(ellipse at 50% 40%,#3A3150,#1A1626 80%)}
@@ -525,7 +525,7 @@ html[data-mode="ice"]{background:#0B1626}
 .ico.spin{background:radial-gradient(circle at 50% 40%,#4A4270,#1E1A36);display:grid;place-items:center}
 .ico.spin svg{width:34px;height:34px}
 #mode-pop .themes,#mode-spin .themes{z-index:3}
-#mode-pop .hint{color:#8A3A63;text-shadow:none;bottom:84px}
+#mode-pop .hint{color:#6A4A30;text-shadow:none;bottom:84px}
 #mode-pop .newsheet.cheer{animation:cheer .5s ease-in-out 3}
 #mode-spin .themes{top:auto;bottom:18px;left:12px;justify-content:center}
 #mode-spin .hint{bottom:70px}
@@ -699,7 +699,7 @@ html[data-mode="ice"]{background:#0B1626}
   </section>
 
   <section class="mode" id="mode-pop" aria-label="Pop-it">
-    <canvas id="popcv" aria-label="A silicone pop-it. Press the bubbles in, then flip it over to pop them again."></canvas>
+    <canvas id="popcv" aria-label="A silicone pop-it on a kitchen table. Press the bubbles in, then flick it or tap Flip to turn it over and pop them again."></canvas>
     <p class="hint" id="pHint">Press the bubbles</p>
     <button class="newsheet" id="popFlip">Flip it over</button>
     <div class="themes" role="group" aria-label="Pop-it shape">
@@ -2588,6 +2588,7 @@ const POP_SHAPES = {
   },
 };
 function popSetup(force) {
+  if (typeof pop3Setup === "function" && pop3Setup()) return;
   const w = pcv.clientWidth, hh = pcv.clientHeight;
   if (!w || !hh) return;
   if (!force && w === P.W && hh === P.H) return;
@@ -2654,6 +2655,7 @@ function popFrame(now) {
     if (was < .5 && P.flip >= .5) P.dots.forEach(p => { p.down = !p.down; p.a = 0; });
     if (P.flip >= 1) { P.flip = -1; S.thud(.6); buzz(20); }
   }
+  if (P3 && P3.on) { pop3Frame(dt); return; }
   if (P.dirty) { P.dirty = false; popDraw(); }
 }
 function popHit(x, y) {
@@ -2689,7 +2691,7 @@ function setPopShape(s) {
   P.shape = s;
   document.querySelectorAll("#mode-pop .opt").forEach(b => b.setAttribute("aria-pressed", b.dataset.shape === s ? "true" : "false"));
   try { localStorage.setItem("fidget-pop-shape", s); } catch (e) {}
-  if (P.W) buildPop();
+  if (P3 && P3.on) pop3Setup(); else if (P.W) buildPop();
 }
 document.querySelectorAll("#mode-pop .opt").forEach(b => b.addEventListener("click", () => { setPopShape(b.dataset.shape); S.thup(); buzz(10); }));
 let savedShape = "square"; try { savedShape = localStorage.getItem("fidget-pop-shape") || "square"; } catch (e) {}
@@ -4158,6 +4160,107 @@ function twTvSound(dt) {
   if (on && Math.random() < dt / 25) { T.g.gain.setTargetAtTime(.045, now + .05, .3); T.g.gain.setTargetAtTime(0, now + 1.4, .4); T.syl = 1.8; }
   if (!on) T.g.gain.setTargetAtTime(0, now, .2);
 }
+/* ---- the 3D pop-it on a kitchen table: real silicone domes you press in, and flick (or tap Flip) to turn it over ---- */
+var P3 = { on: false, scene: null, cam: null, board: null, domes: [], ptrs: new Map(), shape: null };
+var secPop = $("#mode-pop");
+// the outline in pop-it units (radius 1, centred), as a three.js shape
+function pop3Shape(s) {
+  const sh = new THREE.Shape();
+  if (s === "circle") { sh.absarc(0, 0, 1, 0, Math.PI * 2, false); return sh; }
+  if (s === "heart") { for (let i = 0; i <= 120; i++) { const t = i / 120 * 6.2832, x = 16 * Math.sin(t) ** 3, y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t), k = 1 / 16.5; if (i) sh.lineTo(x * k, (y + 2.5) * k); else sh.moveTo(x * k, (y + 2.5) * k); } return sh; }
+  const r = .3; sh.moveTo(-1 + r, -1); sh.lineTo(1 - r, -1); sh.quadraticCurveTo(1, -1, 1, -1 + r); sh.lineTo(1, 1 - r); sh.quadraticCurveTo(1, 1, 1 - r, 1); sh.lineTo(-1 + r, 1); sh.quadraticCurveTo(-1, 1, -1, 1 - r); sh.lineTo(-1, -1 + r); sh.quadraticCurveTo(-1, -1, -1 + r, -1); return sh;
+}
+// the same bubble layout as the flat pop-it, worked out on a little offscreen canvas
+function pop3Layout(s) {
+  const c = document.createElement("canvas"); c.width = c.height = 600; const x = c.getContext("2d"), R = 250, path = POP_SHAPES[s](300, 300, R);
+  const n = s === "heart" ? 8 : 7, d = 2 * R / n, r = d * .39, out = [];
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const px = 300 - R + d * (i + .5), py = 300 - R + d * (j + .5); let inside = true;
+    for (let k = 0; k < 8 && inside; k++) { const a = k * Math.PI / 4; inside = x.isPointInPath(path, px + Math.cos(a) * r * 1.25, py + Math.sin(a) * r * 1.25); }
+    if (inside) out.push({ u: (px - 300) / R, v: (py - 300) / R, r: r / R, hue: Math.round(j / (n - 1) * 290), down: false, a: 0 });
+  }
+  return out;
+}
+function pop3Room(sc) {
+  const room = roomKit(sc, { w: 26, d: 22, h: 12, floor: "#D8B48A", wall: "#F2E3CF", window: [0, 8, -10.95, 0, 8, 5], sky: "#BFE4FF" });
+  // the kitchen table, with a fruit bowl and a mug
+  const tb = new THREE.Group(); room.add(tb);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(16, .5, 11), tbT(0xFFFFFF, { map: tbWoodTex(TB_STYLES.natural) })); top.position.y = 4.75; top.receiveShadow = true; tb.add(top);
+  for (const [x, z] of [[-7, -4.6], [7, -4.6], [-7, 4.6], [7, 4.6]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.5, 4.5, .5), tbT(0x8A5A30)); l.position.set(x, 2.25, z); tb.add(l); }
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), tbT(0x9FD2F2, { side: THREE.DoubleSide })); bowl.position.set(-5.4, 6.4, -3); tb.add(bowl);
+  for (const [x, z, c] of [[-5.8, -3.2, 0xE5484D], [-5, -2.7, 0xF5B921], [-5.3, -3.6, 0x7FB685]]) { const f = new THREE.Mesh(new THREE.SphereGeometry(.5, 14, 10), tbT(c)); f.position.set(x, 5.6, z); tb.add(f); }
+  const mug = new THREE.Mesh(new THREE.CylinderGeometry(.55, .5, 1.1, 18), tbT(0xF4A6B8)); mug.position.set(5.6, 5.55, -3.2); tb.add(mug);
+  tbToonify(room, .04);
+  return 5; // the table top's height
+}
+function pop3Build(s) {
+  const sc = P3.scene = P3.scene || new THREE.Scene();
+  if (!P3.cam) {
+    sc.background = new THREE.Color(0xF2E3CF); P3.cam = new THREE.PerspectiveCamera(36, 1, .1, 120);
+    const L = lookLights(sc, { keyPos: [-5, 16, 8], keyI: .8, hemi: .6, fillI: .25 }); Object.assign(L.key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 50 });
+    P3.y = pop3Room(sc);
+  }
+  if (P3.board) { sc.remove(P3.pivot); disposeTree(P3.pivot); }
+  const S2 = 3.3, pivot = P3.pivot = new THREE.Group(); pivot.position.y = P3.y + .2; sc.add(pivot);
+  const board = P3.board = new THREE.Group(); pivot.add(board);
+  // the silicone body, rainbow from top to bottom (vertex colours)
+  const geo = new THREE.ExtrudeGeometry(pop3Shape(s), { depth: .16, bevelEnabled: true, bevelThickness: .05, bevelSize: .05, bevelSegments: 3, curveSegments: 48 });
+  geo.rotateX(-Math.PI / 2); geo.scale(S2, 1, S2); geo.translate(0, -.05, 0);
+  // rainbow rows, painted top to bottom (the caps' UVs are the outline's own coordinates, -1..1)
+  const rb = tbCanvas(16, 256, (x, w, h) => { for (let j = 0; j < h; j++) { x.fillStyle = `hsl(${Math.round(j / h * 290)},82%,66%)`; x.fillRect(0, j, w, 1); } });
+  rb.repeat.set(.5, .5); rb.offset.set(.5, .5); rb.wrapS = rb.wrapT = THREE.ClampToEdgeWrapping;
+  const body = new THREE.Mesh(geo, tbT(0xFFFFFF, { map: rb })); body.castShadow = body.receiveShadow = true; board.add(body);
+  // the bubbles: domes that press in
+  const dome = new THREE.SphereGeometry(1, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), mats = {};
+  P.dots = pop3Layout(s); P3.domes = [];
+  for (const p of P.dots) {
+    const mat = mats[p.hue] || (mats[p.hue] = tbT(new THREE.Color().setHSL(p.hue / 360, .85, .62).getHex()));
+    const m = new THREE.Mesh(dome, mat); m.position.set(p.u * S2, .16, p.v * S2); m.scale.set(p.r * S2 * .92, p.r * S2 * .7, p.r * S2 * .92); m.castShadow = true; m.userData.dot = p; board.add(m);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(p.r * S2 * .95, .025, 6, 24), tbT(new THREE.Color().setHSL(p.hue / 360, .7, .45).getHex())); ring.rotation.x = -Math.PI / 2; ring.position.set(p.u * S2, .17, p.v * S2); board.add(ring);
+    p.m = m; p.ky = 1; P3.domes.push(m);
+  }
+  tbToonify(board, .03);
+  P.flip = -1; popFlip.classList.remove("cheer"); P3.shape = s;
+}
+function pop3Setup() {
+  if (typeof THREE === "undefined" || !mount3D(secPop)) { P3.on = false; pcv.style.display = ""; return false; }
+  if (!P3.board || P3.shape !== P.shape) pop3Build(P.shape);
+  pcv.style.display = "none"; P3.on = true;
+  const asp = P3.cam.aspect = GL.w / GL.h, t = Math.tan(18 * Math.PI / 180), d = Math.max(4.4 / t, 4 / (t * asp)) * 1.05;
+  P3.cam.position.set(0, P3.y + d * .88, d * .48); P3.cam.lookAt(0, P3.y, .2); P3.cam.updateProjectionMatrix();
+  return true;
+}
+function pop3Frame(dt) {
+  for (const p of P.dots) {
+    const want = p.down ? -.55 : 1; p.ky += (want - p.ky) * Math.min(1, dt * .45);
+    p.m.scale.y = p.r * 3.3 * .7 * p.ky; p.m.position.y = .16 + (p.ky < 0 ? .02 : 0);
+  }
+  // the flop: up, over and back down; the states swap at the halfway point (in popFrame)
+  const f = P.flip >= 0 ? P.flip : 0, e = f < .5 ? f * 2 : (1 - f) * 2;
+  P3.board.rotation.z = P.flip >= 0 ? Math.PI * (f < .5 ? f : f - 1) : 0; P3.pivot.position.y = P3.y + .2 + Math.sin(Math.PI * f) * 2.2;
+  toonRender(GL.r, P3.scene, P3.cam, { ink: null });
+}
+// touch: tap or drag across the bubbles; a quick swipe flips it over
+on3D(secPop, "pointerdown", e => {
+  if (!P3.on) return;
+  GL.canvas.setPointerCapture(e.pointerId); ac(); pHint.classList.add("gone");
+  const h = rayAt(e, P3.cam).intersectObjects(P3.domes, false)[0], p = h ? h.object.userData.dot : null;
+  P3.ptrs.set(e.pointerId, { p, x0: e.clientX, y0: e.clientY, t0: performance.now(), popped: [] });
+  if (p && !p.down) P3.ptrs.get(e.pointerId).popped.push(p);
+  popPress(p, true);
+});
+on3D(secPop, "pointermove", e => {
+  const s = P3.ptrs.get(e.pointerId); if (!s) return;
+  const h = rayAt(e, P3.cam).intersectObjects(P3.domes, false)[0], p = h ? h.object.userData.dot : null;
+  if (p !== s.p) { s.p = p; if (p && !p.down) s.popped.push(p); popPress(p, false); }
+});
+const pop3End = e => {
+  const s = P3.ptrs.get(e.pointerId); if (!s) return; P3.ptrs.delete(e.pointerId);
+  const dx = e.clientX - s.x0, dy = e.clientY - s.y0, dist = Math.hypot(dx, dy), ms = performance.now() - s.t0;
+  // a flick: fast and long; the bubbles it brushed on the way are let back up so the flick only flips
+  if (dist > 110 && ms < 260 && dist / ms > .9) { for (const p of s.popped) p.down = false; popFlipOver(); }
+};
+on3D(secPop, "pointerup", pop3End); on3D(secPop, "pointercancel", pop3End);
 /* ================= twisty ================= */
 // A chain of quarter-circle links like the classic twisty fidget. Each joint turns about the chain in clicky quarter
 // turns; pull a link well away and it pops off with everything after it; bring a socket to a loose peg and it snaps on.
@@ -8221,7 +8324,7 @@ if (location.hash) window.__fidget = { IC, iceFrame, icBrush, icHeightAt, icPick
   if (mode === "grass" && G.W) grassFrame(now || 0);
   if (G.engine && (mode !== "grass" || !G.mower)) { G.engine.g.gain.setTargetAtTime(0, actx.currentTime, .1); G.engine.og.gain.setTargetAtTime(0, actx.currentTime, .1); }
   if (mode === "bubbles") bubblesFrame();
-  if (mode === "pop" && P.W) popFrame(now || 0);
+  if (mode === "pop" && (P.W || (P3 && P3.on))) popFrame(now || 0);
   if (mode === "zen" && Z.W) zenFrame(now || 0);
   else if (ZM.playing) zMusic(false);
   if (mode !== "zen" && Z.bed) Z.bed.g.gain.setTargetAtTime(0, actx.currentTime, .1);
