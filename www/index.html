@@ -1800,14 +1800,12 @@ async function initDiceInner() {
   for (let i = 0; i < 6000; i++) { fg.fillStyle = Math.random() < .5 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.09)"; fg.fillRect(Math.random() * 256, Math.random() * 256, 1.5, 1.5); }
   const ft = new THREE.CanvasTexture(fc); ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(24, 24); ft.encoding = THREE.sRGBEncoding;
   const table = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshStandardMaterial({ map: ft, roughness: 1 }));
-  table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table); D.felt = table;
+  table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table); D.felt = table; table.userData.noInk = true;
   // the tabletop around the rolling mat, and the props (placed in diceResize once the mat's size is known)
   const wt = tbWoodTex({ base: "#5A3420", grain: "rgba(20,8,0,.35)" }); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(6, 6);
-  const wood = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ map: wt, roughness: .8 })); wood.rotation.x = -Math.PI / 2; wood.position.y = -.02; wood.receiveShadow = true; scene.add(wood); D.wood = wood;
+  const wood = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ map: wt, roughness: .8 })); wood.rotation.x = -Math.PI / 2; wood.position.y = -.02; wood.receiveShadow = true; scene.add(wood); D.wood = wood; wood.userData.noInk = true;
   D.props = new THREE.Group(); scene.add(D.props);
-  D.candle = new THREE.PointLight(0xFFB060, .8, 30, 1.6); scene.add(D.candle);
-  D.flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: tbCanvas(64, 96, x => { const g2 = x.createRadialGradient(32, 60, 2, 32, 52, 34); g2.addColorStop(0, "#FFF6D0"); g2.addColorStop(.4, "#FFB040"); g2.addColorStop(1, "rgba(255,120,30,0)"); x.fillStyle = g2; x.beginPath(); x.ellipse(32, 56, 16, 34, 0, 0, 6.3); x.fill(); }), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-  scene.add(D.flame);
+  D.candle = new THREE.PointLight(0xFFB060, .8, 0, 1); scene.add(D.candle);
 
   const world = new CANNON.World(); world.gravity.set(0, -34, 0);
   world.broadphase = new CANNON.NaiveBroadphase(); world.solver.iterations = 14; world.allowSleep = true;
@@ -1841,7 +1839,7 @@ function diceResize() {
   };
   const trayH = ($("#tray").offsetHeight || 120) - 20, hudH = 90;
   const bl = onFloor(-1, -1 + 2 * trayH / h), tl = onFloor(-1, 1 - 2 * hudH / h);
-  const xh = Math.min(Math.abs(bl.x), Math.abs(tl.x)) - 1.1, zn = bl.z - 1.1, zf = tl.z + 4.2; // the top strip is the table, with the props
+  const xh = Math.min(Math.abs(bl.x), Math.abs(tl.x)) - 1.1, zn = bl.z - 1.1, zf = tl.z + 1.1;
   D.b = { xh, zn, zf };
   const [L, R, F, N] = D.walls, Y = new CANNON.Vec3(0, 1, 0);
   L.position.set(-xh, 0, 0); L.quaternion.setFromAxisAngle(Y, Math.PI / 2);
@@ -1851,7 +1849,7 @@ function diceResize() {
   D.dice.forEach(d => keepInside(d.body));
   dTable();
 }
-// the felt mat sits inside a raised wooden tray; a character sheet, a candle and a little hero stand just beyond it
+// the felt mat fills the screen inside a raised wooden tray rim
 function dTable() {
   const B = D.b, w = B.xh * 2 + .6, d = B.zn - B.zf + .6, cz = (B.zn + B.zf) / 2;
   D.felt.geometry.dispose(); D.felt.geometry = new THREE.PlaneGeometry(w, d); D.felt.position.set(0, .005, cz);
@@ -1861,19 +1859,8 @@ function dTable() {
   const t = .5, h = .8, rim = 0x8A5A30;
   add(new THREE.BoxGeometry(w + 2 * t, h, t), rim, 0, h / 2, B.zf - .3 - t / 2); add(new THREE.BoxGeometry(w + 2 * t, h, t), rim, 0, h / 2, B.zn + .3 + t / 2);
   add(new THREE.BoxGeometry(t, h, d), rim, -w / 2 - t / 2, h / 2, cz); add(new THREE.BoxGeometry(t, h, d), rim, w / 2 + t / 2, h / 2, cz);
-  // a parchment character sheet, a candle and a little hero, just past the far edge
-  const zf = B.zf - 2.1;
-  const sheet = add(new THREE.PlaneGeometry(3.2, 4.2), 0xFFFFFF, -B.xh + 1, .02, zf - .6, { map: tbCanvas(128, 168, (x, w2, h2) => {
-    x.fillStyle = "#EED9B0"; x.fillRect(0, 0, w2, h2); x.fillStyle = "#6E4A20"; x.font = "700 16px serif"; x.fillText("HERO", 10, 22);
-    x.fillStyle = "rgba(110,74,32,.55)"; for (let l = 0; l < 10; l++) x.fillRect(10, 34 + l * 12, 60 + (l * 37) % 48, 3);
-    x.strokeStyle = "#6E4A20"; x.lineWidth = 2; for (let k = 0; k < 3; k++) x.strokeRect(84, 34 + k * 40, 34, 32);
-  }) });
-  sheet.rotation.set(-Math.PI / 2, 0, .12);
-  add(new THREE.CylinderGeometry(.45, .5, 1.6, 16), 0xF2EAD8, B.xh - 1.2, .8, zf);
-  add(new THREE.CylinderGeometry(.9, 1, .2, 20), 0xC9A24A, B.xh - 1.2, .1, zf);
-  D.candle.position.set(B.xh - 1.2, 2.4, zf); D.flame.position.set(B.xh - 1.2, 2.1, zf);
-  const hero = new THREE.Group(); hero.position.set(B.xh - 3, 0, zf - .3); D.props.add(hero);
-  for (const [geo, col, y] of [[new THREE.CylinderGeometry(.5, .5, .15, 16), 0x2A2438, .07], [new THREE.CylinderGeometry(.25, .35, .9, 12), 0x5A6ACB, .6], [new THREE.SphereGeometry(.26, 12, 10), 0xF2C9A0, 1.25]]) { const m = new THREE.Mesh(geo, tbT(col)); m.position.y = y; m.castShadow = true; hero.add(m); }
+  // the candle is off screen in the far corner; its warm light still flickers over the felt
+  D.candle.position.set(B.xh - 1, 10, B.zf + 3);
   tbToonify(D.props, .04);
   dTableLight();
 }
@@ -1881,7 +1868,7 @@ function dTable() {
 function dTableLight() {
   if (!D.scene) return; D.dark = document.documentElement.classList.contains("dark");
   // the toon shading keeps a floor of light, so the table and props are also darkened directly; the dice are left to the candle
-  for (const root of [D.felt, D.wood, D.props]) if (root) root.traverse(o => { const m = o.material; if (!m || !m.color || o.userData.noInk || m.side === THREE.BackSide) return; if (!m.userData.c0) m.userData.c0 = m.color.clone(); m.color.copy(m.userData.c0).multiplyScalar(D.dark ? .4 : 1); });
+  for (const root of [D.felt, D.wood, D.props]) if (root) root.traverse(o => { const m = o.material; if (!m || !m.color || m.side === THREE.BackSide) return; if (!m.userData.c0) m.userData.c0 = m.color.clone(); m.color.copy(m.userData.c0).multiplyScalar(D.dark ? .4 : 1); });
   D.scene.traverse(o => { if (o.isHemisphereLight) o.intensity = D.dark ? .1 : .8; if (o.isDirectionalLight) o.intensity = D.dark ? .08 : .95; });
 }
 function keepInside(b) {
@@ -2051,7 +2038,7 @@ function diceFrame(now) {
     if (D.settle > .3) { D.rolling = false; showResults(); }
   }
   if (D.style === "blossom") for (const d of D.dice) { const g = d.mesh.getObjectByName("petals"); if (g) g.children.forEach(s => { s.userData.ph += .01; s.position.y += Math.sin(s.userData.ph) * .002; s.material.rotation = s.userData.ph; }); }
-  if (D.candle) { const f = .85 + Math.sin(now * .013) * .08 + Math.sin(now * .031) * .06; D.candle.intensity = (D.dark ? 1.8 : .7) * f; D.flame.scale.set(.6 * f, .95 * f, 1); }
+  if (D.candle) { const f = .85 + Math.sin(now * .013) * .08 + Math.sin(now * .031) * .06; D.candle.intensity = (D.dark ? 1.8 : .7) * f; }
   toonRender(D.r, D.scene, D.cam, TOON_INK.dice);
 }
 
