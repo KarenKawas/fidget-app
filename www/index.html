@@ -3328,11 +3328,14 @@ function stWater() {
       uniform float uTime; uniform vec4 uRip[${ST_RIPS}]; uniform vec3 uDeep, uTop, uHor, uSun, uSunDir, uFogC; uniform float uFogN, uFogF;
       varying vec3 vW;
       void main() {
-        vec2 p = vW.xz, g = vec2(0.0); float tm = mod(uTime, 628.3185);
-        // a slow, gentle swell everywhere so the lake is never glassy-dead
-        g += vec2(cos(p.x * .7 + tm * .6) * .012 + cos((p.x + p.y) * 1.9 - tm) * .006, cos(p.y * .9 - tm * .5) * .014 + cos((p.y - p.x) * 2.3 + tm * 1.3) * .005) * (1.0 - smoothstep(25.0, 70.0, length(p - cameraPosition.xz)));
+        vec2 p = vW.xz, g = vec2(0.0); float tm = mod(uTime, 628.3185), dist = length(cameraPosition - vW);
+        // all the fine detail fades out with distance: far away one pixel covers metres of water, and tiny waves there
+        // would flicker into speckles. Beyond ~40 units the lake is a calm, smooth reflection of the sky.
+        float near = 1.0 - smoothstep(14.0, 40.0, dist);
+        // a slow, gentle swell so the lake is never glassy-dead
+        g += vec2(cos(p.x * .7 + tm * .6) * .012 + cos((p.x + p.y) * 1.9 - tm) * .006, cos(p.y * .9 - tm * .5) * .014 + cos((p.y - p.x) * 2.3 + tm * 1.3) * .005) * near;
         float crest = 0.0;
-        for (int i = 0; i < ${ST_RIPS}; i++) {
+        if (near > 0.0) for (int i = 0; i < ${ST_RIPS}; i++) {
           vec4 r = uRip[i]; float age = uTime - r.z;
           if (age < 0.0 || age > 6.0 || r.w <= 0.0) continue;
           vec2 d = p - r.xy; float dist = length(d) + 1e-4, x = dist - age * 1.5;
@@ -3340,20 +3343,23 @@ function stWater() {
           float w = sin(x * 11.0) * env;
           g += d / dist * cos(x * 11.0) * env * .55; crest += max(w, 0.0);
         }
+        g *= near; crest *= near;
         vec3 n = normalize(vec3(-g.x, 1.0, -g.y)), V = normalize(cameraPosition - vW), R = reflect(-V, n);
         float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0);
         vec3 refl = mix(uHor, uTop, clamp(R.y * 2.2, 0.0, 1.0));
-        vec3 col = mix(uDeep, refl, .3 + .65 * fres);
-        // a painted sun glint, and light catching on ripple crests
-        // (faded close by, where the steep view would smear it into a blob)
-        float far = smoothstep(5.0, 16.0, length(cameraPosition - vW));
-        float sp = pow(max(dot(R, normalize(uSunDir)), 0.0), 160.0);
-        col += uSun * (smoothstep(.35, .45, sp) * .7 + sp * .25) * far;
+        // deeper and richer close to you, paling toward the haze
+        vec3 body = mix(uDeep, mix(uDeep, uHor, .55), smoothstep(4.0, 45.0, dist));
+        vec3 col = mix(body, refl, .25 + .6 * fres);
+        // a painted sun glint and light on ripple crests, close by only; far away a broad, soft path of light instead
+        float mid = smoothstep(5.0, 16.0, dist);
+        float sp = pow(max(dot(R, normalize(uSunDir)), 0.0), 160.0), soft = pow(max(dot(R, normalize(uSunDir)), 0.0), 18.0);
+        col += uSun * ((smoothstep(.35, .45, sp) * .7 + sp * .25) * mid * near + soft * .22 * (1.0 - near));
         col = mix(col, uTop * .4 + uHor * .6 + .15, smoothstep(.25, .4, crest) * .35);
-        float f = smoothstep(uFogN, uFogF, length(cameraPosition - vW));
+        // the far water melts into the same haze as the sky's horizon, so there's no seam
+        float f = smoothstep(uFogN, uFogF, dist);
         gl_FragColor = linearToOutputTexel(vec4(mix(col, uFogC, f), 1.0));
       }` });
-  const w = new THREE.Mesh(new THREE.PlaneGeometry(260, 200), m); w.rotation.x = -Math.PI / 2; w.position.z = -90; return w;
+  const w = new THREE.Mesh(new THREE.PlaneGeometry(700, 420), m); w.rotation.x = -Math.PI / 2; w.position.z = -200; return w;
 }
 function stRipple(x, z, amp) { const r = ST.wu.uRip.value[ST.ripI++ % ST_RIPS]; r.set(x, z, ST.t, amp); }
 
@@ -3463,13 +3469,16 @@ function stScore(n) {
 /* ---- the lake scene ---- */
 function stSky() {
   const T = ST_TIMES[ST.time], x = ST.skyC.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, T.top); g.addColorStop(.48, T.hor); g.addColorStop(1, T.hor); x.fillStyle = g; x.fillRect(0, 0, 4, 256); ST.sky.material.map.needsUpdate = true;
+  g.addColorStop(0, T.top); g.addColorStop(.3, T.top); g.addColorStop(.49, T.hor); g.addColorStop(1, T.hor); x.fillStyle = g; x.fillRect(0, 0, 4, 256); ST.sky.material.map.needsUpdate = true;
   const lin = c => new THREE.Color(c).convertSRGBToLinear();
   const U = ST.wu; U.uDeep.value.copy(lin(T.deep)); U.uTop.value.copy(lin(T.top)); U.uHor.value.copy(lin(T.hor)); U.uSun.value.copy(lin(T.sun)); U.uSunDir.value.set(...T.sunDir).normalize();
-  U.uFogC.value.copy(lin(T.fog)); U.uFogN.value = T.fogR[0]; U.uFogF.value = T.fogR[1];
-  ST.scene.fog.color.set(T.fog); ST.scene.fog.near = T.fogR[0]; ST.scene.fog.far = T.fogR[1];
+  // one haze colour for the far water, the fog and the sky's horizon, so they meet without a line
+  U.uFogC.value.copy(lin(T.hor)); U.uFogN.value = 12; U.uFogF.value = 95;
+  ST.scene.fog.color.set(T.hor); ST.scene.fog.near = 20; ST.scene.fog.far = 230;
+  ST.haze.material.color.set(T.hor);
   ST.hemi.color.setHex(T.hemi[0]); ST.hemi.groundColor.setHex(T.hemi[1]); ST.hemi.intensity = T.hemi[2]; ST.key.intensity = T.key;
-  ST.trees.material.color.set(T.trees).convertSRGBToLinear();
+  // three tree lines, each paler and more lost in the haze the further away it is
+  ST.treeLayers.forEach((m, i) => m.material.color.set(T.trees).lerp(new THREE.Color(T.hor), [.0, .45, .72][i]).convertSRGBToLinear());
   ST.sunDisc.visible = ST.time === "sunset"; ST.moon.visible = ST.stars.visible = ST.time === "night";
   secSt.querySelectorAll("[data-time]").forEach(b => b.setAttribute("aria-pressed", b.dataset.time === ST.time ? "true" : "false"));
   document.documentElement.style.setProperty("--stbg", T.hor);
@@ -3493,14 +3502,21 @@ function stBuild() {
   ST.stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xFFFFFF, size: 1.4, sizeAttenuation: false, fog: false, transparent: true, opacity: .85 })); sc.add(ST.stars);
   // the lake, misty pine shores around it, and the pebbly shore at your feet
   sc.add(ST.water = stWater());
-  const cone = new THREE.ConeGeometry(1, 1, 7), trees = ST.trees = new THREE.InstancedMesh(cone, tbT(0x33433D), 340), m4 = new THREE.Matrix4(), R = mulberry(17);
-  for (let i = 0; i < 340; i++) {
-    const side = i % 3, h = 6 + R() * 9, w = h * (.22 + R() * .08);
-    let x, z;
-    if (side === 0) { x = -40 + R() * 80; z = -70 - R() * 30; } else { x = (side === 1 ? -1 : 1) * (16 + R() * 26); z = -10 - R() * 70; }
-    m4.compose(new THREE.Vector3(x, h / 2 - .3, z), new THREE.Quaternion(), new THREE.Vector3(w, h, w)); trees.setMatrixAt(i, m4);
-  }
-  sc.add(trees);
+  // aerial perspective: near pines along the sides, a softer line across the lake, and faint ridges far beyond
+  const cone = new THREE.ConeGeometry(1, 1, 7), m4 = new THREE.Matrix4(), R = mulberry(17);
+  ST.treeLayers = [
+    [180, (x) => [(x < .5 ? -1 : 1) * (15 + R() * 24), -8 - R() * 60, 7 + R() * 9]],
+    [150, () => [-80 + R() * 160, -70 - R() * 20, 4 + R() * 4]],
+    [160, () => [-200 + R() * 400, -150 - R() * 40, 7 + R() * 7]],
+  ].map(([n, place]) => {
+    const mat = tbT(0x33433D); mat.fog = false;
+    const t = new THREE.InstancedMesh(cone, mat, n);
+    for (let i = 0; i < n; i++) { const [x, z, h] = place(R()), w = h * (.22 + R() * .08); m4.compose(new THREE.Vector3(x, h / 2 - .3, z), new THREE.Quaternion(), new THREE.Vector3(w, h, w)); t.setMatrixAt(i, m4); }
+    sc.add(t); return t;
+  });
+  // a band of haze lying on the far water, softening the horizon
+  ST.haze = new THREE.Mesh(new THREE.PlaneGeometry(600, 26), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, fog: false, map: tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.55, "rgba(255,255,255,.85)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }) }));
+  ST.haze.position.set(0, 3, -110); ST.haze.renderOrder = 4; sc.add(ST.haze);
   const shore = new THREE.Mesh(new THREE.PlaneGeometry(40, 8), tbT(0xFFFFFF, { map: tbCanvas(512, 128, (x, w, h) => {
     x.fillStyle = "#8D8378"; x.fillRect(0, 0, w, h); const R2 = mulberry(5);
     for (let i = 0; i < 900; i++) { const v = 90 + R2() * 90; x.fillStyle = `rgb(${v + 20},${v + 12},${v})`; x.beginPath(); x.ellipse(R2() * w, R2() * h, 3 + R2() * 7, 2 + R2() * 4, R2() * 3, 0, 6.3); x.fill(); x.strokeStyle = "rgba(42,36,56,.35)"; x.lineWidth = 1; x.stroke(); }
