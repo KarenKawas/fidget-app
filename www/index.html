@@ -257,6 +257,8 @@ html[data-mode="ice"]{background:#0B1626}
 .ice-entry img{width:100%;aspect-ratio:5/3}
 .ice-entry b{display:block;font-size:.85rem}.ice-entry small{font-size:.7rem;opacity:.7}
 .ice-entry.locked img{opacity:.35}
+.ice-entry{position:relative}
+.ice-here{position:absolute;top:6px;right:6px;font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:999px;background:#3FAE6A;color:#fff}
 #mode-stones .rock-time{bottom:18px}
 #mode-stones .hint{bottom:72px}
 .st-skip{position:fixed;z-index:4;transform:translate(-50%,-50%);font-weight:700;font-size:1.6rem;color:#fff;-webkit-text-stroke:2.5px #2A2438;paint-order:stroke;pointer-events:none;animation:stskip .9s ease-out forwards}
@@ -746,9 +748,9 @@ html[data-mode="ice"]{background:#0B1626}
     <p class="hint" id="stHint">Flick the stone across the lake · tap the water to drop one</p>
   </section>
 
-  <section class="mode" id="mode-ice" aria-label="Ice: a frozen lake under thick snow. Brush the snow aside to uncover the ice and the fish swimming below; tap the ice to make them dart. Fish you uncover are added to your fish journal.">
+  <section class="mode" id="mode-ice" aria-label="Ice: a frozen lake under thick snow. Brush the snow aside to uncover the ice and the fish swimming below; tap the ice to make them dart. Fifty kinds of fish visit at their own times of day and days of the week; the ones you uncover are added to your fish journal.">
     <p class="hint" id="iceHint">Brush away the snow to find the fish below</p>
-    <button class="ice-book" id="iceBook" aria-label="Fish journal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M9 9c2-2 5-2 6 0-1 2-4 2-6 0z"/></svg><span id="iceCount">0/12</span></button>
+    <button class="ice-book" id="iceBook" aria-label="Fish journal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M9 9c2-2 5-2 6 0-1 2-4 2-6 0z"/></svg><span id="iceCount">0/50</span></button>
     <div class="ice-card" id="iceCard" role="status" hidden><img alt=""><div><span class="ice-new">New fish!</span><b></b><span class="ice-rar"></span><p></p></div></div>
     <button class="newsheet" id="iceFresh">Fresh snow</button>
   </section>
@@ -881,7 +883,7 @@ DISCLAIMER THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
 <div class="sheet-wrap" id="iceJournal" hidden>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="iceJTitle">
     <div class="sheet-head"><h2 id="iceJTitle">Fish journal</h2><button class="sheet-x" id="iceJClose" aria-label="Close">✕</button></div>
-    <p class="note">Uncover a fish under the ice and keep it in view to add it here. Rare fish turn up less often, and one only comes out at night.</p>
+    <p class="note">Uncover a fish under the ice and keep it in view to add it here. Each fish keeps its own hours: some come on certain days, some only at night, and the rarest for just an hour. Check back at different times.</p>
     <div class="ice-grid" id="iceGrid"></div>
   </div>
 </div>
@@ -3562,20 +3564,81 @@ const secIce = $("#mode-ice"), iceHint = $("#iceHint"), iceCard = $("#iceCard");
 const IC = { W: 0, scene: null, cam: null, gx: 84, gz: 168, sx: 10, sz: 20, h: null, base: null, fish: [], ptrs: new Map(), last: 0, t: 0,
   clumps: [], found: new Set(), refillT: 0, dirty: null, bed: null, sndT: 0 };
 try { (JSON.parse(pref("fidget-ice-found", "[]")) || []).forEach(id => IC.found.add(id)); } catch (e) {}
+// fifty fish. when: d = days of the week they visit (0 Sunday .. 6 Saturday, any day if left out), h = [from, to) hours
+// (wrapping past midnight, e.g. [21, 4]); nothing set means any time
+const IC_ALL = [0, 1, 2, 3, 4, 5, 6], IC_WKND = [0, 6], IC_WKDY = [1, 2, 3, 4, 5];
 const IC_FISH = [
+  // common: around most of the time
   { id: "minnow", name: "Minnow", rarity: "Common", w: 10, len: .55, col: "#9AA7A0", back: "#6E7C76", fin: "#B9C2BD", fact: "Tiny and quick, they travel in little gangs." },
-  { id: "perch", name: "Perch", rarity: "Common", w: 10, len: .75, col: "#C9B85C", back: "#6F6A2E", fin: "#E07A3A", bands: true, fact: "Striped like a tiger, with bright orange fins." },
+  { id: "perch", name: "Perch", rarity: "Common", w: 10, len: .75, col: "#C9B85C", back: "#6F6A2E", fin: "#E07A3A", bands: true, when: { h: [6, 20] }, fact: "Striped like a tiger, with bright orange fins." },
   { id: "roach", name: "Roach", rarity: "Common", w: 10, len: .7, col: "#C3CBD1", back: "#7D8790", fin: "#E0523A", fact: "Silver all over, with red eyes and red fins." },
-  { id: "bluegill", name: "Bluegill", rarity: "Common", w: 10, len: .65, col: "#7E9CC2", back: "#3E5C8A", fin: "#E8B04A", round: true, fact: "Round as a pancake, with a dark blue ear spot." },
-  { id: "trout", name: "Trout", rarity: "Uncommon", w: 5, len: .95, col: "#A3AE7E", back: "#5C6B44", fin: "#C9A27A", spots: "#3B3A2A", fact: "Freckled with spots, and loves cold, clear water." },
-  { id: "carp", name: "Carp", rarity: "Uncommon", w: 5, len: 1.2, col: "#B88F4E", back: "#6E5228", fin: "#9A6A3A", fact: "A big, gentle bottom-feeder that can live for decades." },
-  { id: "catfish", name: "Catfish", rarity: "Uncommon", w: 5, len: 1.1, col: "#6B6156", back: "#3F3832", fin: "#5A5048", whiskers: true, fact: "Feels its way along the bottom with long whiskers." },
-  { id: "koi", name: "Koi", rarity: "Rare", w: .9, len: 1.0, col: "#F6F1EA", back: "#F6F1EA", fin: "#F2EDE6", patches: "#F07A2A", fact: "A painted fish: no two koi have the same pattern." },
-  { id: "pike", name: "Pike", rarity: "Rare", w: .9, len: 1.5, slim: true, col: "#8A9B66", back: "#4E5E36", fin: "#9A8A4A", spots: "#D9DDB0", fact: "Long and patient, it waits perfectly still in the weeds." },
-  { id: "char", name: "Arctic char", rarity: "Rare", w: .9, len: .95, col: "#8C7FA0", back: "#4E4466", fin: "#F08A8A", belly: "#F59A86", spots: "#F7D9E0", fact: "Lives further north than any other freshwater fish." },
-  { id: "golden", name: "Golden fish", rarity: "Very rare", w: .2, len: .8, col: "#F5B921", back: "#E08A10", fin: "#FFE07A", shine: true, fact: "Legend says spotting one brings a lucky week." },
-  { id: "glow", name: "Glow fish", rarity: "Very rare", w: .2, len: .7, col: "#2FE6CF", back: "#1B8F9E", fin: "#9BFFF0", glow: true, night: true, fact: "Only seen at night, glowing softly under the ice." },
+  { id: "bluegill", name: "Bluegill", rarity: "Common", w: 10, len: .65, col: "#7E9CC2", back: "#3E5C8A", fin: "#E8B04A", round: true, when: { h: [7, 19] }, fact: "Round as a pancake, with a dark blue ear spot." },
+  { id: "dace", name: "Dace", rarity: "Common", w: 9, len: .6, col: "#D3D8DC", back: "#8A949C", fin: "#E8E2D4", fact: "A slim little silver fish that loves a current." },
+  { id: "rudd", name: "Rudd", rarity: "Common", w: 9, len: .7, col: "#D9C27A", back: "#7F7340", fin: "#E5402B", when: { h: [8, 18] }, fact: "Golden scales and fins as red as a stop sign." },
+  { id: "bleak", name: "Bleak", rarity: "Common", w: 9, len: .5, col: "#E2E7EA", back: "#9AA6AE", fin: "#DDE4E8", shine: true, fact: "So shiny its scales were once used to make fake pearls." },
+  { id: "gudgeon", name: "Gudgeon", rarity: "Common", w: 9, len: .5, col: "#B9A98C", back: "#6E6250", fin: "#C9BBA0", spots: "#4A4030", whiskers: true, fact: "A spotty bottom-dweller with two tiny whiskers." },
+  { id: "loach", name: "Stone loach", rarity: "Common", w: 8, len: .5, slim: true, col: "#A79A7A", back: "#5E5440", fin: "#B8AC8E", spots: "#3E3628", whiskers: true, when: { h: [18, 6] }, fact: "Hides under stones by day and comes out at dusk." },
+  { id: "pumpkinseed", name: "Pumpkinseed", rarity: "Common", w: 8, len: .6, round: true, col: "#E0A04A", back: "#5E7A6A", fin: "#E07A3A", spots: "#3E8AA0", when: { d: IC_WKDY }, fact: "Shaped like its name, painted orange and blue." },
+  { id: "crucian", name: "Crucian carp", rarity: "Common", w: 8, len: .7, round: true, col: "#C9A24A", back: "#6E5228", fin: "#B88A4A", when: { h: [10, 22] }, fact: "A chubby little carp that can survive a frozen pond." },
+  { id: "chub", name: "Chub", rarity: "Common", w: 8, len: .85, col: "#B9BEB4", back: "#5E6658", fin: "#D9884A", fact: "Will eat almost anything, including the odd cherry." },
+  { id: "shiner", name: "Golden shiner", rarity: "Common", w: 8, len: .6, col: "#E8D27A", back: "#8E8040", fin: "#F2E09A", shine: true, when: { h: [6, 12] }, fact: "Glints like a coin in the morning light." },
+  { id: "smelt", name: "Smelt", rarity: "Common", w: 8, len: .55, slim: true, col: "#CFE0E4", back: "#7FA0A8", fin: "#E0ECEE", when: { d: [1, 3, 5] }, fact: "Some say it smells like freshly cut cucumber." },
+  // uncommon: certain days or times
+  { id: "trout", name: "Trout", rarity: "Uncommon", w: 5, len: .95, col: "#A3AE7E", back: "#5C6B44", fin: "#C9A27A", spots: "#3B3A2A", when: { h: [5, 11] }, fact: "Freckled with spots, and loves cold, clear water." },
+  { id: "carp", name: "Carp", rarity: "Uncommon", w: 5, len: 1.2, col: "#B88F4E", back: "#6E5228", fin: "#9A6A3A", when: { h: [12, 20] }, fact: "A big, gentle bottom-feeder that can live for decades." },
+  { id: "catfish", name: "Catfish", rarity: "Uncommon", w: 5, len: 1.1, col: "#6B6156", back: "#3F3832", fin: "#5A5048", whiskers: true, when: { d: [6], h: [18, 24] }, fact: "Feels its way along the bottom with long whiskers. Saturday evenings only." },
+  { id: "tench", name: "Tench", rarity: "Uncommon", w: 5, len: 1.0, col: "#6E7A3A", back: "#3A4420", fin: "#4E5A2A", when: { h: [4, 8] }, fact: "Called the doctor fish: legend says its slime heals others." },
+  { id: "bream", name: "Bream", rarity: "Uncommon", w: 5, len: 1.0, round: true, col: "#A6A08E", back: "#5E5A4E", fin: "#7A7464", when: { d: IC_WKND }, fact: "Tall and flat, it travels in big weekend shoals." },
+  { id: "grayling", name: "Grayling", rarity: "Uncommon", w: 4, len: .9, col: "#A8A8B8", back: "#5A5A70", fin: "#B05AA0", spots: "#2E2E40", when: { d: [0], h: [7, 13] }, fact: "Its tall back fin flashes purple. Sunday mornings." },
+  { id: "walleye", name: "Walleye", rarity: "Uncommon", w: 4, len: 1.1, col: "#B8A55A", back: "#5E5A2E", fin: "#C9B870", when: { h: [19, 2] }, fact: "Big glassy eyes made for hunting in the dark." },
+  { id: "bass", name: "Bass", rarity: "Uncommon", w: 4, len: 1.0, col: "#8EA45A", back: "#3E5A2E", fin: "#A0B470", bands: true, when: { h: [9, 17], d: IC_WKDY }, fact: "A bold hunter with a mouth as wide as its head." },
+  { id: "zander", name: "Zander", rarity: "Uncommon", w: 4, len: 1.2, slim: true, col: "#AEB4A6", back: "#5E6656", fin: "#C0C4B4", bands: true, when: { d: [2, 4], h: [16, 23] }, fact: "Part perch, part pike, and very fond of murky water." },
+  { id: "ide", name: "Golden ide", rarity: "Uncommon", w: 4, len: .9, col: "#F0A43A", back: "#D07A1A", fin: "#F5C070", when: { d: [3] }, fact: "A sunset-coloured fish that shows up on Wednesdays." },
+  { id: "eel", name: "Eel", rarity: "Uncommon", w: 3, len: 1.5, slim: true, col: "#5E5A3A", back: "#2E2A1A", fin: "#4A4630", when: { h: [22, 5] }, fact: "Swims all the way to the ocean to have its babies. Late night only." },
+  { id: "whitefish", name: "Whitefish", rarity: "Uncommon", w: 4, len: .9, col: "#E4E8EA", back: "#9AA4AC", fin: "#E8ECEE", when: { d: [1, 2] }, fact: "A cold-water favourite that loves the start of the week." },
+  { id: "barbel", name: "Barbel", rarity: "Uncommon", w: 4, len: 1.1, col: "#A08A5A", back: "#5A4A2A", fin: "#C07A4A", whiskers: true, when: { h: [17, 22] }, fact: "Four whiskers, and a habit of feeding at dusk." },
+  { id: "crappie", name: "Crappie", rarity: "Uncommon", w: 4, len: .7, round: true, col: "#C8CCC0", back: "#5A6050", fin: "#B0B4A8", spots: "#3A4030", when: { d: [5], h: [12, 24] }, fact: "A speckled panfish that turns up on Friday afternoons." },
+  { id: "burbot", name: "Burbot", rarity: "Uncommon", w: 3, len: 1.2, slim: true, col: "#7A6E4A", back: "#3E3622", fin: "#6E6244", spots: "#2E2A1A", whiskers: true, when: { h: [0, 5] }, fact: "The only freshwater cod, it loves the coldest, darkest hours." },
+  // rare: a narrow window
+  { id: "koi", name: "Koi", rarity: "Rare", w: .9, len: 1.0, col: "#F6F1EA", back: "#F6F1EA", fin: "#F2EDE6", patches: "#F07A2A", when: { d: IC_WKND, h: [10, 16] }, fact: "A painted fish: no two koi have the same pattern. Weekend afternoons." },
+  { id: "pike", name: "Pike", rarity: "Rare", w: .9, len: 1.5, slim: true, col: "#8A9B66", back: "#4E5E36", fin: "#9A8A4A", spots: "#D9DDB0", when: { h: [6, 9] }, fact: "Long and patient, it waits perfectly still in the weeds. Early mornings." },
+  { id: "char", name: "Arctic char", rarity: "Rare", w: .9, len: .95, col: "#8C7FA0", back: "#4E4466", fin: "#F08A8A", belly: "#F59A86", spots: "#F7D9E0", when: { d: [1], h: [5, 10] }, fact: "Lives further north than any other freshwater fish. Monday mornings." },
+  { id: "sturgeon", name: "Sturgeon", rarity: "Rare", w: .7, len: 1.7, slim: true, col: "#8A8E86", back: "#4A4E46", fin: "#7A7E76", whiskers: true, when: { d: [4], h: [19, 23] }, fact: "Older than the dinosaurs as a kind of fish. Thursday nights." },
+  { id: "muskie", name: "Muskie", rarity: "Rare", w: .7, len: 1.5, slim: true, col: "#B0B48A", back: "#5E6440", fin: "#B08A5A", bands: true, when: { d: [2], h: [12, 18] }, fact: "The fish of ten thousand casts. Tuesday afternoons." },
+  { id: "rainbow", name: "Rainbow trout", rarity: "Rare", w: .8, len: .95, col: "#B8C0A0", back: "#5A6A50", fin: "#E890A0", belly: "#F0A0B0", spots: "#3A3A2A", when: { h: [7, 10], d: IC_WKND }, fact: "A pink stripe like a rainbow down each side. Weekend mornings." },
+  { id: "brooktrout", name: "Brook trout", rarity: "Rare", w: .8, len: .9, col: "#7A8A5A", back: "#3A4A2A", fin: "#F07A4A", belly: "#F09A6A", spots: "#E8D070", when: { d: [3, 6], h: [5, 9] }, fact: "Worm-like squiggles on its back and red dots ringed in blue." },
+  { id: "salmon", name: "Atlantic salmon", rarity: "Rare", w: .7, len: 1.3, col: "#C0C8CC", back: "#5A6A78", fin: "#9AA8B4", spots: "#2A3440", when: { d: [5], h: [6, 12] }, fact: "Leaps up waterfalls to get home. Friday mornings." },
+  { id: "huchen", name: "Huchen", rarity: "Rare", w: .6, len: 1.6, slim: true, col: "#C8A090", back: "#6A4A40", fin: "#B88070", spots: "#3A2620", when: { d: [0], h: [16, 21] }, fact: "The Danube salmon, a coppery river giant. Sunday evenings." },
+  { id: "bowfin", name: "Bowfin", rarity: "Rare", w: .7, len: 1.1, col: "#6E7A4E", back: "#3A4428", fin: "#7AA05A", spots: "#2A3018", when: { h: [13, 16] }, fact: "Can gulp air, so it survives where other fish can't." },
+  { id: "gar", name: "Gar", rarity: "Rare", w: .6, len: 1.6, slim: true, col: "#A0A880", back: "#5A6040", fin: "#9A9A70", spots: "#2E3020", when: { d: [6], h: [11, 15] }, fact: "A long needle nose full of tiny teeth. Saturday midday." },
+  { id: "paddlefish", name: "Paddlefish", rarity: "Rare", w: .6, len: 1.6, col: "#8A98A4", back: "#4A5866", fin: "#7A8894", when: { d: [2, 4], h: [3, 7] }, fact: "Its nose is a paddle that senses food in the dark." },
+  { id: "albino", name: "Albino catfish", rarity: "Rare", w: .5, len: 1.0, col: "#F6E6DA", back: "#F0D8C8", fin: "#F2D4C4", whiskers: true, when: { d: [6], h: [21, 24] }, fact: "A pale ghost of a catfish. Late on Saturday nights." },
+  // very rare: magical ones
+  { id: "golden", name: "Golden fish", rarity: "Very rare", w: .2, len: .8, col: "#F5B921", back: "#E08A10", fin: "#FFE07A", shine: true, when: { h: [12, 13] }, fact: "Legend says spotting one brings a lucky week. Only at noon." },
+  { id: "glow", name: "Glow fish", rarity: "Very rare", w: .2, len: .7, col: "#2FE6CF", back: "#1B8F9E", fin: "#9BFFF0", glow: true, when: { h: [21, 4] }, fact: "Only seen at night, glowing softly under the ice." },
+  { id: "moon", name: "Moon fish", rarity: "Very rare", w: .2, len: .8, round: true, col: "#F2F0E0", back: "#C8C6B8", fin: "#FFFFF0", glow: true, shine: true, when: { h: [0, 2] }, fact: "Pale and round as the moon, it rises just after midnight." },
+  { id: "sunrise", name: "Sunrise fish", rarity: "Very rare", w: .2, len: .8, col: "#FFB070", back: "#F0705A", fin: "#FFE0A0", shine: true, when: { h: [6, 7] }, fact: "Its colours come out with the first light of day." },
+  { id: "starry", name: "Starry fish", rarity: "Very rare", w: .2, len: .8, col: "#2A3A7A", back: "#14204A", fin: "#7A8AE0", spots: "#FFF6C0", glow: true, when: { d: [5, 6], h: [22, 3] }, fact: "Covered in tiny stars. Friday and Saturday nights." },
+  { id: "rainbowfish", name: "Rainbow fish", rarity: "Very rare", w: .15, len: .8, col: "#8AD0F0", back: "#B07AF0", fin: "#FF8FB8", patches: "#FFE070", shine: true, when: { d: [0], h: [14, 17] }, fact: "Every colour at once. Sunday afternoons, if you're lucky." },
+  { id: "ghost", name: "Ghost fish", rarity: "Very rare", w: .15, len: .9, col: "#E8F4FA", back: "#C8E0EA", fin: "#F0FAFF", glow: true, when: { d: [5], h: [23, 24] }, fact: "See-through and silent. Only in the last hour of Friday." },
+  { id: "dragon", name: "Dragon koi", rarity: "Very rare", w: .12, len: 1.3, col: "#E8402A", back: "#B01A10", fin: "#FFC040", patches: "#FFD860", shine: true, when: { d: [6], h: [18, 20] }, fact: "The legendary koi that climbed a waterfall and became a dragon." },
 ];
+// is this fish around at this moment?
+function icAround(f, now = new Date()) {
+  const w = f.when; if (!w) return true;
+  if (w.d && !w.d.includes(now.getDay())) return false;
+  if (w.h) { const h = now.getHours(), [a, b] = w.h; if (a < b ? !(h >= a && h < b) : !(h >= a || h < b)) return false; }
+  return true;
+}
+const IC_DAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
+const icHour = h => (h % 24 === 0 ? "midnight" : h === 12 ? "noon" : (h % 12) + (h < 12 ? "am" : "pm"));
+// a short, friendly hint for the journal: when to look for it
+function icWhen(f) {
+  const w = f.when; if (!w) return "Any time";
+  const days = !w.d ? "" : w.d.length === 2 && w.d.includes(0) && w.d.includes(6) ? "Weekends" : w.d.length === 5 && !w.d.includes(0) && !w.d.includes(6) ? "Weekdays" : w.d.map(d => IC_DAYS[d]).join(" & ");
+  const hours = w.h ? icHour(w.h[0]) + "–" + icHour(w.h[1]) : "";
+  return [days, hours].filter(Boolean).join(", ");
+}
 const IC_FISH_K = 1.7; // fish are drawn this much bigger than their nominal length, so their detail reads through the ice
 const IC_RARE = { Common: "#8E9AA6", Uncommon: "#3FAE6A", Rare: "#4A8CF0", "Very rare": "#B867F0" };
 
@@ -3710,9 +3773,11 @@ function icFishMesh(sp) {
   g.userData.rear = rear; g.userData.tail = tailPiv; return g;
 }
 function icPick() {
-  const night = document.documentElement.classList.contains("dark") || new Date().getHours() >= 20 || new Date().getHours() < 6;
-  const pool = IC_FISH.filter(f => !f.night || night), tot = pool.reduce((s, f) => s + f.w, 0);
-  let r = Math.random() * tot; for (const f of pool) if ((r -= f.w) <= 0) return f; return pool[0];
+  // timed fish get a boost while their window is open (the narrower the window, the bigger), so turning up at the right
+  // time is rewarded
+  const now = new Date(), pool = IC_FISH.filter(f => icAround(f, now)), wt = f => f.w * (f.when ? (f.rarity === "Uncommon" ? 2 : f.rarity === "Rare" ? 4 : f.rarity === "Very rare" ? 8 : 1) : 1);
+  const tot = pool.reduce((s, f) => s + wt(f), 0);
+  let r = Math.random() * tot; for (const f of pool) if ((r -= wt(f)) <= 0) return f; return pool[0];
 }
 function icSpawn(onScreen) {
   const sp = icPick(), m = icFishMesh(sp), side = Math.random() < .5 ? -1 : 1;
@@ -3781,7 +3846,10 @@ function icJournal() {
   for (const sp of IC_FISH) {
     const has = IC.found.has(sp.id), c = document.createElement("div"); c.className = "ice-entry" + (has ? "" : " locked");
     c.innerHTML = `<img alt=""><b></b><small></small>`; c.querySelector("img").src = icPortrait(sp, !has);
-    c.querySelector("b").textContent = has ? sp.name : "???"; c.querySelector("small").textContent = has ? sp.rarity : sp.rarity === "Very rare" ? "Very rare" : "";
+    const here = icAround(sp);
+    c.querySelector("b").textContent = has ? sp.name : "???";
+    c.querySelector("small").textContent = (has ? sp.rarity + " · " : "") + icWhen(sp);
+    if (here) { const tag = document.createElement("span"); tag.className = "ice-here"; tag.textContent = "Around now"; c.append(tag); }
     if (has) c.title = sp.fact; G2.append(c);
   }
   $("#iceJTitle").textContent = "Fish journal · " + IC.found.size + " of " + IC_FISH.length;
