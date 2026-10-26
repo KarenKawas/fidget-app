@@ -3935,6 +3935,26 @@ function twFrames(p) {
 }
 function twEndFrame(p) { const F = twFrames(p); return F[F.length - 1].clone().multiply(twEnd()); }
 
+/* ---- links are solid: a twist is checked against the rest of the chain and the other pieces before it's allowed ---- */
+// points along every link's tube for the piece with joint i set to th (shown with its notch resistance)
+function twTubePts(p, i, th) {
+  TW_SAMP = TW_SAMP || [0, 15, 30, 45, 60, 75, 90].map(d => d * Math.PI / 180).map(a => new THREE.Vector3(TW_R * Math.sin(a), TW_R - TW_R * Math.cos(a), 0));
+  const out = [], M = p.root.clone(), R = new THREE.Matrix4();
+  p.segs.forEach((s, k) => { if (k) M.multiply(twEnd()).multiply(R.makeRotationX(twShow(k === i ? th : s.th))); out.push(TW_SAMP.map(v => v.clone().applyMatrix4(M))); });
+  return out;
+}
+// the closest the turning part (links i onwards) comes to anything it could hit: earlier links of its own chain (not the
+// one it hinges on) and every other piece
+function twGap(p, i, th, others) {
+  const L = twTubePts(p, i, th); let best = 1e9;
+  for (let a = i; a < L.length; a++) for (const u of L[a]) {
+    for (let b = 0; b < i - 1; b++) for (const v of L[b]) { const d = u.distanceToSquared(v); if (d < best) best = d; }
+    for (const v of others) { const d = u.distanceToSquared(v); if (d < best) best = d; }
+  }
+  return Math.sqrt(best);
+}
+const TW_SOLID = TW_T * 2 * .9; // two tubes this close are touching
+function twFree(D, th) { const g = twGap(D.p, D.i, th, D.others); return g >= TW_SOLID || g >= D.gap0 - .005; }
 /* ---- resting: a piece you let go of glides down onto the mat and stays put, always within reach (no rolling away) ---- */
 let TW_SAMP = null; // three points along each link's arc (made once three.js has loaded)
 const TW_REACH = 3.6; // pieces stay within this distance of the centre (what a portrait screen shows)
@@ -4017,14 +4037,16 @@ function twAddLink() {
 function twLayout() {
   twClear();
   // a wiggly snake, plus a few loose links to connect, like a twisty tipped out on the table
-  const snake = [0, 1, 3, 1, 3, 0, 1, 3, 1, 3, 2, 1, 3].map(n => n * Q);
-  const p = twPiece(new THREE.Matrix4(), snake);
+  // a flat, wavy snake lying on the mat, with no two links touching
+  const snake = [0, 0, 0, 2, 2, 0, 2, 2, 0, 2, 2, 0, 0].map(n => n * Q);
+  const p = twPiece(new THREE.Matrix4().makeRotationX(-Math.PI / 2), snake);
   // centre the snake over the mat
   const F = twFrames(p), c = new THREE.Vector3(); F.forEach(M => c.add(new THREE.Vector3().setFromMatrixPosition(M))); c.divideScalar(F.length);
-  p.root.makeTranslation(-c.x, 1.6 - c.y, -c.z); twSettle(p, true);
-  twPiece(new THREE.Matrix4().makeRotationY(.6).setPosition(2.9, .9, .3), [0, Q], 13);
-  twPiece(new THREE.Matrix4().makeRotationY(-1.2).setPosition(-3.1, .9, -.4), [0], 15);
-  twPiece(new THREE.Matrix4().makeRotationY(2.2).setPosition(1.6, .9, -3.2), [0], 16);
+  p.root.premultiply(new THREE.Matrix4().makeTranslation(-c.x, 1.6 - c.y, -c.z)); twSettle(p, true, { x: -.4, z: -.6 });
+  // a few loose links around it, lying flat, clear of the snake
+  twPiece(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(-Math.PI / 2, .6, 0, "YXZ")).setPosition(2.6, .9, 2.6), [0, 2 * Q], 13);
+  twPiece(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(-Math.PI / 2, -1.2, 0, "YXZ")).setPosition(-2.8, .9, 2.8), [0], 15);
+  twPiece(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(-Math.PI / 2, 2.2, 0, "YXZ")).setPosition(-2.9, .9, -2.6), [0], 16);
   TW.dirty = true;
 }
 function twSave() {
@@ -4087,6 +4109,8 @@ function twistyFrame(now) {
 
 /* ---- sounds ---- */
 function twClick(k = 1) { S.tick(2300 + Math.random() * 400, .22 * k, .014, "square"); const a = ac(); if (a && soundOn) nz(a, "highpass", 3000, 5000, 2, .05 * k, .02); buzz(7); }
+// a soft knock when a link meets another one
+function twBump() { const a = ac(); if (a && soundOn) { tone(a, "sine", 240, 150, .1, .06); nz(a, "lowpass", 700, 300, 1, .06, .04); } buzz(6); }
 function twPop() { const a = ac(); if (a && soundOn) { tone(a, "sine", 900, 260, .2, .09); nz(a, "bandpass", 2400, 900, 2, .12, .06); } buzz(22); }
 function twSnap() {
   // a firm two-part click and a double thump, so joining feels certain
@@ -4116,16 +4140,20 @@ function twJoinFor(p) {
   return best;
 }
 function twJoin(J) {
-  // the tail hangs off the head's peg, at whichever notch is closest to how it was held
+  // the tail hangs off the head's peg at the notch closest to how it was held, as long as it fits without running into
+  // anything; if no notch fits, it doesn't join
   const E = twEndFrame(J.head), want = new THREE.Vector3(0, 1, 0).transformDirection(J.tail.root);
-  let bestK = 0, bd = -2;
-  for (let k = 0; k < 4; k++) { const M = E.clone().multiply(new THREE.Matrix4().makeRotationX(k * Q)), y = new THREE.Vector3(0, 1, 0).transformDirection(M), d = y.dot(want); if (d > bd) { bd = d; bestK = k; } }
-  J.tail.segs[0].th = J.tail.segs[0].tt = bestK * Q;
+  const order = [0, 1, 2, 3].map(k => { const M = E.clone().multiply(new THREE.Matrix4().makeRotationX(k * Q)); return { k, d: new THREE.Vector3(0, 1, 0).transformDirection(M).dot(want) }; }).sort((a, b) => b.d - a.d);
+  const n0 = J.head.segs.length, others = []; for (const q of TW.pieces) if (q !== J.head && q !== J.tail) twTubePts(q, -1, 0).forEach(l => others.push(...l));
+  const trial = { root: J.head.root, segs: [...J.head.segs, ...J.tail.segs.map(s => ({ th: s.tt, tt: s.tt }))] };
+  const fit = order.find(({ k }) => { trial.segs[n0].th = trial.segs[n0].tt = k * Q; return twGap(trial, n0, k * Q, others) >= TW_SOLID; });
+  if (!fit) return false;
+  J.tail.segs[0].th = J.tail.segs[0].tt = fit.k * Q;
   J.head.segs.push(...J.tail.segs);
   J.head.segs.forEach((s, i) => s.g.children[0].userData.tw = { p: J.head, i });
   TW.pieces = TW.pieces.filter(q => q !== J.tail); twSettle(J.head); TW.dirty = true;
   TW.snapRing.position.setFromMatrixPosition(E); TW.snapRing.lookAt(TW.cam.position); TW.burst = .45;
-  twSnap();
+  twSnap(); return true;
 }
 function twSplit(p, i) {
   // pop the chain apart at link i: the links from i on become their own piece, right where they were
@@ -4148,7 +4176,10 @@ on3D(secTw, "pointerdown", e => {
   // twisting link i about its joint: work out which way on screen turns it forward
   const F = twFrames(p), J = F[i - 1].clone().multiply(twEnd()), O = new THREE.Vector3().setFromMatrixPosition(J), A = new THREE.Vector3(1, 0, 0).transformDirection(J);
   const mid = twLinkMid(F[i]), turned = mid.clone().sub(O).applyAxisAngle(A, .1).add(O), s0 = twScreen(mid), s1 = twScreen(turned);
-  TW.drag = { kind: "twist", id: e.pointerId, p, s: p.segs[i], i, dir: s1.sub(s0).divideScalar(.1), notch: Math.round(p.segs[i].th / Q), moved: false }; p.settle = null;
+  TW.drag = { kind: "twist", id: e.pointerId, p, s: p.segs[i], i, dir: s1.sub(s0).divideScalar(.1), notch: Math.round(p.segs[i].th / Q), moved: false, start: p.segs[i].tt }; p.settle = null;
+  // everything this twist could bump into; a chain that already overlaps may still turn, as long as it doesn't get worse
+  const D2 = TW.drag; D2.others = []; for (const q of TW.pieces) if (q !== p) twTubePts(q, -1, 0).forEach(l => D2.others.push(...l));
+  D2.gap0 = twGap(p, i, p.segs[i].th, D2.others);
 });
 on3D(secTw, "pointermove", e => {
   const pt = TW.ptrs.get(e.pointerId); if (!pt) return;
@@ -4163,7 +4194,9 @@ on3D(secTw, "pointermove", e => {
   if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) > 8) D.moved = true;
   if (D.kind === "twist") {
     const l2 = D.dir.lengthSq() || 1, dth = ((e.clientX - px) * D.dir.x + (e.clientY - py) * D.dir.y) / l2;
-    D.s.th += clamp(dth, -.4, .4);
+    // turn in small steps, stopping where the link would run into something
+    const want = clamp(dth, -.4, .4), steps = Math.ceil(Math.abs(want) / .05);
+    for (let k = 0; k < steps; k++) { const nt = D.s.th + want / steps; if (!twFree(D, nt)) { if (!D.blocked) { D.blocked = true; twBump(); } break; } D.s.th = nt; D.blocked = false; }
     const n = Math.round(D.s.th / Q); if (n !== D.notch) { D.notch = n; twClick(); }
     // pulled well away from the link: it pops off and you carry the loose part
     const F = twFrames(D.p), at = twScreen(twLinkMid(F[D.i]));
@@ -4194,15 +4227,18 @@ const twEndPtr = e => {
   const D = TW.drag; if (!D || D.id !== e.pointerId) return; TW.drag = null;
   if (D.kind === "twist") {
     // a tap turns it one notch; a drag settles into the nearest notch
-    if (!D.moved && performance.now() - pt.t0 < 300) { D.s.tt = (Math.round(D.s.th / Q) + 1) * Q; twClick(1.2); }
-    else D.s.tt = Math.round(D.s.th / Q) * Q;
+    // settle on the nearest notch that's actually free (a tap tries the next notch on, then the one back)
+    const tap = !D.moved && performance.now() - pt.t0 < 300, n0 = Math.round(D.s.th / Q);
+    const tries = tap ? [n0 + 1, n0 - 1, n0] : [n0, D.s.th / Q > n0 ? n0 + 1 : n0 - 1, Math.round(D.start / Q)];
+    const ok = tries.find(n => twFree(D, n * Q));
+    D.s.tt = (ok ?? Math.round(D.start / Q)) * Q;
+    if (tap) { if (ok === n0 + 1) twClick(1.2); else twBump(); }
     twSettle(D.p); TW.dirty = true; return;
   }
   if (D.kind === "carry") {
     const J = twJoinFor(D.p);
-    if (J) twJoin(J);
-    // let go: it drops (or is tossed, if you were still moving)
-    else { twSettle(D.p); S.tick(900, .1, .02); buzz(4); }
+    // it snaps on if it fits; otherwise it is let go and drops onto the mat
+    if (!(J && twJoin(J))) { twSettle(D.p); S.tick(900, .1, .02); buzz(4); }
     TW.dirty = true;
   }
 };
