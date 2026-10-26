@@ -44,7 +44,9 @@
 - **Sticker packs:** wire up in-app purchases at store-release time, using RevenueCat or the native store plugins. The packs are one-time buys and cosmetic only. Seasonal, Kawaii and Space are already on the shop shelf, marked "Coming soon".
 - **Toon look:** every mode is now toon (3D modes through `lookToon`, 2D modes restyled by hand). A Soft/Toon switch could come later if people ask for it.
 - **Twisty packs:** more colourways (glitter, metallic, pastel marble) as paid packs, alongside stickers and slime toppings.
+- **Board looper:** a long press on REC records a loop that keeps playing while you jam on top, layer after layer.
 
+- **Strings (new mode idea):** strings you pull and pluck, like a little harp or washtub bass, with bends and slides; a sibling to the board.
 ## Foldable iPhone support (not started)
 
 **Goal:** DigiFidget should feel at home on Apple's foldable iPhone, both on the narrow cover screen and on the large, nearly square inner screen. Folding or unfolding mid-play must not lose anything.
