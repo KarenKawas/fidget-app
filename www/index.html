@@ -3820,15 +3820,23 @@ function spinShape(L, dl, rl, rc) {
     sh.absarc(lx, ly, rl, Math.atan2(py - ly, px - lx), Math.atan2(ny - ly, nx - lx), false);
     sh.absarc(nx, ny, rc, Math.atan2(ly - ny, lx - nx), Math.atan2(my - ny, mx - nx), true);
   }
-  for (let k = 0; k < L; k++) { const [lx, ly] = Lc(k), h = new THREE.Path(); h.absarc(lx, ly, .25, 0, Math.PI * 2, true); sh.holes.push(h); }
-  const hub = new THREE.Path(); hub.absarc(0, 0, .27, 0, Math.PI * 2, true); sh.holes.push(hub);
-  return sh;
+  // the arcs meet end to end, which repeats points; repeated points make the bevel throw spikes at the joins, so they're merged
+  const pts = sh.getPoints(40).filter((p, i, a) => i === 0 || p.distanceTo(a[i - 1]) > 1e-4);
+  if (pts.length > 1 && pts[0].distanceTo(pts[pts.length - 1]) < 1e-4) pts.pop();
+  const out = new THREE.Shape(pts);
+  for (let k = 0; k < L; k++) { const [lx, ly] = Lc(k), h = new THREE.Path(); h.absarc(lx, ly, .25, 0, Math.PI * 2, true); out.holes.push(h); }
+  const hub = new THREE.Path(); hub.absarc(0, 0, .27, 0, Math.PI * 2, true); out.holes.push(hub);
+  return out;
 }
 function buildSpinner() {
   if (SP.root) { SP.scene.remove(SP.root); disposeTree(SP.root); }
   const L = SPIN_LOBES[SP.design], root = new THREE.Group(), flat = new THREE.Group(), T = .22, top = T / 2 + .04;
   flat.rotation.x = -Math.PI / 2; root.add(flat);
   const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; flat.add(m); return m; };
+  // a clean ink outline for a flat body: the same outline grown by w with no holes, a touch thicker, drawn back-faced
+  // (a generic pushed-out shell nicks the concave joins and streaks round the holes)
+  const ink = (shape, depth, w = .028) => { shape.holes = []; const m = add(extrudeGeo(shape, depth + w * 1.6, .025), new THREE.MeshBasicMaterial({ color: new THREE.Color(0x2A2438).convertSRGBToLinear(), side: THREE.BackSide })); m.castShadow = false; m.userData.ink = true; return m; };
+  const plain = m => { m.userData.noInk = true; return m; };
   const dirs = []; for (let k = 0; k < L; k++) { const a = Math.PI / 2 + k * 2 * Math.PI / L; dirs.push([Math.cos(a), Math.sin(a), a]); }
   const chrome = chromeMat(), dark = new THREE.MeshStandardMaterial({ color: 0x2B2F36, roughness: .5, metalness: .4, envMap: GL.env });
   const neon = SP.design === "neon";
@@ -3836,7 +3844,7 @@ function buildSpinner() {
     const steel = new THREE.MeshStandardMaterial({ color: 0xC9CED6, metalness: 1, roughness: .3, envMap: GL.env });
     const sh = new THREE.Shape(); sh.absarc(0, 0, .96, 0, Math.PI * 2, false);
     const hole = new THREE.Path(); hole.absarc(0, 0, .82, 0, Math.PI * 2, true); sh.holes.push(hole);
-    add(extrudeGeo(sh, .16, .025), steel);
+    plain(add(extrudeGeo(sh, .16, .025), steel)); { const o = new THREE.Shape(); o.absarc(0, 0, .96 + .028, 0, Math.PI * 2, false); ink(o, .16); }
     for (const [x, y, a] of dirs) {
       const s = add(new THREE.BoxGeometry(.18, .52, .14), steel, x * .58, y * .58); s.rotation.z = a - Math.PI / 2;
       add(zcyl(.17, .22), dark, x * .89, y * .89); add(new THREE.SphereGeometry(.13, 32, 16), chrome, x * .89, y * .89, .06);
@@ -3845,19 +3853,19 @@ function buildSpinner() {
   } else {
     const body = neon ? new THREE.MeshStandardMaterial({ color: 0x1B1736, roughness: .55, envMap: GL.env, envMapIntensity: .5 })
       : new THREE.MeshPhysicalMaterial({ color: 0x6D4BEA, roughness: .3, clearcoat: 1, clearcoatRoughness: .12, envMap: GL.env });
-    add(extrudeGeo(spinShape(L, .64, .38, .26), T), body);
+    plain(add(extrudeGeo(spinShape(L, .64, .38, .26), T), body)); ink(spinShape(L, .64, .38 + .028, .26 - .028), T);
     const glow = c => new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
     for (const [x, y] of dirs) {
       const lx = x * .64, ly = y * .64;
       if (neon) {
-        add(zcyl(.25, T * .9), new THREE.MeshStandardMaterial({ color: 0x120F24, roughness: .2, envMap: GL.env }), lx, ly);
+        plain(add(zcyl(.25, T * .9), new THREE.MeshStandardMaterial({ color: 0x120F24, roughness: .2, envMap: GL.env }), lx, ly));
         add(new THREE.TorusGeometry(.33, .014, 8, 72), glow(0x00FFE0), lx, ly, top);
         add(new THREE.TorusGeometry(.2, .012, 8, 64), glow(0xFF3DCB), lx, ly, T * .46);
       } else {
-        add(ringGeo(.21, .25, T * .98), dark, lx, ly); add(zcyl(.21, T * .94), chrome, lx, ly);
+        plain(add(ringGeo(.21, .25, T * .98), dark, lx, ly)); plain(add(zcyl(.21, T * .94), chrome, lx, ly));
       }
     }
-    add(ringGeo(.2, .27, T, 64), chrome);
+    plain(add(ringGeo(.2, .27, T, 64), chrome));
     if (neon) add(new THREE.TorusGeometry(.26, .012, 8, 64), glow(0xFF3DCB), 0, 0, top + .01);
   }
   // centre caps on both faces, with a dot so slow spins are easy to read
