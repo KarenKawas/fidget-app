@@ -730,7 +730,7 @@ html[data-mode="stones"]{background:var(--stbg,#DCE3E6)}
 
   <section class="mode" id="mode-twisty" aria-label="Twisty: a chain of clicky links. Drag a link to twist it a quarter turn at a time, or tap it for one notch. Pull a link well away to pop it off, bring a socket to a loose peg to connect, drag the first link of a piece to move it, and drag empty space to look around.">
     <p class="hint" id="twHint">Drag a link to twist it · pull hard to pop it off</p>
-    <div class="tw-btns"><button class="newsheet" id="twAdd">+ Link</button><button class="newsheet" id="twReset">Tip out a new one</button></div>
+    <div class="tw-btns"><button class="newsheet" id="twAdd">+ Link</button><button class="newsheet" id="twTidy">Tidy</button><button class="newsheet" id="twReset">New</button></div>
     <div class="themes" role="group" aria-label="Twisty colours">
       <button class="theme" data-tw="mint" aria-pressed="true"><i style="background:linear-gradient(135deg,#B9E8C8 50%,#7CC4F0 50%)"></i>Mint</button>
       <button class="theme" data-tw="rainbow" aria-pressed="false"><i style="background:conic-gradient(#FF8FA3,#FFC36B,#FFE577,#8FE0A5,#86C9FF,#B79CFF,#FF8FA3)"></i>Rainbow</button>
@@ -3617,47 +3617,44 @@ function twFrames(p) {
 }
 function twEndFrame(p) { const F = twFrames(p); return F[F.length - 1].clone().multiply(twEnd()); }
 
-/* ---- physics: a piece you aren't holding is one rigid body (three spheres along every link), so it falls, tumbles and
-   settles on the mat keeping its twisted shape ---- */
+/* ---- resting: a piece you let go of glides down onto the mat and stays put, always within reach (no rolling away) ---- */
 let TW_SAMP = null; // three points along each link's arc (made once three.js has loaded)
-function twBody(p) {
-  const W = TW.world; if (!W) return;
+const TW_REACH = 3.6; // pieces stay within this distance of the centre (what a portrait screen shows)
+// the piece's points (at their final notches), in world space
+function twPoints(p, root = p.root) {
   TW_SAMP = TW_SAMP || [15, 45, 75].map(d => d * Math.PI / 180).map(a => new THREE.Vector3(TW_R * Math.sin(a), TW_R - TW_R * Math.cos(a), 0));
-  const vel = p.body ? p.body.velocity.clone() : null;
-  if (p.body) W.removeBody(p.body);
-  const b = new CANNON.Body({ mass: .25 * p.segs.length, material: TW.pmat }), M = new THREE.Matrix4(), R = new THREE.Matrix4(), v = new THREE.Vector3();
-  p.segs.forEach((s, i) => {
-    if (i) M.multiply(twEnd()).multiply(R.makeRotationX(s.tt));
-    for (const pt of TW_SAMP) { v.copy(pt).applyMatrix4(M); b.addShape(new CANNON.Sphere(TW_T * 1.02), new CANNON.Vec3(v.x, v.y, v.z)); }
-  });
-  const pos = new THREE.Vector3(), q = new THREE.Quaternion(); p.root.decompose(pos, q, v);
-  b.position.set(pos.x, pos.y, pos.z); b.quaternion.set(q.x, q.y, q.z, q.w);
-  b.linearDamping = .15; b.angularDamping = .35; b.allowSleep = true; b.sleepSpeedLimit = .2; b.sleepTimeLimit = .5;
-  if (vel) b.velocity.copy(vel);
-  W.addBody(b); p.body = b;
+  const out = [], M = root.clone(), R = new THREE.Matrix4();
+  p.segs.forEach((s, i) => { if (i) M.multiply(twEnd()).multiply(R.makeRotationX(s.tt)); for (const pt of TW_SAMP) out.push(pt.clone().applyMatrix4(M)); });
+  return out;
 }
-// held pieces (being carried or twisted) stop simulating; letting go hands them back to physics
-function twHold(p, on) {
-  const b = p.body; if (!b) return;
-  if (on) { b.type = CANNON.Body.KINEMATIC; b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0); }
-  else { twBody(p); p.body.type = CANNON.Body.DYNAMIC; p.body.wakeUp(); }
+// ease the piece so its lowest point rests on the mat and its middle is within reach; instant when loading
+function twSettle(p, now, centre) {
+  const P = twPoints(p), c = new THREE.Vector3(); let low = 1e9;
+  for (const v of P) { c.add(v); low = Math.min(low, v.y); }
+  c.divideScalar(P.length);
+  const from = new THREE.Vector3().setFromMatrixPosition(p.root), to = from.clone();
+  to.y += TW_T - low;
+  const want = centre ? new THREE.Vector3(centre.x, 0, centre.z) : new THREE.Vector3(c.x, 0, c.z), r = Math.hypot(want.x, want.z);
+  if (r > TW_REACH) want.multiplyScalar(TW_REACH / r);
+  to.x += want.x - c.x; to.z += want.z - c.z;
+  if (now) { p.root.setPosition(to); p.settle = null; }
+  else p.settle = { t: 0, from, to };
+  TW.dirty = true;
 }
-function twPhysics(dt) {
-  if (!TW.world) return;
+function twSettleStep(dt) {
   for (const p of TW.pieces) {
-    const b = p.body; if (!b) continue;
-    if (TW.drag && TW.drag.p === p) { const pos = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3(); p.root.decompose(pos, q, s); b.position.set(pos.x, pos.y, pos.z); b.quaternion.set(q.x, q.y, q.z, q.w); continue; }
-    // the mat has a soft rim: pieces near the edge are nudged back in
-    const r = Math.hypot(b.position.x, b.position.z); if (r > 8.2) { b.velocity.x -= b.position.x / r * 6 * dt; b.velocity.z -= b.position.z / r * 6 * dt; }
-  }
-  TW.world.step(1 / 60, dt, 3);
-  for (const p of TW.pieces) {
-    const b = p.body; if (!b || (TW.drag && TW.drag.p === p)) continue;
-    p.root.compose(new THREE.Vector3(b.position.x, b.position.y, b.position.z), new THREE.Quaternion(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w), new THREE.Vector3(1, 1, 1));
-    if (b.sleepState !== CANNON.Body.SLEEPING) TW.dirty = true;
+    const S2 = p.settle; if (!S2 || (TW.drag && TW.drag.p === p)) continue;
+    S2.t = Math.min(1, S2.t + dt / .3); const e = 1 - Math.pow(1 - S2.t, 3);
+    p.root.setPosition(S2.from.clone().lerp(S2.to, e));
+    if (S2.t >= 1) { p.settle = null; const a = ac(); if (a && soundOn) nz(a, "lowpass", 900, 250, 1, .08, .05); buzz(4); }
   }
 }
-
+// gather every piece into a neat ring around the middle
+function twTidy() {
+  const n = TW.pieces.length;
+  TW.pieces.forEach((p, i) => { const a = i / n * Math.PI * 2, r = n > 1 ? Math.min(3.2, 1.2 + n * .22) : 0; twSettle(p, false, { x: Math.cos(a) * r, z: Math.sin(a) * r }); });
+  S.whoosh(); buzz(10);
+}
 /* ---- the links ---- */
 function twTex(kind, col, glow) {
   return tbCanvas(256, 64, (x, w, h) => {
@@ -3687,15 +3684,16 @@ function twLink(gi) {
 function twPiece(root, ths, gi0 = 0) {
   const p = { root, segs: ths.map((th, i) => ({ th, tt: th, g: null })) };
   p.segs.forEach((s, i) => { s.g = twLink(gi0 + i); s.g.children[0].userData.tw = { p, i }; });
-  TW.pieces.push(p); twBody(p); return p;
+  TW.pieces.push(p); twSettle(p, true); return p;
 }
-function twClear() { for (const p of TW.pieces) { for (const s of p.segs) TW.scene.remove(s.g); if (p.body) TW.world.removeBody(p.body); } TW.pieces = []; }
+function twClear() { for (const p of TW.pieces) for (const s of p.segs) TW.scene.remove(s.g); TW.pieces = []; }
 // tip a fresh link onto the mat
 function twAddLink() {
   const n = TW.pieces.reduce((k, p) => k + p.segs.length, 0);
   if (n >= 40) { S.tick(900, .1, .02); buzz(6); return; }
-  const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rnd(0, 6.28), rnd(0, 6.28), rnd(0, 6.28))).setPosition(rnd(-2.5, 2.5), 4.5, rnd(-2, 2));
-  const p = twPiece(m, [0], n); p.body.angularVelocity.set(rnd(-3, 3), rnd(-3, 3), rnd(-3, 3));
+  // it drops in from above near the middle, lying flat
+  const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(-Math.PI / 2, rnd(0, 6.28), 0, "YXZ")).setPosition(rnd(-2.5, 2.5), 4.5, rnd(-2, 2));
+  const p = twPiece(m, [0], n); p.root.setPosition(rnd(-2.5, 2.5), 4.5, rnd(-2, 2)); twSettle(p);
   const a = ac(); if (a && soundOn) { tone(a, "sine", 500, 800, .12, .12); nz(a, "bandpass", 1800, 2600, 2, .06, .08); } buzz(10); TW.dirty = true;
 }
 function twLayout() {
@@ -3719,7 +3717,7 @@ function twLoad() {
   let saved = null; try { saved = JSON.parse(localStorage.getItem("fidget-twisty")); } catch (e) {}
   if (!Array.isArray(saved) || !saved.length) return twLayout();
   twClear(); let gi = 0;
-  for (const s of saved) { const p = twPiece(new THREE.Matrix4().fromArray(s.r), s.t, gi); gi += s.t.length; }
+  for (const s of saved) { twPiece(new THREE.Matrix4().fromArray(s.r), s.t, gi); gi += s.t.length; }
 }
 function twRestyle(st) {
   TW.style = st; savePref("fidget-twisty-style", st);
@@ -3740,9 +3738,6 @@ function twBuild() {
   Object.assign(L.key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 });
   // a soft round play mat
   TW.mat = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, .3, 64), tbT(TW_STYLES[TW.style].mat)); TW.mat.position.y = -.15; TW.mat.receiveShadow = true; sc.add(TW.mat);
-  const w = TW.world = new CANNON.World(); w.gravity.set(0, -18, 0); w.broadphase = new CANNON.NaiveBroadphase(); w.solver.iterations = 10; w.allowSleep = true;
-  TW.pmat = new CANNON.Material("link"); w.addContactMaterial(new CANNON.ContactMaterial(TW.pmat, TW.pmat, { friction: .5, restitution: .15 }));
-  const ground = new CANNON.Body({ mass: 0, material: TW.pmat }); ground.addShape(new CANNON.Plane()); ground.quaternion.setFromEuler(-Math.PI / 2, 0, 0); w.addBody(ground);
   // the ring that shows where a carried piece will snap on
   TW.snapRing = new THREE.Mesh(new THREE.TorusGeometry(.42, .06, 8, 32), new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0, depthWrite: false })); TW.snapRing.visible = false; sc.add(TW.snapRing);
   twLoad();
@@ -3761,7 +3756,7 @@ function twistyFrame(now) {
   const dt = clamp((now - (TW.last || now - 16.7)) / 1000, .004, .05); TW.last = now;
   // joints that were let go ease into their notch
   for (const p of TW.pieces) for (const s of p.segs) if (s.th !== s.tt && !(TW.drag && TW.drag.p === p && TW.drag.s === s)) { s.th += (s.tt - s.th) * Math.min(1, dt * 14); if (Math.abs(s.tt - s.th) < 1e-3) s.th = s.tt; }
-  twPhysics(dt);
+  twSettleStep(dt);
   for (const p of TW.pieces) { const F = twFrames(p); p.segs.forEach((s, i) => { s.g.matrix.copy(F[i]); s.g.matrixWorldNeedsUpdate = true; }); }
   // the snap ring pulses while a carried piece is in range, and bursts when it clicks on
   const R = TW.snapRing, D = TW.drag;
@@ -3810,8 +3805,7 @@ function twJoin(J) {
   J.tail.segs[0].th = J.tail.segs[0].tt = bestK * Q;
   J.head.segs.push(...J.tail.segs);
   J.head.segs.forEach((s, i) => s.g.children[0].userData.tw = { p: J.head, i });
-  if (J.tail.body) TW.world.removeBody(J.tail.body);
-  TW.pieces = TW.pieces.filter(q => q !== J.tail); twHold(J.head, false); TW.dirty = true;
+  TW.pieces = TW.pieces.filter(q => q !== J.tail); twSettle(J.head); TW.dirty = true;
   TW.snapRing.position.setFromMatrixPosition(E); TW.snapRing.lookAt(TW.cam.position); TW.burst = .45;
   twSnap();
 }
@@ -3820,7 +3814,7 @@ function twSplit(p, i) {
   const F = twFrames(p), q = { root: F[i].clone(), segs: p.segs.splice(i) };
   q.segs[0].th = q.segs[0].tt = 0;
   q.segs.forEach((s, k) => s.g.children[0].userData.tw = { p: q, i: k });
-  TW.pieces.push(q); twBody(q); twHold(p, false); TW.dirty = true; twPop(); return q;
+  TW.pieces.push(q); twSettle(p); TW.dirty = true; twPop(); return q;
 }
 on3D(secTw, "pointerdown", e => {
   if (!TW.scene) return;
@@ -3832,11 +3826,11 @@ on3D(secTw, "pointerdown", e => {
   const h = rayAt(e, TW.cam).intersectObjects(links, false)[0];
   if (!h) { TW.orbit = { id: e.pointerId }; return; }
   const { p, i } = h.object.userData.tw;
-  if (i === 0) { TW.drag = Object.assign(twStartCarry(p, e), { id: e.pointerId }); twHold(p, true); S.tick(1400, .12, .02); buzz(5); return; }
+  if (i === 0) { TW.drag = Object.assign(twStartCarry(p, e), { id: e.pointerId }); p.settle = null; S.tick(1400, .12, .02); buzz(5); return; }
   // twisting link i about its joint: work out which way on screen turns it forward
   const F = twFrames(p), J = F[i - 1].clone().multiply(twEnd()), O = new THREE.Vector3().setFromMatrixPosition(J), A = new THREE.Vector3(1, 0, 0).transformDirection(J);
   const mid = twLinkMid(F[i]), turned = mid.clone().sub(O).applyAxisAngle(A, .1).add(O), s0 = twScreen(mid), s1 = twScreen(turned);
-  TW.drag = { kind: "twist", id: e.pointerId, p, s: p.segs[i], i, dir: s1.sub(s0).divideScalar(.1), notch: Math.round(p.segs[i].th / Q), moved: false }; twHold(p, true);
+  TW.drag = { kind: "twist", id: e.pointerId, p, s: p.segs[i], i, dir: s1.sub(s0).divideScalar(.1), notch: Math.round(p.segs[i].th / Q), moved: false }; p.settle = null;
 });
 on3D(secTw, "pointermove", e => {
   const pt = TW.ptrs.get(e.pointerId); if (!pt) return;
@@ -3857,13 +3851,13 @@ on3D(secTw, "pointermove", e => {
     const F = twFrames(D.p), at = twScreen(twLinkMid(F[D.i]));
     if (Math.hypot(e.clientX - at.x, e.clientY - at.y) > 120) {
       D.s.th = D.s.tt = Math.round(D.s.th / Q) * Q;
-      const q = twSplit(D.p, D.i); TW.drag = Object.assign(twStartCarry(q, e), { id: e.pointerId, moved: true }); twHold(q, true);
+      const q = twSplit(D.p, D.i); TW.drag = Object.assign(twStartCarry(q, e), { id: e.pointerId, moved: true });
     }
     return;
   }
   if (D.kind === "carry") {
     const hit = rayAt(e, TW.cam).ray.intersectPlane(D.plane, new THREE.Vector3()); if (!hit) return;
-    const pos = hit.add(D.off); pos.y = Math.max(.6, pos.y);
+    const pos = hit.add(D.off); pos.y = Math.max(.6, pos.y); const pr = Math.hypot(pos.x, pos.z); if (pr > TW_REACH + 1) { pos.x *= (TW_REACH + 1) / pr; pos.z *= (TW_REACH + 1) / pr; }
     const now = performance.now(), prev = new THREE.Vector3().setFromMatrixPosition(D.p.root), dtm = Math.max(.008, (now - (D.tm || now)) / 1000); D.tm = now;
     D.vel = pos.clone().sub(prev).divideScalar(dtm).clampLength(0, 14);
     D.p.root.setPosition(pos);
@@ -3884,13 +3878,13 @@ const twEndPtr = e => {
     // a tap turns it one notch; a drag settles into the nearest notch
     if (!D.moved && performance.now() - pt.t0 < 300) { D.s.tt = (Math.round(D.s.th / Q) + 1) * Q; twClick(1.2); }
     else D.s.tt = Math.round(D.s.th / Q) * Q;
-    twHold(D.p, false); TW.dirty = true; return;
+    twSettle(D.p); TW.dirty = true; return;
   }
   if (D.kind === "carry") {
     const J = twJoinFor(D.p);
     if (J) twJoin(J);
     // let go: it drops (or is tossed, if you were still moving)
-    else { twHold(D.p, false); if (D.vel) D.p.body.velocity.set(D.vel.x, D.vel.y, D.vel.z); S.tick(900, .1, .02); buzz(4); }
+    else { twSettle(D.p); S.tick(900, .1, .02); buzz(4); }
     TW.dirty = true;
   }
 };
@@ -3899,6 +3893,7 @@ secTw.addEventListener("wheel", e => { if (e.target !== GL.canvas) return; e.pre
 secTw.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { twRestyle(b.dataset.tw); S.tick(2200, .15, .03, "square"); buzz(10); }));
 $("#twReset").addEventListener("click", () => { if (!TW.scene) return; twLayout(); S.whoosh(); buzz(12); });
 $("#twAdd").addEventListener("click", () => { if (TW.scene) twAddLink(); });
+$("#twTidy").addEventListener("click", () => { if (TW.scene) twTidy(); });
 twRestyle(TW.style);
 
 /* ================= fidget spinner ================= */
