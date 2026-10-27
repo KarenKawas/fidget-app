@@ -3726,9 +3726,8 @@ function stScore(n) {
 
 /* ---- the lake scene ---- */
 function stSky() {
-  const T = ST_TIMES[ST.time], x = ST.skyC.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, T.top); g.addColorStop(.3, T.top); g.addColorStop(.49, T.hor); g.addColorStop(1, T.hor); x.fillStyle = g; x.fillRect(0, 0, 4, 256); ST.sky.material.map.needsUpdate = true;
-  const lin = c => new THREE.Color(c).convertSRGBToLinear();
+  const T = ST_TIMES[ST.time], lin = c => new THREE.Color(c).convertSRGBToLinear();
+  ST.sky.material.uniforms.uTop.value.set(T.top); ST.sky.material.uniforms.uHor.value.set(T.hor);
   const U = ST.wu; U.uDeep.value.copy(lin(T.deep)); U.uTop.value.copy(lin(T.top)); U.uHor.value.copy(lin(T.hor)); U.uSun.value.copy(lin(T.sun)); U.uSunDir.value.set(...T.sunDir).normalize();
   // one haze colour for the far water, the fog and the sky's horizon, so they meet without a line
   U.uFogC.value.copy(lin(T.hor)); U.uFogN.value = 10; U.uFogF.value = 140;
@@ -3743,19 +3742,44 @@ function stSky() {
   secSt.querySelectorAll("[data-time]").forEach(b => b.setAttribute("aria-pressed", b.dataset.time === ST.time ? "true" : "false"));
   document.documentElement.style.setProperty("--stbg", T.hor);
 }
+// the lake's soft layers are worked out pixel by pixel here rather than drawn as canvas gradients: a phone's canvas dithers
+// its gradients and stores them premultiplied, and the nearly see-through pixels come back as coloured specks.
+// f(x, y) gets 0..1 across and down (0 at the top) and returns [r, g, b, a], all 0..1.
+function stFadeTex(w, h, f) {
+  const d = new Uint8Array(w * h * 4);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const c = f((i + .5) / w, 1 - (j + .5) / h), k = (j * w + i) * 4;
+    for (let n = 0; n < 4; n++) d[k + n] = Math.round(clamp(c[n], 0, 1) * 255);
+  }
+  const t = new THREE.DataTexture(d, w, h, THREE.RGBAFormat); t.encoding = THREE.sRGBEncoding;
+  t.magFilter = t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; return t;
+}
+// a straight-line blend through [at, value] stops
+const stRamp = S => t => { for (let i = 1; i < S.length; i++) if (t <= S[i][0]) { const [a, va] = S[i - 1], [b, vb] = S[i]; return va.map((v, n) => v + (vb[n] - v) * (t - a) / (b - a || 1)); } return S[S.length - 1][1]; };
+const stBand = S => { const r = stRamp(S.map(([t, a]) => [t, [a]])); return stFadeTex(2, 128, (x, y) => [1, 1, 1, r(y)[0]]); };
+const stGlow = S => { const r = stRamp(S); return stFadeTex(128, 128, (x, y) => r(Math.min(1, Math.hypot(x - .5, y - .5) * 2))); };
 function stBuild() {
   const sc = ST.scene = new THREE.Scene(); sc.fog = new THREE.Fog(0xffffff, 14, 75);
   ST.cam = new THREE.PerspectiveCamera(52, 1, .05, 400);
   ST.hemi = new THREE.HemisphereLight(0xffffff, 0x666666, .7); sc.add(ST.hemi);
   ST.key = new THREE.DirectionalLight(0xFFF4E0, .6); ST.key.position.set(-4, 8, 3); ST.key.castShadow = true; sc.add(ST.key);
-  // sky dome
-  ST.skyC = document.createElement("canvas"); ST.skyC.width = 4; ST.skyC.height = 256;
-  const st = new THREE.CanvasTexture(ST.skyC); st.encoding = THREE.sRGBEncoding;
-  ST.sky = new THREE.Mesh(new THREE.SphereGeometry(300, 24, 16), new THREE.MeshBasicMaterial({ map: st, side: THREE.BackSide, fog: false })); sc.add(ST.sky);
-  const soft = (r, g0) => tbCanvas(128, 128, x => { const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g0(g); x.fillStyle = g; x.fillRect(0, 0, 128, 128); });
-  ST.sunDisc = new THREE.Sprite(new THREE.SpriteMaterial({ map: soft(0, g => { g.addColorStop(0, "rgba(255,240,210,1)"); g.addColorStop(.2, "rgba(255,210,150,.9)"); g.addColorStop(1, "rgba(255,160,110,0)"); }), transparent: true, fog: false, depthWrite: false, blending: THREE.AdditiveBlending }));
+  // sky dome: a smooth blend worked out per pixel (no texture to band or dither), the top colour easing into the horizon haze
+  ST.sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 24), new THREE.ShaderMaterial({ precision: "highp", side: THREE.BackSide, fog: false, depthWrite: false,
+    uniforms: { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() } },
+    vertexShader: `varying vec3 vP; void main() { vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform vec3 uTop, uHor; varying vec3 vP;
+      void main() {
+        float t = acos(clamp(normalize(vP).y, -1.0, 1.0)) / 3.14159265;
+        vec3 c = mix(uTop, uHor, clamp((t - .3) / .19, 0.0, 1.0));
+        gl_FragColor = linearToOutputTexel(vec4(pow(c, vec3(2.2)), 1.0));
+        // less than one shade of grey-level noise, the same in every channel, so the slow gradient doesn't show steps
+        gl_FragColor.rgb += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - .5) / 255.0;
+      }` }));
+  ST.sky.renderOrder = -1; sc.add(ST.sky);
+  const c255 = (r, g, b, a) => [r / 255, g / 255, b / 255, a];
+  ST.sunDisc = new THREE.Sprite(new THREE.SpriteMaterial({ map: stGlow([[0, c255(255, 240, 210, 1)], [.2, c255(255, 210, 150, .9)], [1, c255(255, 160, 110, 0)]]), transparent: true, fog: false, depthWrite: false, blending: THREE.AdditiveBlending }));
   ST.sunDisc.position.set(-40, 14, -230); ST.sunDisc.scale.setScalar(60); sc.add(ST.sunDisc);
-  ST.moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: soft(0, g => { g.addColorStop(0, "rgba(255,250,235,1)"); g.addColorStop(.22, "rgba(255,250,235,1)"); g.addColorStop(.3, "rgba(200,210,255,.25)"); g.addColorStop(1, "rgba(200,210,255,0)"); }), transparent: true, fog: false, depthWrite: false }));
+  ST.moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: stGlow([[0, c255(255, 250, 235, 1)], [.22, c255(255, 250, 235, 1)], [.3, c255(200, 210, 255, .25)], [1, c255(200, 210, 255, 0)]]), transparent: true, fog: false, depthWrite: false }));
   ST.moon.position.set(50, 60, -220); ST.moon.scale.setScalar(36); sc.add(ST.moon);
   const sp = new Float32Array(600 * 3); for (let i = 0; i < 600; i++) { const a = rnd(-1.6, 1.6) + Math.PI, e = rnd(.08, 1.2), r = 280; sp.set([Math.sin(a) * Math.cos(e) * r, Math.sin(e) * r, Math.cos(a) * Math.cos(e) * r], i * 3); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
@@ -3783,15 +3807,15 @@ function stBuild() {
     sc.add(t); return t;
   });
   // a band of haze lying on the far water, softening the horizon
-  ST.haze = new THREE.Mesh(new THREE.PlaneGeometry(600, 26), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, fog: false, map: tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.55, "rgba(255,255,255,.85)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }) }));
+  ST.haze = new THREE.Mesh(new THREE.PlaneGeometry(600, 26), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, fog: false, map: stBand([[0, 0], [.55, .85], [1, 0]]) }));
   ST.haze.position.set(0, 3, -110); ST.haze.renderOrder = 4; sc.add(ST.haze);
-  const bankTex = tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.6, "rgba(255,255,255,.55)"); g.addColorStop(.85, "rgba(255,255,255,.8)"); g.addColorStop(1, "rgba(255,255,255,.8)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+  const bankTex = stBand([[0, 0], [.6, .55], [.85, .8], [1, .8]]);
   ST.banks = [[-64, 7, 1.6], [-145, 16, 4]].map(([z, h, y], i) => {
     const b = new THREE.Mesh(new THREE.PlaneGeometry(700, h), new THREE.MeshBasicMaterial({ map: bankTex, transparent: true, depthWrite: false, fog: false }));
     b.position.set(0, y, z); b.renderOrder = 3 - i; sc.add(b); return b;
   });
   // and a thin veil straddling the far shore, drawn over the line where the water meets the mist, so it blurs away
-  const veil = new THREE.Mesh(new THREE.PlaneGeometry(700, 7), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false, fog: false, map: tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.5, "rgba(255,255,255,.7)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }) }));
+  const veil = new THREE.Mesh(new THREE.PlaneGeometry(700, 7), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false, fog: false, map: stBand([[0, 0], [.5, .7], [1, 0]]) }));
   veil.position.set(0, .2, -62); veil.renderOrder = 4; sc.add(veil); ST.banks.push(veil);
   const shore = new THREE.Mesh(new THREE.PlaneGeometry(40, 8), tbT(0xFFFFFF, { map: tbCanvas(512, 128, (x, w, h) => {
     x.fillStyle = "#8D8378"; x.fillRect(0, 0, w, h); const R2 = mulberry(5);
@@ -3802,7 +3826,7 @@ function stBuild() {
   const lip = new THREE.Mesh(new THREE.PlaneGeometry(40, .6), new THREE.MeshBasicMaterial({ color: 0xF2F4F2, transparent: true, opacity: .35, fog: false })); lip.rotation.x = -Math.PI / 2; lip.position.set(0, .03, 3.6); sc.add(lip);
   // mist drifting low over the water
   ST.mist = [];
-  const mt = soft(0, g => { g.addColorStop(0, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)"); });
+  const mt = stGlow([[0, [1, 1, 1, .55]], [1, [1, 1, 1, 0]]]);
   for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mt, transparent: true, depthWrite: false, opacity: .38, fog: false })); s.renderOrder = 5 + i; s.position.set(rnd(-30, 30), rnd(.8, 2.5), rnd(-60, -12)); s.scale.set(rnd(18, 34), rnd(3, 6), 1); s.userData.v = rnd(.2, .6) * (Math.random() < .5 ? -1 : 1); sc.add(s); ST.mist.push(s); }
   // spray
   const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(120 * 3).fill(-100), 3));
@@ -4759,11 +4783,12 @@ function twPiece(root, ths, gi0 = 0) {
   p.segs.forEach((s, i) => { s.g = twLink(gi0 + i); s.g.children[0].userData.tw = { p, i }; });
   TW.pieces.push(p); twSettle(p, true); return p;
 }
-function twClear() { for (const p of TW.pieces) for (const s of p.segs) TW.scene.remove(s.g); TW.pieces = []; }
+function twClear() { TW.drag = null; for (const p of TW.pieces) for (const s of p.segs) TW.scene.remove(s.g); TW.pieces = []; }
 // tip a fresh link onto the mat
 function twAddLink() {
   const n = TW.pieces.reduce((k, p) => k + p.segs.length, 0);
   if (n >= 40) { S.tick(900, .1, .02); buzz(6); return; }
+  if (TW.drag) twDrop(TW.drag, false);
   // it drops in from above near the middle, lying flat
   const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(-Math.PI / 2, rnd(0, 6.28), 0, "YXZ")).setPosition(rnd(-2.5, 2.5), 4.5, rnd(-2, 2));
   const p = twPiece(m, [0], n); p.root.setPosition(rnd(-2.5, 2.5), 4.5, rnd(-2, 2)); twSettle(p);
@@ -4838,6 +4863,8 @@ function twistySetup() {
   if (typeof THREE === "undefined" || !mount3D(secTw)) return;
   if (!TW.scene) twBuild();
   TW.cam.aspect = GL.w / GL.h; TW.W = GL.w; twCamera();
+  // arriving fresh: no touches carried over from before
+  TW.ptrs.clear(); TW.drag = TW.orbit = TW.pinch = null;
 }
 function twistyFrame(now) {
   const dt = clamp((now - (TW.last || now - 16.7)) / 1000, .004, .05); TW.last = now;
@@ -4913,8 +4940,14 @@ function twSplit(p, i) {
 on3D(secTw, "pointerdown", e => {
   if (!TW.scene) return;
   GL.canvas.setPointerCapture(e.pointerId); ac(); twHint.classList.add("gone");
+  // a touch that ended without telling us (the system took it, or it lifted over a button) mustn't linger as a second finger
+  for (const id of [...TW.ptrs.keys()]) if (!(TW.drag && TW.drag.id === id) && !(TW.orbit && TW.orbit.id === id) && !TW.pinch) TW.ptrs.delete(id);
   TW.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now() });
-  if (TW.ptrs.size === 2) { const [a, b] = [...TW.ptrs.values()]; TW.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; TW.orbit = null; TW.tgtGoal = null; return; }
+  if (TW.ptrs.size === 2) {
+    // a second finger: whatever the first was holding is let go, and the two fingers move the view
+    if (TW.drag) twDrop(TW.drag, false);
+    const [a, b] = [...TW.ptrs.values()]; TW.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; TW.orbit = null; TW.tgtGoal = null; return;
+  }
   if (TW.drag) return;
   const links = []; for (const p of TW.pieces) for (const s of p.segs) links.push(s.g.children[0]);
   const h = rayAt(e, TW.cam).intersectObjects(links, false)[0];
@@ -4967,20 +5000,11 @@ on3D(secTw, "pointermove", e => {
     const J = twJoinFor(D.p); if (!!J !== !!D.near) { D.near = J; if (J) { twClick(.6); buzz(4); } }
   }
 });
-const twEndPtr = e => {
-  const pt = TW.ptrs.get(e.pointerId); if (!pt) return; TW.ptrs.delete(e.pointerId);
-  if (TW.pinch) { if (TW.ptrs.size < 2) TW.pinch = null; return; }
-  if (TW.orbit && TW.orbit.id === e.pointerId) {
-    TW.orbit = null;
-    // a double-tap on empty space eases back to the starting view
-    if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 10) { const now = performance.now(); if (now - TW.lastTap < 330) { TW.yaw = .3; TW.pitch = .5; TW.zoom = 1.05; TW.tgt.set(0, 1, 0); TW.tgtGoal = null; twCamera(); buzz(6); TW.lastTap = 0; } else TW.lastTap = now; }
-    return;
-  }
-  const D = TW.drag; if (!D || D.id !== e.pointerId) return; TW.drag = null;
+// let go of a held link: a twist settles on a free notch (a quick tap turns it one notch), a carried piece snaps on or drops
+function twDrop(D, tap) {
+  TW.drag = null;
   if (D.kind === "twist") {
-    // a tap turns it one notch; a drag settles into the nearest notch
-    // settle on the nearest notch that's actually free (a tap tries the next notch on, then the one back)
-    const tap = !D.moved && performance.now() - pt.t0 < 300, n0 = Math.round(D.s.th / Q);
+    const n0 = Math.round(D.s.th / Q);
     const tries = tap ? [n0 + 1, n0 - 1, n0] : [n0, D.s.th / Q > n0 ? n0 + 1 : n0 - 1, Math.round(D.start / Q)];
     const ok = tries.find(n => twFree(D, n * Q));
     D.s.tt = (ok ?? Math.round(D.start / Q)) * Q;
@@ -4992,6 +5016,18 @@ const twEndPtr = e => {
     // it snaps on if it fits; otherwise it is let go and drops onto the mat
     if (!(J && twJoin(J))) { twSettle(D.p); S.tick(900, .1, .02); buzz(4); }
     TW.dirty = true;
+  }
+}
+const twEndPtr = e => {
+  const pt = TW.ptrs.get(e.pointerId); if (!pt) return; TW.ptrs.delete(e.pointerId);
+  // a quick touch that didn't move is a tap (turns a link one notch); a cancelled touch just lets go
+  if (TW.drag && TW.drag.id === e.pointerId) twDrop(TW.drag, e.type === "pointerup" && !TW.drag.moved && performance.now() - pt.t0 < 300);
+  if (TW.pinch) { if (TW.ptrs.size < 2) TW.pinch = null; return; }
+  if (TW.orbit && TW.orbit.id === e.pointerId) {
+    TW.orbit = null;
+    // a double-tap on empty space eases back to the starting view
+    if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 10) { const now = performance.now(); if (now - TW.lastTap < 330) { TW.yaw = .3; TW.pitch = .5; TW.zoom = 1.05; TW.tgt.set(0, 1, 0); TW.tgtGoal = null; twCamera(); buzz(6); TW.lastTap = 0; } else TW.lastTap = now; }
+    return;
   }
 };
 on3D(secTw, "pointerup", twEndPtr); on3D(secTw, "pointercancel", twEndPtr);
@@ -7096,21 +7132,24 @@ function rkCelebrate() {
 function rocksSetup() {
   if (typeof CANNON === "undefined") { show3DError(secRocks); return; }
   if (!mount3D(secRocks)) return;
-  if (!RK.scene) rocksBuild();
+  if (!RK.scene) { rocksBuild(); const r = rkTallest(); if (r) { rkFocusOn(r); RK.ty = RK.camGoal.y; } }
   RK.cam.aspect = GL.w / GL.h; RK.dist = Math.max(9, 4.2 / (Math.tan(22.5 * Math.PI / 180) * RK.cam.aspect)) * .62;
   rkCamera(); RK.W = GL.w;
   rkEnsureBed(); // the sea is heard as soon as you arrive
 }
+// the view always looks a little down onto the pile, never flat from the front (you couldn't see where a rock would sit)
+const RK_PITCH_MIN = .38;
 function rkCamera() {
-  const d = RK.dist / RK.zoom, cp = Math.cos(RK.pitch);
+  // a tall pile pulls the camera back a little so it fits
+  const d = RK.dist / RK.zoom * (1 + Math.max(0, RK.ty - .8) * .1), cp = Math.cos(RK.pitch);
   RK.cam.position.set(RK.tx + Math.sin(RK.yaw) * cp * d, RK.ty + Math.sin(RK.pitch) * d, RK.tz + Math.cos(RK.yaw) * cp * d);
   RK.cam.lookAt(RK.tx, RK.ty, RK.tz); RK.cam.updateProjectionMatrix(); RK.cam.updateMatrixWorld();
   if (RK.sun) { const sp = RK_TIMES[RK.time].sp; RK.sun.position.set(RK.tx + sp[0], sp[1], RK.tz + sp[2]); RK.sun.target.position.set(RK.tx, 0, RK.tz); }
 }
-// ease the view to frame a stack: its base, and a little up its height
+// ease the view to a stack, looking at just under its top stone, so the camera rises with the pile
 function rkFocusOn(r) {
   let top = r.body.position.y + rkHalfH(r);
-  RK.camGoal = { x: r.body.position.x, z: r.body.position.z, y: clamp(.8 + (top - 1) * .5, .8, 3) };
+  RK.camGoal = { x: r.body.position.x, z: r.body.position.z, y: Math.max(.8, top - .35) };
 }
 function rkTallest() { let best = null, by = -1; for (const r of RK.rocks) if (r.locked && r.sup.size) { const t = r.body.position.y + rkHalfH(r); if (t > by) { by = t; best = r; } } return best; }
 function rkCamStep(dt) {
@@ -7532,6 +7571,10 @@ function rocksFrame(now) {
     else if (L.stable !== H.verdict) { H.pendT += dt; if (H.pendT > .15) { H.verdict = L.stable; H.pendT = 0; } }
     else H.pendT = 0;
     H.land = L;
+    // carrying onto a taller pile, the view rises to keep its top in sight; it never sinks mid-carry, so the rock under your
+    // finger doesn't wobble as the camera moves
+    const up = Math.max(.8, H.ly - .25);
+    if (up > RK.ty + .05 && up > (RK.camGoal ? RK.camGoal.y : 0)) RK.camGoal = { x: RK.tx, z: RK.tz, y: up };
     const k = Math.min(1, dt * 16);
     b.position.set(b.position.x + (H.x - b.position.x) * k, b.position.y + (H.ly + .45 - b.position.y) * Math.min(1, dt * 12), b.position.z + (H.z - b.position.z) * k);
     b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0);
@@ -7624,6 +7667,14 @@ function rocksFrame(now) {
 function rkYaw(angle) { const q = new CANNON.Quaternion(); q.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle); return q; }
 /* ---- input ---- */
 function rkGroundAt(e, y) { return rayAt(e, RK.cam).ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), new THREE.Vector3()); }
+// where a carried rock goes under the finger. Seen from low down a level plane is nearly edge-on, so a tiny move flung the
+// rock far forward or back; instead the plane tips toward the camera the lower the view is, and moving your finger up
+// and down pushes the rock back and forth at an even pace.
+function rkCarryAt(e, y) {
+  const back = new THREE.Vector3(Math.sin(RK.yaw), 0, Math.cos(RK.yaw)), k = clamp((.85 - RK.pitch) / .45, 0, 1) * .75;
+  const n = new THREE.Vector3(0, 1, 0).addScaledVector(back, k).normalize();
+  return rayAt(e, RK.cam).ray.intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(n, new THREE.Vector3(RK.tx, y, RK.tz)), new THREE.Vector3());
+}
 on3D(secRocks, "pointerdown", e => {
   if (!RK.scene) return;
   GL.canvas.setPointerCapture(e.pointerId); ac(); rkEnsureBed(); rkHint.classList.add("gone");
@@ -7674,12 +7725,12 @@ on3D(secRocks, "pointermove", e => {
     const now = performance.now(); (H.hist || (H.hist = [])).push({ x: e.clientX, y: e.clientY, t: now }); while (H.hist.length > 2 && now - H.hist[0].t > 110) H.hist.shift();
     if (!H.moved) return;
     // the finger maps onto the slowly-following carry height, never the raw landing height (that fed back and jittered)
-    const g = rkGroundAt(e, H.cy);
+    const g = rkCarryAt(e, H.cy);
     if (g) { const dx = g.x - RK.tx, dz = g.z - RK.tz, l = Math.hypot(dx, dz), k = l > 9 ? 9 / l : 1; H.fx = RK.tx + dx * k; H.fz = Math.max(RK_SHORE_Z, RK.tz + dz * k); }
     return;
   }
   const o = RK.orbit;
-  if (o && o.id === e.pointerId) { RK.yaw -= (e.clientX - px) * .007; RK.pitch = clamp(RK.pitch + (e.clientY - py) * .004, .12, 1.25); rkCamera(); }
+  if (o && o.id === e.pointerId) { RK.yaw -= (e.clientX - px) * .007; RK.pitch = clamp(RK.pitch + (e.clientY - py) * .004, RK_PITCH_MIN, 1.25); rkCamera(); }
 });
 const rkEnd = e => {
   if (!RK.ptrs.delete(e.pointerId)) return;
@@ -7729,6 +7780,7 @@ $("#rkTopple").addEventListener("click", () => {
     const b = r.body; if (b.position.y > r.b * 1.4) { b.velocity.set(rnd(-4, 4), rnd(1, 3), rnd(-4, 4)); b.angularVelocity.set(rnd(-6, 6), rnd(-6, 6), rnd(-6, 6)); }
   }
   S.whoosh(); buzz(30); RK.dirty = true;
+  RK.camGoal = { x: RK.tx, z: RK.tz, y: .8 }; // and the view settles back down to the sand
 });
 $("#rkCenter").addEventListener("click", () => {
   if (!RK.scene) return;
