@@ -745,9 +745,9 @@ html[data-mode="ice"]{background:#0B1626}
     <p class="hint" id="pHint">Press the bubbles · flick from the edge to flip</p>
     <button class="newsheet" id="popFlip">Flip it over</button>
     <div class="themes" role="group" aria-label="Pop-it shape">
-      <button class="opt" data-shape="square" aria-pressed="true"><i style="border-radius:5px;background:linear-gradient(180deg,#FF6B8A,#FFE14D,#4AA8FF)"></i>Square</button>
-      <button class="opt" data-shape="heart" aria-pressed="false"><i style="background:linear-gradient(180deg,#FF6B8A,#FFB13C)"></i>Heart</button>
-      <button class="opt" data-shape="circle" aria-pressed="false"><i style="background:linear-gradient(180deg,#5CD27A,#B57BFF)"></i>Circle</button>
+      <button class="opt" data-shape="square" aria-pressed="true"><i style="width:12px;border-radius:4px;background:linear-gradient(180deg,#F2243A,#F7C21B,#1DB954,#1C7CF0,#B523E8)"></i>Rectangle</button>
+      <button class="opt" data-shape="heart" aria-pressed="false"><i style="background:linear-gradient(180deg,#F2243A,#F7C21B,#1DB954)"></i>Heart</button>
+      <button class="opt" data-shape="circle" aria-pressed="false"><i style="background:linear-gradient(180deg,#1DB954,#1C7CF0,#B523E8)"></i>Circle</button>
     </div>
   </section>
 
@@ -4295,33 +4295,52 @@ function twTvSound(dt) {
 /* ---- the 3D pop-it on a kitchen table: real silicone domes you press in, and flick (or tap Flip) to turn it over ---- */
 var P3 = { on: false, scene: null, cam: null, board: null, domes: [], ptrs: new Map(), shape: null };
 var secPop = $("#mode-pop");
-// the outline in pop-it units (radius 1, centred), as a three.js shape
+// the outline in pop-it units (radius 1, centred), as a three.js shape; the classic one is a tall rectangle that fills a phone
 function pop3Shape(s) {
   const sh = new THREE.Shape();
-  if (s === "circle") { sh.absarc(0, 0, 1, 0, Math.PI * 2, false); return sh; }
+  // the circle is drawn point by point, so its outline has no doubled seam point to snag the bevel
+  if (s === "circle") { for (let i = 0; i < 96; i++) { const a = i / 96 * Math.PI * 2; if (i) sh.lineTo(Math.cos(a) * 1.04, Math.sin(a) * 1.04); else sh.moveTo(1.04, 0); } sh.closePath(); return sh; }
   if (s === "heart") { for (let i = 0; i <= 120; i++) { const t = i / 120 * 6.2832, x = 16 * Math.sin(t) ** 3, y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t), k = 1 / 16.5; if (i) sh.lineTo(x * k, (y + 2.5) * k); else sh.moveTo(x * k, (y + 2.5) * k); } return sh; }
-  const r = .3; sh.moveTo(-1 + r, -1); sh.lineTo(1 - r, -1); sh.quadraticCurveTo(1, -1, 1, -1 + r); sh.lineTo(1, 1 - r); sh.quadraticCurveTo(1, 1, 1 - r, 1); sh.lineTo(-1 + r, 1); sh.quadraticCurveTo(-1, 1, -1, 1 - r); sh.lineTo(-1, -1 + r); sh.quadraticCurveTo(-1, -1, -1 + r, -1); return sh;
+  const w = 1.06, h = 1.56, r = .28; sh.moveTo(-w + r, -h); sh.lineTo(w - r, -h); sh.quadraticCurveTo(w, -h, w, -h + r); sh.lineTo(w, h - r); sh.quadraticCurveTo(w, h, w - r, h); sh.lineTo(-w + r, h); sh.quadraticCurveTo(-w, h, -w, h - r); sh.lineTo(-w, -h + r); sh.quadraticCurveTo(-w, -h, -w + r, -h); return sh;
 }
-// the same bubble layout as the flat pop-it, worked out on a little offscreen canvas
+// half the width and depth of each shape, in pop-it units, for framing the camera
+const POP3_EXT = { square: [1.06, 1.56], circle: [1.04, 1.04], heart: [1, 1] };
+// the bubble layout: the rectangle is a plain 6 by 9 grid; the heart and circle keep the grid spots that fit inside their 3D outline
 function pop3Layout(s) {
-  const c = document.createElement("canvas"); c.width = c.height = 600; const x = c.getContext("2d"), R = 250, path = POP_SHAPES[s](300, 300, R);
-  const n = s === "heart" ? 8 : 7, d = 2 * R / n, r = d * .39, out = [];
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-    const px = 300 - R + d * (i + .5), py = 300 - R + d * (j + .5); let inside = true;
-    for (let k = 0; k < 8 && inside; k++) { const a = k * Math.PI / 4; inside = x.isPointInPath(path, px + Math.cos(a) * r * 1.25, py + Math.sin(a) * r * 1.25); }
-    if (inside) out.push({ u: (px - 300) / R, v: (py - 300) / R, r: r / R, hue: Math.round(j / (n - 1) * 290), down: false, a: 0 });
+  const out = [];
+  if (s === "square") {
+    const d = 2 / 6;
+    for (let j = 0; j < 9; j++) for (let i = 0; i < 6; i++) out.push({ u: -1 + d * (i + .5), v: -1.5 + d * (j + .5), r: d * .39, hue: Math.round(j / 8 * 290), down: false, a: 0 });
+    return out;
   }
-  return out;
+  const c = document.createElement("canvas"); c.width = c.height = 600; const x = c.getContext("2d"), R = 250, path = new Path2D();
+  pop3Shape(s).getPoints(64).forEach((p, i) => i ? path.lineTo(300 + p.x * R * .95, 300 - p.y * R * .95) : path.moveTo(300 + p.x * R * .95, 300 - p.y * R * .95));
+  // the grid is nudged about to find where the most bubbles fit
+  const n = s === "heart" ? 9 : 8, d = 2 * R / n, r = d * .39;
+  let best = out;
+  for (let oy = 0; oy < 4; oy += s === "circle" ? 2 : 1) for (let ox = 0; ox < 2; ox++) {
+    const got = [];
+    for (let j = -1; j <= n; j++) for (let i = -1; i <= n; i++) {
+      const px = 300 - R + d * (i + .5 + ox / 2), py = 300 - R + d * (j + .5 + oy / 4); let inside = true;
+      for (let k = 0; k < 8 && inside; k++) { const a = k * Math.PI / 4; inside = x.isPointInPath(path, px + Math.cos(a) * r * 1.1, py + Math.sin(a) * r * 1.1); }
+      if (inside) got.push({ u: (px - 300) / R, v: (py - 300) / R, r: r / R, j, down: false, a: 0 });
+    }
+    if (got.length > best.length) best = got;
+  }
+  // rainbow by row, red at the top through to purple at the bottom
+  const j0 = Math.min(...best.map(p => p.j)), j1 = Math.max(...best.map(p => p.j));
+  for (const p of best) { p.hue = Math.round((p.j - j0) / Math.max(1, j1 - j0) * 290); delete p.j; }
+  return best;
 }
 function pop3Room(sc) {
   const room = roomKit(sc, { w: 26, d: 22, h: 12, floor: "#D8B48A", wall: "#F2E3CF", window: [0, 8, -10.95, 0, 8, 5], sky: "#BFE4FF" });
   // the kitchen table, with a fruit bowl and a mug
   const tb = new THREE.Group(); room.add(tb);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(16, .5, 11), tbT(0xFFFFFF, { map: tbWoodTex(TB_STYLES.natural) })); top.position.y = 4.75; top.receiveShadow = true; tb.add(top);
-  for (const [x, z] of [[-7, -4.6], [7, -4.6], [-7, 4.6], [7, 4.6]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.5, 4.5, .5), tbT(0x8A5A30)); l.position.set(x, 2.25, z); tb.add(l); }
-  const bowl = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), tbT(0x9FD2F2, { side: THREE.DoubleSide })); bowl.position.set(-5.4, 6.4, -3); tb.add(bowl);
-  for (const [x, z, c] of [[-5.8, -3.2, 0xE5484D], [-5, -2.7, 0xF5B921], [-5.3, -3.6, 0x7FB685]]) { const f = new THREE.Mesh(new THREE.SphereGeometry(.5, 14, 10), tbT(c)); f.position.set(x, 5.6, z); tb.add(f); }
-  const mug = new THREE.Mesh(new THREE.CylinderGeometry(.55, .5, 1.1, 18), tbT(0xF4A6B8)); mug.position.set(5.6, 5.55, -3.2); tb.add(mug);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(16, .5, 13), tbT(0xFFFFFF, { map: tbWoodTex(TB_STYLES.natural) })); top.position.y = 4.75; top.receiveShadow = true; tb.add(top);
+  for (const [x, z] of [[-7, -5.6], [7, -5.6], [-7, 5.6], [7, 5.6]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.5, 4.5, .5), tbT(0x8A5A30)); l.position.set(x, 2.25, z); tb.add(l); }
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), tbT(0x9FD2F2, { side: THREE.DoubleSide })); bowl.position.set(-5.4, 6.4, -4); tb.add(bowl);
+  for (const [x, z, c] of [[-5.8, -4.2, 0xE5484D], [-5, -3.7, 0xF5B921], [-5.3, -4.6, 0x7FB685]]) { const f = new THREE.Mesh(new THREE.SphereGeometry(.5, 14, 10), tbT(c)); f.position.set(x, 5.6, z); tb.add(f); }
+  const mug = new THREE.Mesh(new THREE.CylinderGeometry(.55, .5, 1.1, 18), tbT(0xF4A6B8)); mug.position.set(5.6, 5.55, -4.2); tb.add(mug);
   tbToonify(room, .04);
   return 5; // the table top's height
 }
@@ -4331,41 +4350,63 @@ function pop3Build(s) {
     sc.background = new THREE.Color(0xF2E3CF); P3.cam = new THREE.PerspectiveCamera(36, 1, .1, 120);
     const L = lookLights(sc, { keyPos: [-5, 16, 8], keyI: .8, hemi: .6, fillI: .25 }); Object.assign(L.key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 50 });
     P3.y = pop3Room(sc);
+    // the inside of a popped bubble: lit at the bottom, in shadow under the top rim
+    P3.dishTex = tbCanvas(64, 64, (x, w, h) => {
+      x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, w, h);
+      x.fillStyle = "#6E6878"; x.beginPath(); x.arc(32, 32, 32, Math.PI, 0); x.arc(32, 44, 34, 0, Math.PI, true); x.fill();
+    });
   }
   if (P3.board) { sc.remove(P3.pivot); disposeTree(P3.pivot); }
   const S2 = 3.3, pivot = P3.pivot = new THREE.Group(); pivot.position.y = P3.y + .2; sc.add(pivot);
   const board = P3.board = new THREE.Group(); pivot.add(board);
-  // the silicone body, rainbow from top to bottom (vertex colours)
+  // the silicone body: plain white, so the bold bubbles stand out on it
   const geo = new THREE.ExtrudeGeometry(pop3Shape(s), { depth: .16, bevelEnabled: true, bevelThickness: .05, bevelSize: .05, bevelSegments: 3, curveSegments: 48 });
   geo.rotateX(-Math.PI / 2); geo.scale(S2, 1, S2); geo.translate(0, -.05, 0);
-  // rainbow rows, painted top to bottom (the caps' UVs are the outline's own coordinates, -1..1)
-  const rb = tbCanvas(16, 256, (x, w, h) => { for (let j = 0; j < h; j++) { x.fillStyle = `hsl(${Math.round(j / h * 290)},82%,66%)`; x.fillRect(0, j, w, 1); } });
-  rb.repeat.set(.5, .5); rb.offset.set(.5, .5); rb.wrapS = rb.wrapT = THREE.ClampToEdgeWrapping;
-  const body = new THREE.Mesh(geo, tbT(0xFFFFFF, { map: rb })); body.castShadow = body.receiveShadow = true; board.add(body);
-  // the bubbles: domes that press in
-  const dome = new THREE.SphereGeometry(1, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), mats = {};
+  const body = new THREE.Mesh(geo, tbT(0xFFF9F2)); body.castShadow = body.receiveShadow = true; board.add(body);
+  // the bubbles: a bold shiny dome when it's up, a dark dish when it's been pushed in
+  const dome = new THREE.SphereGeometry(1, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), disc = new THREE.CircleGeometry(1, 28), glint = new THREE.SphereGeometry(1, 10, 6), mats = {};
+  const glintMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+  const mat = (k, f) => mats[k] || (mats[k] = f());
   P.dots = pop3Layout(s); P3.domes = [];
   for (const p of P.dots) {
-    const mat = mats[p.hue] || (mats[p.hue] = tbT(new THREE.Color().setHSL(p.hue / 360, .85, .62).getHex()));
-    const m = new THREE.Mesh(dome, mat); m.position.set(p.u * S2, .16, p.v * S2); m.scale.set(p.r * S2 * .92, p.r * S2 * .7, p.r * S2 * .92); m.castShadow = true; m.userData.dot = p; board.add(m);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(p.r * S2 * .95, .025, 6, 24), tbT(new THREE.Color().setHSL(p.hue / 360, .7, .45).getHex())); ring.rotation.x = -Math.PI / 2; ring.position.set(p.u * S2, .17, p.v * S2); board.add(ring);
-    p.m = m; p.ky = 1; P3.domes.push(m);
+    const h = p.hue / 360, rr = p.r * S2 * .92, x = p.u * S2, z = p.v * S2;
+    const m = new THREE.Mesh(dome, mat("up" + p.hue, () => tbT(new THREE.Color().setHSL(h, .95, .5).getHex()))); m.position.set(x, .16, z); m.scale.set(rr, rr * .76, rr); m.castShadow = true; m.userData.dot = p; board.add(m);
+    const g = new THREE.Mesh(glint, glintMat); g.scale.set(rr * .2, rr * .1, rr * .14); g.rotation.y = .7; g.userData.noInk = true; board.add(g);
+    const dish = new THREE.Mesh(disc, mat("in" + p.hue, () => tbT(new THREE.Color().setHSL(h, .7, .3).getHex(), { map: P3.dishTex }))); dish.rotation.x = -Math.PI / 2; dish.position.set(x, .165, z); dish.scale.setScalar(rr); dish.userData.noInk = true; dish.visible = false; board.add(dish);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(p.r * S2 * .95, .03, 6, 24), mat("ring" + p.hue, () => tbT(new THREE.Color().setHSL(h, .8, .4).getHex()))); ring.rotation.x = -Math.PI / 2; ring.position.set(x, .17, z); ring.userData.noInk = true; board.add(ring);
+    p.m = m; p.g = g; p.dish = dish; p.ky = 1; P3.domes.push(m);
   }
   tbToonify(board, .03);
   P.flip = -1; popFlip.classList.remove("cheer"); P3.shape = s;
+}
+// the camera comes in as close as it can while the whole sheet fits between the shape buttons and the Flip button
+function pop3Fit() {
+  const cam = P3.cam, asp = cam.aspect = GL.w / GL.h, [ex, ez] = POP3_EXT[P3.shape].map(e => e * 3.3 + .1), y0 = P3.y + .2;
+  const pts = []; for (const x of [-ex, ex]) for (const z of [-ez, ez]) for (const y of [0, .5]) pts.push(new THREE.Vector3(x, y0 + y, z));
+  const v = new THREE.Vector3(), mt = 76, mb = 112, mx = 12;
+  const place = d => { cam.clearViewOffset(); cam.position.set(0, y0 + d * .9, d * .44); cam.lookAt(0, y0, 0); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); };
+  const span = () => { let x0 = 1, x1 = -1, y1 = -1, y2 = 1; for (const p of pts) { v.copy(p).project(cam); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y2 = Math.min(y2, v.y); y1 = Math.max(y1, v.y); } return { w: x1 - x0, h: y1 - y2, top: y1, bot: y2 }; };
+  let lo = 3, hi = 80;
+  for (let k = 0; k < 28; k++) { const d = (lo + hi) / 2; place(d); const s = span(); if (s.w <= 2 - 4 * mx / GL.w && s.h <= 2 - 2 * (mt + mb) / GL.h) hi = d; else lo = d; }
+  place(hi); const s = span();
+  // slide the picture so the sheet sits in the middle of the free space
+  const have = (1 - (s.top + s.bot) / 2) / 2 * GL.h, want = mt + (GL.h - mt - mb) / 2;
+  cam.setViewOffset(GL.w, GL.h, 0, Math.round(have - want), GL.w, GL.h); cam.updateProjectionMatrix();
 }
 function pop3Setup() {
   if (typeof THREE === "undefined" || !mount3D(secPop)) { P3.on = false; pcv.style.display = ""; return false; }
   if (!P3.board || P3.shape !== P.shape) pop3Build(P.shape);
   pcv.style.display = "none"; P3.on = true;
-  const asp = P3.cam.aspect = GL.w / GL.h, t = Math.tan(18 * Math.PI / 180), d = Math.max(4 / t, 4.05 / (t * asp));
-  P3.cam.position.set(0, P3.y + d * .88, d * .48); P3.cam.lookAt(0, P3.y, .2); P3.cam.updateProjectionMatrix();
+  pop3Fit();
   return true;
 }
 function pop3Frame(dt) {
   for (const p of P.dots) {
-    const want = p.down ? -.55 : 1; p.ky += (want - p.ky) * Math.min(1, dt * .45);
-    p.m.scale.y = p.r * 3.3 * .7 * p.ky; p.m.position.y = .16 + (p.ky < 0 ? .02 : 0);
+    // pushed in: the dome sinks away and the dark dish shows; popped back up: the dome swells out again
+    p.ky += ((p.down ? 0 : 1) - p.ky) * Math.min(1, dt * .45);
+    const rr = p.r * 3.3 * .92, hy = rr * .76 * Math.max(.01, p.ky);
+    p.m.scale.y = hy; p.m.visible = p.ky > .05; p.dish.visible = p.ky < .6;
+    p.g.visible = p.ky > .6; p.g.position.set(p.u * 3.3 - rr * .34, .16 + hy * .86, p.v * 3.3 - rr * .34);
   }
   // the flop: up, over and back down; the states swap at the halfway point (in popFrame)
   const f = P.flip >= 0 ? P.flip : 0, e = f < .5 ? f * 2 : (1 - f) * 2;
