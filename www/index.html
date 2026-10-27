@@ -38,6 +38,8 @@ html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE
 html[data-mode="zen"].zen-night{background:radial-gradient(circle at 82% 10%,#F6F2DC 0 22px,rgba(246,242,220,.22) 26px,rgba(246,242,220,0) 64px),radial-gradient(ellipse at 50% 45%,#1E2446,#0A0C1A 80%)}
 html.zen-night #mode-zen .hint{color:rgba(220,228,255,.75)}
 html[data-mode="cradle"]{background:#F1E6D6}
+html[data-mode="cradle"].cradle-night{background:#3F3A46}
+html.cradle-night #mode-cradle #cHint{color:rgba(235,228,245,.75)!important}
 /* desk mode: the office dims to a soft lamp-lit glow while the cradle keeps going */
 .desk-dim{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity 2.5s ease;background:radial-gradient(ellipse at 35% 45%,rgba(30,20,10,.35),rgba(10,8,20,.82) 75%);display:flex;align-items:flex-end;justify-content:center}
 .desk-dim span{margin-bottom:calc(env(safe-area-inset-bottom,0px) + 40px);color:rgba(255,236,200,.55);font-size:.85rem;letter-spacing:.05em}
@@ -782,7 +784,7 @@ html[data-mode="ice"]{background:#0B1626}
   </section>
 
   <section class="mode" id="mode-cradle" aria-label="Newton's cradle. Pull a ball to the side and let go; drag the background to look around.">
-    <p class="hint" id="cHint">Pull a ball out and let go</p>
+    <p class="hint" id="cHint">Pull a ball out and let go · tap the lamp</p>
     <div class="desk-dim" aria-hidden="true"><span>Desk mode · touch to wake</span></div>
   </section>
   <section class="mode" id="mode-cube" aria-label="Dodec, a twelve-sided fidget toy. Drag to turn it, then press, roll, flick and spin the controls on each side.">
@@ -3063,21 +3065,44 @@ const mf = n => 440 * Math.pow(2, (n - 69) / 12);
 const BM = { on: false, bus: null, filt: null, next: 0, step: 0, timer: null, t0: 0 };
 function bmBus() {
   const a = ac(); if (!a) return null;
-  if (!BM.bus) { BM.bus = a.createGain(); BM.filt = a.createBiquadFilter(); BM.filt.type = "lowpass"; BM.filt.Q.value = .5; BM.bus.gain.value = 0; BM.bus.connect(BM.filt).connect(out(a)); }
+  if (!BM.bus) {
+    BM.bus = a.createGain(); BM.filt = a.createBiquadFilter(); BM.filt.type = "lowpass"; BM.filt.Q.value = .5; BM.bus.gain.value = 0; BM.bus.connect(BM.filt).connect(out(a));
+    // a small room for the drums to ring out in: a short, darkening noise tail
+    const len = a.sampleRate * 1.1 | 0, ir = a.createBuffer(2, len, a.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    const cv = a.createConvolver(), lp = a.createBiquadFilter(); cv.buffer = ir; lp.type = "lowpass"; lp.frequency.value = 3800;
+    BM.room = a.createGain(); BM.room.gain.value = .55; BM.room.connect(cv).connect(lp).connect(BM.bus);
+  }
   return a;
 }
+// a drum voice goes to the mix, and a little of it into the room
+const bmOut = (g, wet) => { g.connect(BM.bus); if (wet) { const s = g.context.createGain(); s.gain.value = wet; g.connect(s).connect(BM.room); } };
 function bmVoice(a, t, type, f, vol, att, dec, detune = 0) {
   const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = f; o.detune.value = detune;
   g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.exponentialRampToValueAtTime(.0001, t + att + dec);
   o.connect(g).connect(BM.bus); o.start(t); o.stop(t + att + dec + .05);
 }
-function bmNoise(a, t, type, f, q, vol, dec) {
+function bmNoise(a, t, type, f, q, vol, dec, wet = 0) {
   const s = a.createBufferSource(), fl = a.createBiquadFilter(), g = a.createGain(); s.buffer = noise(a); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
-  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dec); s.connect(fl).connect(g).connect(BM.bus); s.start(t, Math.random()); s.stop(t + dec + .05);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dec); s.connect(fl).connect(g); bmOut(g, wet); s.start(t, Math.random()); s.stop(t + dec + .05);
 }
-function bmKick(a, t) {
-  const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + .18);
-  g.gain.setValueAtTime(.55, t); g.gain.exponentialRampToValueAtTime(.0001, t + .32); o.connect(g).connect(BM.bus); o.start(t); o.stop(t + .35);
+// the kick: a click, then a deep round thump that sinks in pitch and takes its time to fade
+function bmKick(a, t, v = 1) {
+  const o = a.createOscillator(), g = a.createGain(), sh = a.createWaveShaper();
+  const cu = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 127.5 - 1; cu[i] = Math.tanh(x * 1.8); } sh.curve = cu;
+  o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(52, t + .09); o.frequency.exponentialRampToValueAtTime(40, t + .5);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.75 * v, t + .004); g.gain.setTargetAtTime(.0001, t + .06, .16);
+  o.connect(sh).connect(g); bmOut(g, .08); o.start(t); o.stop(t + .9);
+  bmNoise(a, t, "highpass", 3000, .7, .12 * v, .015);
+}
+// the snare: a tuned body under a long crisp rattle, with some room
+function bmSnare(a, t, v = 1) {
+  bmVoice(a, t, "triangle", 185, .2 * v, .002, .14); bmVoice(a, t, "sine", 330, .08 * v, .002, .08);
+  bmNoise(a, t, "bandpass", 2200, .6, .34 * v, .32, .5); bmNoise(a, t, "highpass", 5200, .8, .12 * v, .2, .3);
+}
+// the clap: a few hands a hair apart, then a soft tail ringing in the room
+function bmClap(a, t, v = 1) {
+  for (let k = 0; k < 4; k++) bmNoise(a, t + k * .011, "bandpass", 1150, 1, .26 * v, k < 3 ? .025 : .38, k < 3 ? 0 : .7);
 }
 const bmBpm = () => 70 + BD.kStep[0] * 4, bmChord = () => BM_PROG[Math.floor(BM.step / 16) % 4];
 // a small look-ahead scheduler: sixteenth notes are queued a little before they're due
@@ -3090,7 +3115,7 @@ function bmSchedule() {
     if (st === 0 && BM.step % 64 === 0) BM.t0 = BM.next;
     if (BD.levers[0]) {
       if (st === 0 || st === 8 || st === 10) bmKick(a, t);
-      if (st === 4 || st === 12) { bmNoise(a, t, "bandpass", 1900, .8, .26, .16); bmVoice(a, t, "triangle", 190, .1, .002, .08); }
+      if (st === 4 || st === 12) bmSnare(a, t, .8);
       if (st % 2 === 0) bmNoise(a, t, "highpass", 7500, .7, st % 4 ? .04 : .08, .04);
     }
     if (BD.levers[1] && (st === 0 || st === 6 || st === 8 || st === 14)) bmVoice(a, t, "triangle", mf(ch[0] - 12 + (st === 14 ? 7 : 0)), .3, .01, s16 * 3);
@@ -3120,9 +3145,9 @@ function bdMusic(on) {
 function bmDrum(i) {
   const a = bmBus(); if (!a) return; const t = a.currentTime + .005;
   if (i === 0) bmKick(a, t);
-  else if (i === 1) { bmNoise(a, t, "bandpass", 1900, .8, .34, .18); bmVoice(a, t, "triangle", 200, .14, .002, .09); }
-  else if (i === 2) bmNoise(a, t, "highpass", 7500, .7, .14, .06);
-  else for (let k = 0; k < 3; k++) bmNoise(a, t + k * .012, "bandpass", 1300, 1.2, .22, k < 2 ? .02 : .16);
+  else if (i === 1) bmSnare(a, t);
+  else if (i === 2) bmNoise(a, t, "highpass", 7500, .7, .14, .09, .15);
+  else bmClap(a, t);
 }
 // the big button is the bass: each press walks up the current chord (root, third, fifth, octave); hold to let it swell
 function bmBass(down) {
@@ -3400,7 +3425,8 @@ function bdBuildBoard() {
   };
   P.labels = [];
   ["KICK", "SNARE", "HAT", "CLAP"].forEach((t, i) => label(t, 34, P.keys[i], .8));
-  label("BASS", 46, P.red, 1.3);
+  label("BOOM", 46, P.red, 1.3);
+  ["DRUMS", "BASS", "CHORDS"].forEach((t, i) => { const l = label(t, 26, P.levers[i].parent, 1.1); l.position.set(P.levers[i].position.x, .2, P.levers[i].position.z + .62); });
   BD.scene.add(g); bdCamera();
 }
 function bdCamera() {
@@ -6246,12 +6272,16 @@ function ncDesk(sc) {
   }) }));
   wall.position.set(0, 5, -5); sc.add(wall);
   // a desk lamp on the left
-  const lamp = new THREE.Group(); lamp.position.set(-4.1, -.26, -2.2); g.add(lamp);
-  const L = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, tbT(col)); m.position.set(x, y, z); m.castShadow = true; lamp.add(m); return m; };
+  // a desk lamp on the left, bent over the cradle; tap it to switch it on and off
+  const lamp = NC.lampG = new THREE.Group(); lamp.position.set(-3.3, -.26, -1.7); g.add(lamp);
+  const L = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, tbT(col)); m.position.set(x, y, z); m.castShadow = true; m.userData.lamp = true; lamp.add(m); return m; };
   L(new THREE.CylinderGeometry(.55, .62, .14, 28), 0x5CC8B8, 0, .07, 0);
   L(new THREE.CylinderGeometry(.06, .06, 2.4, 10), 0x5CC8B8, .3, 1.2, 0).rotation.z = -.25;
   L(new THREE.CylinderGeometry(.06, .06, 1.4, 10), 0x5CC8B8, 1.0, 2.6, 0).rotation.z = -1.1;
-  const shade = L(new THREE.ConeGeometry(.55, .7, 24, 1, true), 0xFFC93C, 1.6, 2.7, 0); shade.rotation.z = -2.2; shade.material.side = THREE.DoubleSide;
+  // the shade hangs off the end of the arm with its open side facing down towards the cradle
+  const shade = NC.shade = L(new THREE.ConeGeometry(.55, .7, 24, 1, true), 0xFFC93C, 1.8, 2.6, 0); shade.rotation.z = .53; shade.material.side = THREE.DoubleSide;
+  shade.material.emissive = new THREE.Color(0xFFB030);
+  NC.bulb = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), new THREE.MeshBasicMaterial({ color: 0xFFF2C8 })); NC.bulb.position.set(1.8 + .5 * .12, 2.6 - .85 * .12, 0); NC.bulb.userData.noInk = true; NC.bulb.userData.lamp = true; lamp.add(NC.bulb);
   // a stack of books with a mug, a pencil cup and a little plant on the right
   [[2.2, .32, 1.5, 0xE5484D, .1], [2.0, .28, 1.4, 0x5CC8B8, -.08], [1.8, .3, 1.3, 0xFFC93C, .05]].reduce((y, [w, h, d, c, r]) => { add(new THREE.BoxGeometry(w, h, d), c, 7.4, y + h / 2, -2.6).rotation.y = r; return y + h; }, -.26);
   add(new THREE.CylinderGeometry(.32, .28, .6, 20), 0xF4F1EA, 7.5, .94, -2.6);
@@ -6259,15 +6289,15 @@ function ncDesk(sc) {
   for (let i = 0; i < 6; i++) { const p = add(new THREE.CylinderGeometry(.03, .03, .9, 6), [0xFFC93C, 0xE5484D, 0x4AA8FF][i % 3], -4.6 + Math.cos(i) * .1, .55, .9 + Math.sin(i) * .1); p.rotation.set(Math.sin(i * 2) * .2, 0, Math.cos(i * 2) * .2); }
   add(new THREE.CylinderGeometry(.35, .28, .55, 18), 0xE7A27C, 5.4, .02, .4);
   for (let i = 0; i < 5; i++) { const lf = add(new THREE.SphereGeometry(.3, 12, 8), 0x4FA24A, 5.4 + Math.cos(i * 1.3) * .25, .55 + (i % 2) * .2, .4 + Math.sin(i * 1.3) * .25); lf.scale.set(1, .5, .7); lf.rotation.y = i; }
-  // the office: a monitor with a slow screensaver behind the cradle, a keyboard, and a pinboard of notes
+  // the office: a monitor with a slow screensaver behind the cradle, and a pinboard of notes
   const mon = new THREE.Group(); mon.position.set(4.6, -.26, -3.3); mon.rotation.y = -.45; g.add(mon);
   const M = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, tbT(col)); m.position.set(x, y, z); m.castShadow = true; mon.add(m); return m; };
   M(new THREE.BoxGeometry(1.4, .08, .9), 0x2A2438, 0, .04, 0); M(new THREE.BoxGeometry(.18, 1.6, .18), 0x2A2438, 0, .8, -.1);
   M(new THREE.BoxGeometry(4.2, 2.6, .22), 0x2A2438, 0, 2.6, 0);
   NC.scrC = document.createElement("canvas"); NC.scrC.width = 96; NC.scrC.height = 60; NC.scrTex = new THREE.CanvasTexture(NC.scrC); NC.scrTex.encoding = THREE.sRGBEncoding;
-  const scr = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 2.35), new THREE.MeshBasicMaterial({ map: NC.scrTex })); scr.position.set(0, 2.6, .12); scr.userData.noInk = true; mon.add(scr);
-  const kb = add(new THREE.BoxGeometry(3.4, .14, 1.1), 0xF4F1EA, 3.4, -.19, 1.9); kb.rotation.y = -.3;
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) { const k = new THREE.Mesh(new THREE.BoxGeometry(.28, .06, .24), tbT(0xDCD6CC)); k.position.set(-1.35 + c * .34, .1, -.32 + r * .32); kb.add(k); }
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 2.35), NC.scrMat = new THREE.MeshBasicMaterial({ map: NC.scrTex })); scr.position.set(0, 2.6, .12); scr.userData.noInk = true; mon.add(scr);
+  // at night the screen's cool glow is the only light in the room
+  NC.monLight = new THREE.PointLight(0x8C9CFF, 0, 16, 1.4); NC.monLight.position.set(0, 2.6, 1.6); mon.add(NC.monLight);
   const board = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.2), new THREE.MeshBasicMaterial({ map: tbCanvas(256, 168, (x, w, h) => {
     x.fillStyle = "#C9935C"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(0,0,0,.08)"; for (let i = 0; i < 400; i++) x.fillRect(Math.random() * w, Math.random() * h, 2, 2);
     for (const [px, py, c, r] of [[30, 26, "#FFE27A", -.1], [110, 20, "#9FE3C4", .08], [180, 34, "#F4A6B8", -.05], [60, 96, "#A9D8FF", .06], [150, 100, "#FFE27A", -.08]]) {
@@ -6278,13 +6308,39 @@ function ncDesk(sc) {
   board.position.set(-4.2, 5.2, -4.95); sc.add(board);
   tbToonify(g, .03); sc.add(g);
   // a warm pool from the lamp
-  const spot = new THREE.SpotLight(0xFFD49A, .6, 14, .9, .8, 1.2); spot.position.set(-2.4, 3.4, -2.2); spot.target.position.set(0, 0, 0); sc.add(spot); sc.add(spot.target);
+  const spot = NC.spot = new THREE.SpotLight(0xFFD49A, .6, 14, .9, .8, 1.2); spot.position.set(-1.5, 2.3, -1.7); spot.target.position.set(0, 0, 0); sc.add(spot); sc.add(spot.target);
+  // a soft glow around the bulb
+  NC.halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: tbCanvas(64, 64, x => { const r = x.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,226,150,.9)"); r.addColorStop(1, "rgba(255,226,150,0)"); x.fillStyle = r; x.fillRect(0, 0, 64, 64); }), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  NC.halo.scale.setScalar(1.6); NC.halo.position.copy(NC.bulb.position); lamp.add(NC.halo);
+}
+// the lamp is the room's light: off, the office fades to a cosy night lit only by the monitor's screensaver
+function ncLamp(on, quiet) {
+  NC.lampOn = on; savePref("fidget-cradle-lamp", on ? "on" : "off");
+  NC.bulb.material.color.setHex(on ? 0xFFF2C8 : 0x8A8478); NC.halo.visible = on;
+  NC.shade.material.emissiveIntensity = on ? .35 : 0;
+  document.documentElement.classList.toggle("cradle-night", !on);
+  NC.nightT = on ? 0 : 1; if (quiet) ncNight(NC.nightV = NC.nightT);
+  if (!quiet) { S.tick(on ? 2600 : 1900, .3, .02, "square"); S.knock(.4); buzz(12); }
+}
+function ncNight(v) {
+  if (!NC.mats) {
+    // every colour in the room, kept so night can dim it (toon shading never goes fully dark on light alone)
+    NC.mats = []; NC.bg0 = NC.scene.background.clone();
+    NC.scene.traverse(o => { const m = o.isMesh && o.material; if (m && m.color && m !== NC.scrMat && m !== NC.bulb.material && !NC.mats.includes(m)) { m.userData.c0 = m.color.clone(); NC.mats.push(m); } });
+  }
+  const k = new THREE.Color(1 - .74 * v, 1 - .72 * v, 1 - .56 * v);
+  // the wall and pinboard aren't lit at all, so they're dimmed a little further by hand
+  const kb = k.clone().multiply(k).multiplyScalar(1 - .2 * v);
+  for (const m of NC.mats) m.color.copy(m.userData.c0).multiply(m.isMeshBasicMaterial ? kb : k);
+  NC.scene.background.copy(NC.bg0).multiply(k);
+  NC.hemi.intensity = .55 * (1 - .5 * v); NC.sun.intensity = 1 - .85 * v; NC.spot.intensity = 1.1 * (1 - v);
+  NC.monLight.intensity = 1.6 * v; if (NC.chrome) NC.chrome.envMapIntensity = 1.15 * (1 - .7 * v);
 }
 function cradleBuild() {
   const sc = new THREE.Scene(); NC.scene = sc;
   NC.cam = new THREE.PerspectiveCamera(35, 1, .1, 80);
-  sc.add(new THREE.HemisphereLight(0xFFFFFF, 0x9A8C7C, .55));
-  const sun = new THREE.DirectionalLight(0xFFF4E6, 1.0); sun.position.set(-3, 8, 5); sun.castShadow = true;
+  sc.add(NC.hemi = new THREE.HemisphereLight(0xFFFFFF, 0x9A8C7C, .55));
+  const sun = NC.sun = new THREE.DirectionalLight(0xFFF4E6, 1.0); sun.position.set(-3, 8, 5); sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 }); sun.shadow.bias = -.0005; sun.shadow.radius = 4; sc.add(sun);
   ncDesk(sc);
   // dark walnut base with a soft bevel
@@ -6310,6 +6366,7 @@ function cradleBuild() {
   const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(NC.n * 4 * 3), 3));
   NC.strings = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x6E6A70, transparent: true, opacity: .8 })); sc.add(NC.strings);
   NC.plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); NC.v = new THREE.Vector3();
+  ncLamp(pref("fidget-cradle-lamp", "on") === "on", true);
 }
 function ncScreenStep(t) {
   if (!NC.scrC || (NC.scrT = (NC.scrT || 0) + 1) % 8) return;
@@ -6338,6 +6395,7 @@ function ncWake() { NC.idle = 0; if (NC.desk) { NC.desk = false; secCradle.class
 function cradleFrame(now) {
   const dts = clamp((now - (NC.last || now - 16.7)) / 1000, .004, .04); NC.last = now;
   ncDeskMode(dts); ncScreenStep(now / 1000);
+  if (NC.nightV !== NC.nightT) { NC.nightV = NC.nightT > NC.nightV ? Math.min(NC.nightT, NC.nightV + dts * 2.2) : Math.max(NC.nightT, NC.nightV - dts * 2.2); ncNight(NC.nightV); }
   let hitV = 0; const sub = 12;
   for (let k = 0; k < sub; k++) hitV = Math.max(hitV, cradleStep(dts / sub));
   if (hitV > .09 && now - NC.hit > 35) {
@@ -6363,6 +6421,7 @@ on3D(secCradle, "pointerdown", e => {
   if (NC.grab || NC.ptrs.size > 2) return;
   const hit = rayAt(e, NC.cam).intersectObjects(NC.balls, false)[0];
   if (hit) { NC.grab = { id: e.pointerId, i: hit.object.userData.ball, set: [hit.object.userData.ball] }; S.tick(1200, .06, .02, "sine"); buzz(6); return; }
+  if (rayAt(e, NC.cam).intersectObject(NC.lampG, true).some(h => h.object.userData.lamp)) { ncLamp(!NC.lampOn); return; }
   NC.orbit = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 on3D(secCradle, "pointermove", e => {
