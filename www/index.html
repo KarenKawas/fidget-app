@@ -8742,7 +8742,16 @@ $("#trayHandle").addEventListener("pointermove", e => { if (TRAY.sy !== null) tr
 $("#trayHandle").addEventListener("pointerup", e => { const dy = TRAY.sy === null ? 0 : e.clientY - TRAY.sy; TRAY.sy = null; tray.style.setProperty("--pull", "0px"); if (dy > 60 || Math.abs(dy) < 6) closeDrawer(); });
 
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); if (mode === "twisty") twistySetup(); if (mode === "stones") stonesSetup(); if (mode === "ice") iceSetup(); });
+function relayout() { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); if (mode === "twisty") twistySetup(); if (mode === "stones") stonesSetup(); if (mode === "ice") iceSetup(); }
+// turning the phone: iOS can send "resize" before the page has its new shape, which left every picture stretched to the old size.
+// So also watch the app's own box, and look again a moment after any resize or turn, once the new layout has settled.
+function onTurn() { relayout(); setTimeout(relayout, 150); setTimeout(relayout, 500); }
+window.addEventListener("resize", onTurn); window.addEventListener("orientationchange", onTurn);
+if (screen.orientation) screen.orientation.addEventListener("change", onTurn);
+if (window.ResizeObserver) new ResizeObserver(() => relayout()).observe($("#app"));
+// and as a last resort, a cheap look at the window's size a few times a second, in case no event comes at all
+let seenW = innerWidth, seenH = innerHeight;
+setInterval(() => { if (innerWidth !== seenW || innerHeight !== seenH) { seenW = innerWidth; seenH = innerHeight; onTurn(); } }, 250);
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
