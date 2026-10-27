@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - name: Prepare the iOS project (icons, portrait, iPhone only, Info.plist keys)
+      - name: Prepare the iOS project (icons, rotation, iPhone only, Info.plist keys)
         run: sh scripts/ios-prepare.sh
       - name: Check the secrets are set
         env:

@@ -22,8 +22,6 @@ jobs:
       - run: npx cap add android
       - name: App icon and splash
         run: node scripts/make-icons.js && npx capacitor-assets generate --android
-      - name: Lock to portrait
-        run: sed -i 's/<activity/<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
       - run: npm run sync
       - name: Build APK
         working-directory: android
@@ -44,7 +42,7 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - name: Prepare the iOS project (icons, portrait, iPhone only, Info.plist keys)
+      - name: Prepare the iOS project (icons, rotation, iPhone only, Info.plist keys)
         run: sh scripts/ios-prepare.sh
       - name: Build unsigned IPA
         run: |

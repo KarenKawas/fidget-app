@@ -14,7 +14,7 @@
   --sheet:#D9E9F4; --sheet-line:rgba(70,120,160,.10);
   --slimebg:#E62A64;
   color-scheme:light; box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-top:env(safe-area-inset-top,0px); --sl:env(safe-area-inset-left,0px); --sr:env(safe-area-inset-right,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -38,6 +38,8 @@ html[data-mode="zen"]{background:radial-gradient(ellipse at 50% 45%,#FFFFFF,#ECE
 html[data-mode="zen"].zen-night{background:radial-gradient(circle at 82% 10%,#F6F2DC 0 22px,rgba(246,242,220,.22) 26px,rgba(246,242,220,0) 64px),radial-gradient(ellipse at 50% 45%,#1E2446,#0A0C1A 80%)}
 html.zen-night #mode-zen .hint{color:rgba(220,228,255,.75)}
 html[data-mode="cradle"]{background:#F1E6D6}
+html[data-mode="cradle"].cradle-night{background:#3F3A46}
+html.cradle-night #mode-cradle #cHint{color:rgba(235,228,245,.75)!important}
 /* desk mode: the office dims to a soft lamp-lit glow while the cradle keeps going */
 .desk-dim{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity 2.5s ease;background:radial-gradient(ellipse at 35% 45%,rgba(30,20,10,.35),rgba(10,8,20,.82) 75%);display:flex;align-items:flex-end;justify-content:center}
 .desk-dim span{margin-bottom:calc(env(safe-area-inset-bottom,0px) + 40px);color:rgba(255,236,200,.55);font-size:.85rem;letter-spacing:.05em}
@@ -62,7 +64,7 @@ button{font:inherit;color:inherit}
 
 /* ---------- menu ---------- */
 .fab{
-  position:fixed; z-index:20; left:14px; top:calc(env(safe-area-inset-top,0px) + 12px);
+  position:fixed; z-index:20; left:calc(var(--sl) + 14px); top:calc(env(safe-area-inset-top,0px) + 12px);
   width:48px; height:48px; border-radius:16px; border:0; cursor:pointer;
   background:rgba(255,255,255,.72); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   box-shadow:0 2px 10px rgba(0,0,0,.18); display:grid; place-items:center;
@@ -181,7 +183,12 @@ html.dark .fab{background:rgba(40,36,56,.78)}
 html.dark .fab svg{stroke:#F1EDF8}
 html.dark .pill[aria-pressed="true"],html.dark .seg button[aria-pressed="true"]{background:#F1EDF8;color:#231F30}
 html.dark[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.08) 0 3px,transparent 3.5px) 0 0/28px 28px,#3A2232}
-html.dark #mode-pop .hint{color:#6A4A30}
+html.dark #mode-pop .hint{color:rgba(240,232,250,.75)}
+.pop-sheets{position:absolute;top:64px;right:calc(var(--sr) + 12px);z-index:3;display:flex;gap:8px}
+.pop-sheets button{width:28px;height:28px;border-radius:50%;border:3px solid #FFFFFF;box-shadow:0 2px 6px rgba(40,30,60,.25);cursor:pointer;padding:0}
+.pop-sheets button[aria-pressed="true"]{border-color:#2A2438;transform:scale(1.12)}
+html.dark .pop-sheets button{border-color:#3A3446}
+html.dark .pop-sheets button[aria-pressed="true"]{border-color:#F4EEFF}
 html.dark[data-mode="zen"]:not(.zen-night){background:radial-gradient(ellipse at 50% 45%,#3A3A42,#1A1A20 80%)}
 html.dark[data-mode="cradle"]{background:linear-gradient(180deg,#2C2824,#141210)}
 html.dark[data-mode="cube"]:not(.dodec-night){background:#E6DAF0}
@@ -197,9 +204,9 @@ html.dark[data-mode="home"]{background:radial-gradient(ellipse at 50% 28%,#3B314
 .tb-title{transition:opacity .4s;display:flex;align-items:center;gap:8px}
 .tb-mark{width:34px;height:35px;flex:none}
 #mode-home.tb-open .tb-title{opacity:0}
-.tb-title{position:fixed;z-index:4;left:74px;top:calc(env(safe-area-inset-top,0px) + 20px);margin:0;font-size:1.45rem;font-weight:600;color:#6B5240}
+.tb-title{position:fixed;z-index:4;left:calc(var(--sl) + 74px);top:calc(env(safe-area-inset-top,0px) + 20px);margin:0;font-size:1.45rem;font-weight:600;color:#6B5240}
 html.dark .tb-title{color:#EADFF5}
-.tb-top{position:fixed;z-index:5;right:14px;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;gap:8px}
+.tb-top{position:fixed;z-index:5;right:calc(var(--sr) + 14px);top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;gap:8px}
 .tb-top button{width:46px;height:46px;border:0;border-radius:16px;cursor:pointer;display:grid;place-items:center;color:#2A2438;
   background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .tb-top button svg{width:22px;height:22px}
@@ -207,7 +214,7 @@ html.dark .tb-title{color:#EADFF5}
 html.dark .tb-top button{background:rgba(40,36,56,.78);color:#F1EDF8}
 .tb-hint{bottom:100px;color:rgba(90,70,50,.75);text-shadow:none}
 html.dark .tb-hint{color:rgba(235,228,245,.75)}
-.tb-well{position:fixed;z-index:6;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);margin:0;justify-content:center}
+.tb-well{position:fixed;z-index:6;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 12px);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);margin:0;justify-content:center}
 .tb-well .pill{background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.12)}
 html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 .tb-tag{position:fixed;z-index:6;left:50%;transform:translate(-50%,10px);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;
@@ -280,7 +287,7 @@ html[data-mode="stones"]{background:var(--stbg,#DCE3E6)}
 html[data-mode="ice"]{background:#0B1626}
 #mode-ice .hint{bottom:84px;color:#2A3A50;text-shadow:0 1px 4px rgba(255,255,255,.8)}
 #mode-ice .newsheet{z-index:3}
-.ice-book{position:absolute;z-index:4;right:14px;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;align-items:center;gap:6px;border:0;border-radius:16px;padding:10px 14px;cursor:pointer;
+.ice-book{position:absolute;z-index:4;right:calc(var(--sr) + 14px);top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;align-items:center;gap:6px;border:0;border-radius:16px;padding:10px 14px;cursor:pointer;
   font:inherit;font-weight:600;color:#2A2438;background:rgba(255,255,255,.85);box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .ice-book svg{width:22px;height:22px}
 .ice-card{position:absolute;z-index:5;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translateX(-50%);display:flex;gap:12px;align-items:center;width:min(88vw,360px);
@@ -303,13 +310,13 @@ html[data-mode="ice"]{background:#0B1626}
 #mode-stones .hint{bottom:72px}
 .st-skip{position:fixed;z-index:4;transform:translate(-50%,-50%);font-weight:700;font-size:1.6rem;color:#fff;-webkit-text-stroke:2.5px #2A2438;paint-order:stroke;pointer-events:none;animation:stskip .9s ease-out forwards}
 @keyframes stskip{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}20%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-160%) scale(1)}}
-#mode-twisty .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-twisty .themes{z-index:3;top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 #mode-twisty .tw-btns{position:absolute;left:0;right:0;bottom:74px;z-index:3;display:flex;justify-content:center;gap:10px}
 #mode-twisty .tw-btns .newsheet{position:static;transform:none}
 #mode-twisty .tw-icon{padding:10px 12px;display:grid;place-items:center}#mode-twisty .tw-icon svg{width:22px;height:22px}
 #mode-twisty .hint{bottom:128px}
 #mode-twisty.light .hint{color:#5A4E6A;text-shadow:none}
-#mode-board .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-board .themes{z-index:3;top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 /* the original controls stay for screen readers and keyboards, out of sight behind the 3D board */
 .board-a11y{position:absolute!important;width:1px;height:1px;padding:0!important;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;min-height:0!important}
 .plank{position:relative; min-height:100%; padding:84px 18px 48px; background:var(--plank-bg);}
@@ -376,7 +383,7 @@ html[data-mode="ice"]{background:#0B1626}
   --red-bg:radial-gradient(circle at 38% 28%,#FFE3F6 0 7%,#FF2E9A 32%,#C4007A 78%,#7A004C); --red-side:#4A002E; --red-glow:255,46,154;
   --k1:#00E5D4;--k1d:#008C82;--k2:#FF3DCB;--k2d:#A0197F;--k3:#A6FF3D;--k3d:#5FA81A;--k4:#FFB020;--k4d:#B36F00;
 }
-.themes{position:absolute;top:16px;left:72px;right:12px;display:flex;justify-content:flex-end;gap:6px;overflow-x:auto;scrollbar-width:none}
+.themes{position:absolute;top:16px;left:calc(var(--sl) + 72px);right:calc(var(--sr) + 12px);display:flex;justify-content:flex-end;gap:6px;overflow-x:auto;scrollbar-width:none}
 .theme,.season,.opt{flex:none;border:0;border-radius:999px;padding:6px 10px 6px 6px;display:flex;align-items:center;gap:6px;cursor:pointer;
   font-size:.82rem;font-weight:500;color:#2A2438;background:rgba(255,255,255,.78);box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .theme[aria-pressed="true"],.season[aria-pressed="true"],.opt[aria-pressed="true"]{background:#2A2438;color:#fff}
@@ -454,45 +461,58 @@ html[data-mode="ice"]{background:#0B1626}
 
 /* ---------- bubbles ---------- */
 #sheet{position:absolute;inset:0;touch-action:none;overflow:hidden;background:var(--sheet-bg)}
-#sheet[data-theme="wood"]{
-  --sheet-bg:linear-gradient(115deg,rgba(255,255,255,.18),rgba(255,255,255,0) 40%,rgba(255,255,255,.12) 60%,rgba(255,255,255,0)),repeating-linear-gradient(97deg,rgba(110,70,30,.08) 0 1px,transparent 1px 7px),repeating-linear-gradient(3deg,rgba(255,240,215,.08) 0 1px,transparent 1px 11px),linear-gradient(180deg,#CFA77C,#C29567);
-  --b1:rgba(255,255,255,.5);--b2:rgba(240,228,210,.35);--b3:rgba(140,105,70,.8);--bsh:70,42,15;--bglow:transparent;
-  --p1:rgba(255,245,230,.22);--p2:rgba(140,105,70,.45);--burst:rgba(255,255,255,.95)}
-#sheet[data-theme="cute"]{
-  --sheet-bg:linear-gradient(115deg,rgba(255,255,255,.18),rgba(255,255,255,0) 40%,rgba(255,255,255,.12) 60%,rgba(255,255,255,0)),radial-gradient(circle,rgba(255,255,255,.5) 0 3px,transparent 3.5px) 0 0/30px 30px,linear-gradient(180deg,#FFD2E4,#FFBCD7);
-  --b1:rgba(255,242,248,.65);--b2:rgba(255,168,205,.55);--b3:rgba(222,70,140,.9);--bsh:165,30,95;--bglow:transparent;
-  --p1:rgba(255,200,225,.25);--p2:rgba(222,90,150,.45);--burst:rgba(255,255,255,.95)}
+/* colours like real bubble wrap rolls: pink, periwinkle blue, mint green, and classic clear */
+#sheet[data-theme="pink"]{
+  --under:#FBB9D3;--sheet-bg:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%,rgba(255,255,255,.14) 60%,rgba(255,255,255,0)),linear-gradient(180deg,#FFC6DC,#F7A6C6);
+  --b1:rgba(255,238,246,.72);--b2:rgba(255,172,207,.55);--b3:rgba(222,78,142,.9);--bsh:165,35,98;--bglow:transparent;
+  --p1:rgba(255,205,228,.3);--p2:rgba(222,95,152,.5);--burst:rgba(255,255,255,.95)}
 #sheet[data-theme="blue"]{
-  --sheet-bg:linear-gradient(115deg,rgba(255,255,255,.18),rgba(255,255,255,0) 40%,rgba(255,255,255,.12) 60%,rgba(255,255,255,0)),repeating-linear-gradient(0deg,var(--sheet-line) 0 1px,transparent 1px 34px),var(--sheet);
-  --b1:rgba(232,246,255,.55);--b2:rgba(160,208,240,.55);--b3:rgba(70,128,186,.9);--bsh:15,50,90;--bglow:transparent;
-  --p1:rgba(140,185,220,.2);--p2:rgba(110,160,205,.45);--burst:rgba(255,255,255,.95)}
-#sheet[data-theme="scifi"]{
-  --sheet-bg:linear-gradient(rgba(0,255,224,.07) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,rgba(0,255,224,.07) 1px,transparent 1px) 0 0/24px 24px,radial-gradient(ellipse at 50% 30%,#1C2638,#0B0F17 70%);
-  --b1:rgba(170,255,248,.3);--b2:rgba(0,190,180,.3);--b3:rgba(0,255,224,.9);--bsh:0,0,0;--bglow:rgba(0,255,224,.45);
-  --p1:rgba(0,255,224,.08);--p2:rgba(0,255,224,.35);--burst:#00FFE0}
+  --under:#A6B6F3;--sheet-bg:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%,rgba(255,255,255,.14) 60%,rgba(255,255,255,0)),linear-gradient(180deg,#B4C2F7,#93A6EE);
+  --b1:rgba(240,244,255,.68);--b2:rgba(165,182,246,.55);--b3:rgba(78,98,208,.9);--bsh:38,48,138;--bglow:transparent;
+  --p1:rgba(195,208,255,.3);--p2:rgba(88,108,210,.48);--burst:rgba(255,255,255,.95)}
+#sheet[data-theme="green"]{
+  --under:#B6E8CD;--sheet-bg:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%,rgba(255,255,255,.14) 60%,rgba(255,255,255,0)),linear-gradient(180deg,#C6EFD9,#A2DFC0);
+  --b1:rgba(238,255,247,.7);--b2:rgba(152,226,192,.55);--b3:rgba(38,148,104,.9);--bsh:18,88,58;--bglow:transparent;
+  --p1:rgba(195,242,218,.32);--p2:rgba(48,150,105,.48);--burst:rgba(255,255,255,.95)}
+#sheet[data-theme="clear"]{
+  --under:#E9EEF2;--sheet-bg:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%,rgba(255,255,255,.14) 60%,rgba(255,255,255,0)),radial-gradient(circle,rgba(255,255,255,.55) 0 2px,transparent 2.5px) 0 0/26px 26px,linear-gradient(180deg,#F1F4F7,#DCE3E9);
+  --b1:rgba(255,255,255,.78);--b2:rgba(226,234,241,.45);--b3:rgba(132,154,176,.75);--bsh:60,80,100;--bglow:transparent;
+  --p1:rgba(255,255,255,.32);--p2:rgba(132,154,176,.42);--burst:rgba(255,255,255,.95)}
 #mode-bubbles .themes{z-index:3}
 /* toon bubbles: three flat bands, a crisp painted highlight and sparkle, a plum ink outline and a flat drop shadow */
 .bub{position:absolute;box-sizing:border-box;border-radius:50%;transition:transform .09s cubic-bezier(.3,1.6,.5,1),filter .09s;
   border:2.5px solid rgba(42,36,56,.6);
-  background:
+  --bands:
     radial-gradient(ellipse 22% 14% at 33% 28%,#fff 0 85%,rgba(255,255,255,0) 100%),
     radial-gradient(circle at 71% 73%,rgba(255,255,255,.9) 0 6%,rgba(255,255,255,0) 7.5%),
     radial-gradient(circle at 44% 38%,var(--b1) 0 50%,var(--b2) 52% 76%,var(--b3) 78%);
+  background:var(--bands);
   box-shadow:0 6px 0 -1px rgba(var(--bsh),.3),0 0 12px var(--bglow)}
 .bub::after{content:none}
 .bub.squeeze{transform:scale(.9,.84);filter:brightness(.94) saturate(1.2);box-shadow:0 3px 0 -1px rgba(var(--bsh),.3),0 0 16px var(--bglow)}
 .bub.popped{transform:scale(.88) rotate(var(--rot));border-radius:46% 54% 42% 58%/55% 44% 56% 45%;animation:popjig .24s ease-out;
-  background:
+  --pop:
     conic-gradient(from var(--rot),rgba(255,255,255,.4) 0 7deg,transparent 7deg 52deg,rgba(255,255,255,.3) 52deg 58deg,transparent 58deg 128deg,rgba(255,255,255,.35) 128deg 135deg,transparent 135deg 214deg,rgba(255,255,255,.28) 214deg 220deg,transparent 220deg 298deg,rgba(255,255,255,.33) 298deg 305deg,transparent 305deg),
     radial-gradient(circle,var(--p1) 0 55%,var(--p2) 82%,transparent 100%);
-  border-color:rgba(42,36,56,.4);box-shadow:inset 0 3px 0 rgba(var(--bsh),.25)}
+  background:var(--pop);border-color:rgba(42,36,56,.4);box-shadow:inset 0 3px 0 rgba(var(--bsh),.25)}
+/* heart and star bubbles: the same look cut to shape by a mask, with the ink as a layer underneath and the shadow following the shape */
+#sheet[data-shape="heart"]{--shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 92C20 72 5 54 5 33 5 17 17 6 31 6c9 0 15 5 19 12 4-7 10-12 19-12 14 0 26 11 26 27 0 21-15 39-45 59z'/%3E%3C/svg%3E")}
+#sheet[data-shape="star"]{--shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 10L61.8 37.8 91.8 40.4 69 60.2 75.9 89.6 50 74 24.1 89.6 31 60.2 8.2 40.4 38.2 37.8z' stroke='%23000' stroke-width='9' stroke-linejoin='round'/%3E%3C/svg%3E")}
+#sheet:not([data-shape="round"]) .bub{border:0;border-radius:0;background:none;box-shadow:none;filter:drop-shadow(0 5px 0 rgba(var(--bsh),.3))}
+#sheet:not([data-shape="round"]) .bub::before,#sheet:not([data-shape="round"]) .bub::after{content:"";position:absolute;-webkit-mask:var(--shape) center/contain no-repeat;mask:var(--shape) center/contain no-repeat}
+#sheet:not([data-shape="round"]) .bub::before{inset:0;background:rgba(42,36,56,.6)}
+#sheet:not([data-shape="round"]) .bub::after{inset:7%;background:var(--bands),var(--under)} /* the sheet colour underneath, so the ink layer does not grey the bubble */
+#sheet:not([data-shape="round"]) .bub.squeeze{filter:drop-shadow(0 2px 0 rgba(var(--bsh),.3)) brightness(.94) saturate(1.2)}
+#sheet:not([data-shape="round"]) .bub.popped{filter:none}
+#sheet:not([data-shape="round"]) .bub.popped::before{background:rgba(42,36,56,.4)}
+#sheet:not([data-shape="round"]) .bub.popped::after{background:var(--pop),var(--under)}
 @keyframes popjig{0%{transform:scale(1.1) rotate(var(--rot))}45%{transform:scale(.78) rotate(var(--rot))}100%{transform:scale(.88) rotate(var(--rot))}}
 .burst{position:absolute;pointer-events:none;border-radius:50%;border:3px solid var(--burst);
   background:radial-gradient(circle,rgba(255,255,255,.75),rgba(255,255,255,0) 60%);animation:burst .34s ease-out forwards}
 @keyframes burst{from{transform:scale(.6);opacity:1}to{transform:scale(1.7);opacity:0;border-width:0}}
 .newsheet{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);border:0;border-radius:999px;padding:12px 22px;cursor:pointer;
   font-weight:500;background:rgba(255,255,255,.8);color:#2A2438;box-shadow:0 3px 12px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.bub-bar{position:absolute;z-index:3;left:8px;right:8px;bottom:22px;display:flex;justify-content:center;align-items:center;gap:8px;pointer-events:none}
+.bub-bar{position:absolute;z-index:3;left:calc(var(--sl) + 8px);right:calc(var(--sr) + 8px);bottom:22px;display:flex;justify-content:center;align-items:center;gap:8px;pointer-events:none}
 .bub-bar>*{pointer-events:auto}
 .bub-track{position:absolute;left:0;top:0;right:0;height:0;will-change:transform}
 .bub-legend{position:absolute;z-index:3;left:0;right:0;bottom:74px;margin:0 auto;width:max-content;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
@@ -503,23 +523,24 @@ html[data-mode="ice"]{background:#0B1626}
 .bub-size{display:flex;padding:3px;gap:2px;border-radius:999px;background:rgba(255,255,255,.62)}
 .bub-size button{border:0;width:34px;height:34px;border-radius:50%;cursor:pointer;font-weight:600;background:transparent;color:#2A2438}
 .bub-size button[aria-pressed="true"]{background:#2A2438;color:#fff}
+.bub-shape button{display:grid;place-items:center}.bub-shape svg{width:17px;height:17px;fill:currentColor;stroke:currentColor}
 
 .ico.dice{border-radius:0;background:linear-gradient(160deg,#FFD27A,#F2A51F 60%,#C47F0A);clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
-.dice-hud{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;min-width:84px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
+.dice-hud{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(var(--sr) + 14px);min-width:84px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
   background:rgba(25,16,10,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .dice-hud .lbl{display:block;font-size:.8rem;opacity:.75}
 .dice-hud .total{display:block;font-size:2.1rem;font-weight:600;line-height:1.05}
 .dice-hud .crit{font-size:.8rem;font-weight:600;color:#FFD86B}
-.chips{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 14px);left:74px;right:112px;display:flex;flex-wrap:wrap;gap:6px}
+.chips{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 14px);left:calc(var(--sl) + 74px);right:calc(var(--sr) + 112px);display:flex;flex-wrap:wrap;gap:6px}
 .chip{border-radius:10px;padding:3px 9px;font-weight:600;font-size:.95rem;box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .chip small{font-weight:500;opacity:.75;margin-right:3px}
 .chips.dim{opacity:.4}
 /* the dice bag (bottom right) holds the dice and their colours; the character sheet (bottom left) holds roll, clear, tilt and the felt */
 .dbag,.dsheet{position:fixed;z-index:6;border:0;padding:0;cursor:pointer;background:none;-webkit-tap-highlight-color:transparent}
-.dbag{right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:68px;height:68px;filter:drop-shadow(0 5px 6px rgba(0,0,0,.45));transition:transform .2s ease}
+.dbag{right:calc(var(--sr) + 14px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:68px;height:68px;filter:drop-shadow(0 5px 6px rgba(0,0,0,.45));transition:transform .2s ease}
 .dbag svg{width:100%;height:100%;display:block}
 .dbag:active,.dbag[aria-expanded="true"]{transform:scale(.94) rotate(-4deg)}
-.dsheet{left:-18px;bottom:calc(env(safe-area-inset-bottom,0px) - 40px);width:96px;height:120px;border-radius:4px;transform:rotate(14deg);transition:transform .25s ease;
+.dsheet{left:calc(var(--sl) + -18px);bottom:calc(env(safe-area-inset-bottom,0px) - 40px);width:96px;height:120px;border-radius:4px;transform:rotate(14deg);transition:transform .25s ease;
   background:#EED9B0;box-shadow:0 6px 14px rgba(0,0,0,.45);text-align:left;padding:10px 0 0 26px;display:flex;flex-direction:column;gap:6px}
 .dsheet b{font:700 .8rem Georgia,serif;color:#6E4A20;letter-spacing:.06em}
 .dsheet i{display:block;height:3px;width:48px;background:rgba(110,74,32,.45)}
@@ -532,8 +553,8 @@ html[data-mode="ice"]{background:#0B1626}
 .dpop .row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 .dpop .dbtn{width:44px}
 .dpop-h{margin:0;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
-.dbag-pop{right:12px;transform-origin:bottom right;color:#F6E9FF;background:#4A2766;outline:2px dashed rgba(232,198,106,.55);outline-offset:-7px}
-.dsheet-pop{left:12px;transform-origin:bottom left;color:#5A3A18;background:#EED9B0;border-radius:6px;font-family:Georgia,serif}
+.dbag-pop{right:calc(var(--sr) + 12px);transform-origin:bottom right;color:#F6E9FF;background:#4A2766;outline:2px dashed rgba(232,198,106,.55);outline-offset:-7px}
+.dsheet-pop{left:calc(var(--sl) + 12px);transform-origin:bottom left;color:#5A3A18;background:#EED9B0;border-radius:6px;font-family:Georgia,serif}
 .dsheet-pop .act{color:#5A3A18;background:rgba(110,74,32,.14);box-shadow:0 3px 0 rgba(110,74,32,.35);font-family:inherit}
 .ds-row button{border:0;border-radius:999px;padding:5px 11px 5px 6px;font:inherit;font-size:.8rem;font-weight:600;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;display:flex;align-items:center;gap:6px}
 .ds-row button[aria-pressed="true"]{background:#FFE27A;color:#2A2438}
@@ -560,9 +581,9 @@ html[data-mode="ice"]{background:#0B1626}
 #mode-pop .themes,#mode-spin .themes{z-index:3}
 #mode-pop .hint{color:#6A4A30;text-shadow:none;bottom:84px}
 #mode-pop .newsheet.cheer{animation:cheer .5s ease-in-out 3}
-#mode-spin .themes{top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-spin .themes{top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 #mode-spin .hint{bottom:70px}
-.spin-hud{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;min-width:96px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
+.spin-hud{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(var(--sr) + 14px);min-width:96px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
   background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-variant-numeric:tabular-nums}
 .spin-hud .lbl{display:block;font-size:.8rem;opacity:.75}
 .spin-hud .total{display:block;font-size:2rem;font-weight:600;line-height:1.05}
@@ -576,33 +597,33 @@ html[data-mode="ice"]{background:#0B1626}
 .ico.rocks svg{width:34px;height:34px}
 #mode-rocks .hint{color:rgba(70,50,30,.75);text-shadow:0 1px 4px rgba(255,255,255,.6)}
 #mode-rocks .hint{bottom:140px}
-.rock-time{top:auto;bottom:84px;left:12px;right:12px;justify-content:center;z-index:3}
-.rock-center{position:fixed;z-index:4;left:14px;top:calc(env(safe-area-inset-top,0px) + 72px);width:48px;height:48px;border:0;border-radius:16px;cursor:pointer;
+.rock-time{top:auto;bottom:84px;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 12px);justify-content:center;z-index:3}
+.rock-center{position:fixed;z-index:4;left:calc(var(--sl) + 14px);top:calc(env(safe-area-inset-top,0px) + 72px);width:48px;height:48px;border:0;border-radius:16px;cursor:pointer;
   display:grid;place-items:center;background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .rock-center svg{width:24px;height:24px}
-.rock-new{position:fixed;z-index:4;right:14px;top:calc(env(safe-area-inset-top,0px) + 96px);margin:0;padding:6px 12px;border-radius:999px;font-weight:600;font-size:.85rem;color:#2A2438;background:#FFE27A;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.rock-new{position:fixed;z-index:4;right:calc(var(--sr) + 14px);top:calc(env(safe-area-inset-top,0px) + 96px);margin:0;padding:6px 12px;border-radius:999px;font-weight:600;font-size:.85rem;color:#2A2438;background:#FFE27A;box-shadow:0 3px 10px rgba(0,0,0,.2)}
 .rock-new.show{animation:rocknew 2.6s ease-out forwards}
 @keyframes rocknew{0%{transform:scale(.6);opacity:0}12%{transform:scale(1.12);opacity:1}20%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
 .rock-hud{background:rgba(40,40,50,.28)}
 .rock-hud small{font-size:.9rem;font-weight:500}
-.rock-tools{left:10px;right:10px;transform:none;gap:2px;padding:5px}
+.rock-tools{left:calc(var(--sl) + 10px);right:calc(var(--sr) + 10px);transform:none;gap:2px;padding:5px}
 .rock-tools .top-btn{min-width:0;flex:1;padding:6px 4px 5px;font-size:.74rem}
 .rock-tools .top-btn svg{width:26px;height:26px}
 .rock-tools .top-btn[aria-pressed="true"]{background:rgba(42,36,56,.13)}
 .ico.cube{background:radial-gradient(circle at 50% 40%,#FBF8FF,#E2DAEE);display:grid;place-items:center}
 .ico.cube svg{width:36px;height:36px}
-#mode-cube .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-cube .themes{z-index:3;top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 #mode-cube .hint{color:rgba(60,40,80,.7);text-shadow:none;bottom:70px}
 #mode-zen .hint{color:rgba(60,50,40,.7);text-shadow:none;bottom:96px}
-.zen-tools{left:10px;right:10px;transform:none;gap:2px;padding:5px}
+.zen-tools{left:calc(var(--sl) + 10px);right:calc(var(--sr) + 10px);transform:none;gap:2px;padding:5px}
 .zen-tools .top-btn{min-width:0;flex:1;padding:6px 4px 5px;font-size:.74rem}
 .zen-tools .top-btn svg{width:26px;height:26px}
 .zen-tools .top-btn[aria-pressed="true"],.zen-tools .top-btn[aria-expanded="true"]{background:rgba(42,36,56,.13)}
-.zen-view{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;display:flex;gap:8px}
+.zen-view{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(var(--sr) + 14px);display:flex;gap:8px}
 .zen-view button{width:46px;height:46px;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;background:rgba(255,255,255,.8);box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .zen-view svg{width:22px;height:22px}
 .zen-view button.off svg{opacity:.3}
-.zen-items{position:absolute;z-index:5;left:12px;right:12px;bottom:92px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px;border-radius:20px;
+.zen-items{position:absolute;z-index:5;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 12px);bottom:92px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px;border-radius:20px;
   background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 18px rgba(0,0,0,.18)}
 .zen-items[hidden]{display:none}
 .zen-items .opt{padding:7px 12px;box-shadow:none;background:rgba(42,36,56,.07)}
@@ -610,7 +631,7 @@ html[data-mode="ice"]{background:#0B1626}
   font-weight:500;color:#fff;background:rgba(200,50,50,.75);transition:transform .15s,background .15s;pointer-events:none}
 .zen-trash.over{transform:translateX(-50%) scale(1.12);background:#D0302C}
 #mode-cradle .hint{color:rgba(60,50,40,.7);text-shadow:none;bottom:40px}
-#mode-grass .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-grass .themes{z-index:3;top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 #mode-grass .newsheet{bottom:70px}
 #mode-grass .hint{bottom:132px}
 @media (prefers-reduced-motion:reduce){.red{animation-duration:3s}.drawer{transition:none}}
@@ -692,19 +713,22 @@ html[data-mode="ice"]{background:#0B1626}
   </section>
 
   <section class="mode" id="mode-bubbles" aria-label="Bubble wrap">
-    <div id="sheet" data-theme="wood" tabindex="0" aria-label="Bubble wrap. Press space to pop a bubble, arrow keys to scroll."><div class="bub-track" id="bubTrack"></div></div>
+    <div id="sheet" data-theme="clear" data-shape="round" tabindex="0" aria-label="Bubble wrap. Press space to pop a bubble, arrow keys to scroll."><div class="bub-track" id="bubTrack"></div></div>
     <p class="bub-legend"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 013 0V11m0-1.5V4.5a1.5 1.5 0 013 0V11m0-4a1.5 1.5 0 013 0v7c0 3.5-2.5 6-6 6s-5-2-6.5-4.5L5 13.5a1.5 1.5 0 012.5-1.6L8 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 1.5v-1M9 2l-.5-.8M15 2l.5-.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Scroll with two fingers</p>
     <div class="bub-bar">
       <span class="bub-count" id="bubCount" aria-live="off">0 popped</span>
       <div class="bub-size" role="group" aria-label="Bubble size">
         <button data-size="S" aria-pressed="false" aria-label="Small bubbles">S</button><button data-size="M" aria-pressed="true" aria-label="Medium bubbles">M</button><button data-size="L" aria-pressed="false" aria-label="Large bubbles">L</button>
       </div>
+      <div class="bub-size bub-shape" role="group" aria-label="Bubble shape">
+        <button data-shape="round" aria-pressed="true" aria-label="Round bubbles"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/></svg></button><button data-shape="heart" aria-pressed="false" aria-label="Heart bubbles"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 92C20 72 5 54 5 33 5 17 17 6 31 6c9 0 15 5 19 12 4-7 10-12 19-12 14 0 26 11 26 27 0 21-15 39-45 59z"/></svg></button><button data-shape="star" aria-pressed="false" aria-label="Star bubbles"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 10L61.8 37.8 91.8 40.4 69 60.2 75.9 89.6 50 74 24.1 89.6 31 60.2 8.2 40.4 38.2 37.8z" stroke-width="9" stroke-linejoin="round"/></svg></button>
+      </div>
     </div>
     <div class="themes" role="group" aria-label="Bubble wrap style">
-        <button class="theme" data-theme="wood" aria-pressed="true"><i style="background:linear-gradient(135deg,#C98B52 50%,#F5402B 50%)"></i>Wood</button>
-        <button class="theme" data-theme="cute" aria-pressed="false"><i style="background:linear-gradient(135deg,#FFB0CF 50%,#A8EBD0 50%)"></i>Cute</button>
-        <button class="theme" data-theme="blue" aria-pressed="false"><i style="background:linear-gradient(135deg,#173E82 50%,#5FE3FF 50%)"></i>Blue</button>
-        <button class="theme" data-theme="scifi" aria-pressed="false"><i style="background:linear-gradient(135deg,#0B0F17 50%,#00FFE0 50%)"></i>Sci-fi</button>
+        <button class="theme" data-theme="pink" aria-pressed="false"><i style="background:radial-gradient(circle at 35% 35%,#FFE6F0,#F7A6C6 60%,#DE4E8E)"></i>Pink</button>
+        <button class="theme" data-theme="blue" aria-pressed="false"><i style="background:radial-gradient(circle at 35% 35%,#EEF2FF,#93A6EE 60%,#4E62D0)"></i>Blue</button>
+        <button class="theme" data-theme="green" aria-pressed="false"><i style="background:radial-gradient(circle at 35% 35%,#EEFFF6,#A2DFC0 60%,#269468)"></i>Green</button>
+        <button class="theme" data-theme="clear" aria-pressed="true"><i style="background:radial-gradient(circle at 35% 35%,#FFFFFF,#E2EAF1 60%,#849AB0)"></i>Clear</button>
       </div>
   </section>
 
@@ -745,15 +769,22 @@ html[data-mode="ice"]{background:#0B1626}
     <p class="hint" id="pHint">Press the bubbles · flick from the edge to flip</p>
     <button class="newsheet" id="popFlip">Flip it over</button>
     <div class="themes" role="group" aria-label="Pop-it shape">
-      <button class="opt" data-shape="square" aria-pressed="true"><i style="border-radius:5px;background:linear-gradient(180deg,#FF6B8A,#FFE14D,#4AA8FF)"></i>Square</button>
-      <button class="opt" data-shape="heart" aria-pressed="false"><i style="background:linear-gradient(180deg,#FF6B8A,#FFB13C)"></i>Heart</button>
-      <button class="opt" data-shape="circle" aria-pressed="false"><i style="background:linear-gradient(180deg,#5CD27A,#B57BFF)"></i>Circle</button>
+      <button class="opt" data-shape="square" aria-pressed="true"><i style="width:12px;border-radius:4px;background:linear-gradient(180deg,#F2243A,#F7C21B,#1DB954,#1C7CF0,#B523E8)"></i>Rectangle</button>
+      <button class="opt" data-shape="heart" aria-pressed="false"><i style="background:linear-gradient(180deg,#F2243A,#F7C21B,#1DB954)"></i>Heart</button>
+      <button class="opt" data-shape="circle" aria-pressed="false"><i style="background:linear-gradient(180deg,#1DB954,#1C7CF0,#B523E8)"></i>Circle</button>
+    </div>
+    <div class="pop-sheets" id="popSheets" role="group" aria-label="Pop-it colour">
+      <button data-sheet="rainbow" aria-pressed="true" aria-label="Rainbow" style="background:linear-gradient(180deg,#FFB3BC,#FFE9A8,#B9F0C4,#B5D6FF,#E3BDFF)"></button>
+      <button data-sheet="lilac" aria-pressed="false" aria-label="Lilac" style="background:#DCC6FA"></button>
+      <button data-sheet="mint" aria-pressed="false" aria-label="Mint" style="background:#BFF2DA"></button>
+      <button data-sheet="peach" aria-pressed="false" aria-label="Peach" style="background:#FFD3C2"></button>
+      <button data-sheet="sky" aria-pressed="false" aria-label="Sky" style="background:#C4E2FA"></button>
     </div>
   </section>
 
-  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick it round to spin it, touch it to stop it.">
+  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick it round to spin it. Rest a finger on the middle to hold it while it spins; tap an arm or the background to stop it.">
     <div class="spin-hud" aria-live="off"><span class="lbl">RPM</span><span class="total" id="spinRpm">0</span><span class="best" id="spinBest"></span></div>
-    <p class="hint" id="sHint">Flick it round to spin</p>
+    <p class="hint" id="sHint">Flick it to spin · hold the middle · tap the edge to stop</p>
     <div class="themes" role="group" aria-label="Spinner design">
       <button class="opt" data-design="classic" aria-pressed="true"><i style="background:linear-gradient(135deg,#7B5CFF 50%,#C9CED6 50%)"></i>Classic</button>
       <button class="opt" data-design="metal" aria-pressed="false"><i style="background:linear-gradient(135deg,#E9ECF1,#8C939E)"></i>Metal</button>
@@ -782,7 +813,7 @@ html[data-mode="ice"]{background:#0B1626}
   </section>
 
   <section class="mode" id="mode-cradle" aria-label="Newton's cradle. Pull a ball to the side and let go; drag the background to look around.">
-    <p class="hint" id="cHint">Pull a ball out and let go</p>
+    <p class="hint" id="cHint">Pull a ball out and let go · tap the lamp</p>
     <div class="desk-dim" aria-hidden="true"><span>Desk mode · touch to wake</span></div>
   </section>
   <section class="mode" id="mode-cube" aria-label="Dodec, a twelve-sided fidget toy. Drag to turn it, then press, roll, flick and spin the controls on each side.">
@@ -1013,6 +1044,16 @@ const canVibrate = typeof navigator.vibrate === "function";
 const Cap = window.Capacitor;
 const HP = Cap && Cap.isNativePlatform && Cap.isNativePlatform() && Cap.Plugins && Cap.Plugins.Haptics ? Cap.Plugins.Haptics : null;
 if (!canVibrate && !HP) $("#hapticNote").hidden = false;
+// the app turns with the phone, except while the dice follow its tilt: then the screen stays the way it's facing, so tilting doesn't flip it round
+const SO = Cap && Cap.isNativePlatform && Cap.isNativePlatform() && Cap.Plugins && Cap.Plugins.ScreenOrientation ? Cap.Plugins.ScreenOrientation : null;
+let tiltLock = false, orientLocked = false;
+async function orientLock(on) {
+  if (on === orientLocked) return; orientLocked = on;
+  try {
+    if (SO) { if (on) await SO.lock({ orientation: (await SO.orientation()).type }); else await SO.unlock(); }
+    else if (screen.orientation && screen.orientation.lock) { if (on) await screen.orientation.lock(screen.orientation.type); else screen.orientation.unlock(); }
+  } catch (e) {}
+}
 // preferences (Settings sheet): volume, ambience, haptic strength, theme, calm mode, breathing guide
 const pref = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
 const savePref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
@@ -1122,7 +1163,7 @@ const drawer = $("#drawer"), scrim = $("#scrim"), menuBtn = $("#menuBtn");
 ["gesturestart", "gesturechange", "dblclick"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
 
 function setMode(m) {
-  mode = m; trayNote(m);
+  mode = m; trayNote(m); orientLock(m === "dice" && tiltLock);
   document.querySelectorAll(".mode").forEach(el => el.classList.toggle("active", el.id === "mode-" + m));
   document.querySelectorAll(".mode-btn").forEach(b => b.setAttribute("aria-current", b.dataset.mode === m ? "true" : "false"));
   document.documentElement.dataset.mode = m;
@@ -1536,11 +1577,11 @@ const showPops = () => bubCount.textContent = bPops.toLocaleString() + " popped"
 showPops();
 function setBubbleSize(z) {
   bSize = z;
-  document.querySelectorAll(".bub-size button").forEach(b => b.setAttribute("aria-pressed", b.dataset.size === z ? "true" : "false"));
+  document.querySelectorAll(".bub-size button[data-size]").forEach(b => b.setAttribute("aria-pressed", b.dataset.size === z ? "true" : "false"));
   try { localStorage.setItem("fidget-bubble-size", z); } catch (e) {}
 }
 setBubbleSize(bSize);
-document.querySelectorAll(".bub-size button").forEach(b => b.addEventListener("click", () => {
+document.querySelectorAll(".bub-size button[data-size]").forEach(b => b.addEventListener("click", () => {
   if (b.dataset.size === bSize) return;
   setBubbleSize(b.dataset.size); layoutBubbles(true); S.tick(2200, .15, .03, "square"); buzz(10);
 }));
@@ -1878,7 +1919,7 @@ function diceResize() {
 // the felt fills the whole screen
 function dTable() {
   const B = D.b;
-  // the candle is off screen in the far corner; its warm light still flickers over the felt
+  // the candle is off screen in the far corner; its warm light still falls over the felt
   D.candle.position.set(B.xh - 1, 10, B.zf + 3);
   dTableLight();
 }
@@ -2075,7 +2116,7 @@ function diceFrame(now) {
     if (D.settle > .3) { D.rolling = false; showResults(); }
   }
   if (D.style === "blossom") for (const d of D.dice) { const g = d.mesh.getObjectByName("petals"); if (g) g.children.forEach(s => { s.userData.ph += .01; s.position.y += Math.sin(s.userData.ph) * .002; s.material.rotation = s.userData.ph; }); }
-  if (D.candle) { const f = .85 + Math.sin(now * .013) * .08 + Math.sin(now * .031) * .06; D.candle.intensity = (D.dark ? 1.8 : .7) * f; }
+  if (D.candle) D.candle.intensity = (D.dark ? 1.8 : .7) * .85; // a steady candle: warm, no flicker
   toonRender(D.r, D.scene, D.cam, TOON_INK.dice);
 }
 
@@ -2118,6 +2159,11 @@ $("#clearDice").addEventListener("click", () => {
 });
 function saveDiceSet() { try { localStorage.setItem("fidget-dice-set", JSON.stringify(D.dice.map(d => d.type))); } catch (e) {} }
 
+// a sideways x, y from the phone's sensors, turned to match the screen (it's on its side in landscape)
+function toScreen(x, y) {
+  const a = ((screen.orientation && screen.orientation.angle) ?? window.orientation ?? 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  return [x * c - y * s, x * s + y * c];
+}
 // tilt or shake the phone to move the dice. iOS asks for motion permission, which must come from a tap.
 const shakeBtn = $("#shakeBtn"), askMotion = typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function";
 let shakeOn = false, motionOK = !askMotion, lastG = null, lastShake = 0;
@@ -2132,6 +2178,7 @@ function onMotion(e) {
     if (!lastG) { lastG = { x: g.x, y: g.y, z: g.z }; return; }
     ax = g.x - lastG.x; ay = g.y - lastG.y; az = g.z - lastG.z; lastG = { x: g.x, y: g.y, z: g.z };
   } else return;
+  [ax, ay] = toScreen(ax, ay);
   const mag = Math.hypot(ax, ay, az), now = performance.now();
   if (!D.dice.length) { if (mag > 15 && now - lastShake > 900) { lastShake = now; addDie("d6"); } return; }
   if (mag < 4 || now - lastShake < 50) return;
@@ -2154,8 +2201,8 @@ function onOrient(e) {
   if (mode !== "dice" || !D.ready || e.beta == null || e.gamma == null) return;
   const lim = 50 * Math.PI / 180, R = Math.PI / 180;
   const tz = clamp(e.beta * R, -lim, lim), tx = clamp(e.gamma * R, -lim, lim);
-  // tilt right -> roll right (+x); top edge up -> roll toward the bottom of the screen (+z)
-  const G = 34, sx = Math.sin(tx), sz = Math.sin(tz);
+  // tilt right -> roll right (+x); top edge up -> roll toward the bottom of the screen (+z), measured against the screen, not the phone
+  const [px, py] = toScreen(Math.sin(tx), -Math.sin(tz)), G = 34, sx = px, sz = -py;
   TILT.gx += (G * sx - TILT.gx) * .3; TILT.gz += (G * sz - TILT.gz) * .3;
   const gy = -G * Math.sqrt(Math.max(.2, 1 - sx * sx - sz * sz));
   D.world.gravity.set(TILT.gx, gy, TILT.gz);
@@ -2177,7 +2224,7 @@ async function askMotionPermission() {
   return motionOK;
 }
 function setShake(on) {
-  shakeOn = on; shakeBtn.textContent = on ? "Tilt: on" : "Tilt: off"; shakeBtn.setAttribute("aria-pressed", on);
+  shakeOn = on; tiltLock = on && motionOK; orientLock(mode === "dice" && tiltLock); shakeBtn.textContent = on ? "Tilt: on" : "Tilt: off"; shakeBtn.setAttribute("aria-pressed", on);
   const verb = on && motionOK ? "addEventListener" : "removeEventListener";
   window[verb]("devicemotion", onMotion); window[verb]("deviceorientation", onOrient);
   TILT.gx = TILT.gz = 0; TILT.kick = [0, 0];
@@ -3063,21 +3110,44 @@ const mf = n => 440 * Math.pow(2, (n - 69) / 12);
 const BM = { on: false, bus: null, filt: null, next: 0, step: 0, timer: null, t0: 0 };
 function bmBus() {
   const a = ac(); if (!a) return null;
-  if (!BM.bus) { BM.bus = a.createGain(); BM.filt = a.createBiquadFilter(); BM.filt.type = "lowpass"; BM.filt.Q.value = .5; BM.bus.gain.value = 0; BM.bus.connect(BM.filt).connect(out(a)); }
+  if (!BM.bus) {
+    BM.bus = a.createGain(); BM.filt = a.createBiquadFilter(); BM.filt.type = "lowpass"; BM.filt.Q.value = .5; BM.bus.gain.value = 0; BM.bus.connect(BM.filt).connect(out(a));
+    // a small room for the drums to ring out in: a short, darkening noise tail
+    const len = a.sampleRate * 1.1 | 0, ir = a.createBuffer(2, len, a.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    const cv = a.createConvolver(), lp = a.createBiquadFilter(); cv.buffer = ir; lp.type = "lowpass"; lp.frequency.value = 3800;
+    BM.room = a.createGain(); BM.room.gain.value = .55; BM.room.connect(cv).connect(lp).connect(BM.bus);
+  }
   return a;
 }
+// a drum voice goes to the mix, and a little of it into the room
+const bmOut = (g, wet) => { g.connect(BM.bus); if (wet) { const s = g.context.createGain(); s.gain.value = wet; g.connect(s).connect(BM.room); } };
 function bmVoice(a, t, type, f, vol, att, dec, detune = 0) {
   const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = f; o.detune.value = detune;
   g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.exponentialRampToValueAtTime(.0001, t + att + dec);
   o.connect(g).connect(BM.bus); o.start(t); o.stop(t + att + dec + .05);
 }
-function bmNoise(a, t, type, f, q, vol, dec) {
+function bmNoise(a, t, type, f, q, vol, dec, wet = 0) {
   const s = a.createBufferSource(), fl = a.createBiquadFilter(), g = a.createGain(); s.buffer = noise(a); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
-  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dec); s.connect(fl).connect(g).connect(BM.bus); s.start(t, Math.random()); s.stop(t + dec + .05);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dec); s.connect(fl).connect(g); bmOut(g, wet); s.start(t, Math.random()); s.stop(t + dec + .05);
 }
-function bmKick(a, t) {
-  const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + .18);
-  g.gain.setValueAtTime(.55, t); g.gain.exponentialRampToValueAtTime(.0001, t + .32); o.connect(g).connect(BM.bus); o.start(t); o.stop(t + .35);
+// the kick: a click, then a deep round thump that sinks in pitch and takes its time to fade
+function bmKick(a, t, v = 1) {
+  const o = a.createOscillator(), g = a.createGain(), sh = a.createWaveShaper();
+  const cu = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 127.5 - 1; cu[i] = Math.tanh(x * 1.8); } sh.curve = cu;
+  o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(52, t + .09); o.frequency.exponentialRampToValueAtTime(40, t + .5);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.75 * v, t + .004); g.gain.setTargetAtTime(.0001, t + .06, .16);
+  o.connect(sh).connect(g); bmOut(g, .08); o.start(t); o.stop(t + .9);
+  bmNoise(a, t, "highpass", 3000, .7, .12 * v, .015);
+}
+// the snare: a tuned body under a long crisp rattle, with some room
+function bmSnare(a, t, v = 1) {
+  bmVoice(a, t, "triangle", 185, .2 * v, .002, .14); bmVoice(a, t, "sine", 330, .08 * v, .002, .08);
+  bmNoise(a, t, "bandpass", 2200, .6, .34 * v, .32, .5); bmNoise(a, t, "highpass", 5200, .8, .12 * v, .2, .3);
+}
+// the clap: a few hands a hair apart, then a soft tail ringing in the room
+function bmClap(a, t, v = 1) {
+  for (let k = 0; k < 4; k++) bmNoise(a, t + k * .011, "bandpass", 1150, 1, .26 * v, k < 3 ? .025 : .38, k < 3 ? 0 : .7);
 }
 const bmBpm = () => 70 + BD.kStep[0] * 4, bmChord = () => BM_PROG[Math.floor(BM.step / 16) % 4];
 // a small look-ahead scheduler: sixteenth notes are queued a little before they're due
@@ -3090,7 +3160,7 @@ function bmSchedule() {
     if (st === 0 && BM.step % 64 === 0) BM.t0 = BM.next;
     if (BD.levers[0]) {
       if (st === 0 || st === 8 || st === 10) bmKick(a, t);
-      if (st === 4 || st === 12) { bmNoise(a, t, "bandpass", 1900, .8, .26, .16); bmVoice(a, t, "triangle", 190, .1, .002, .08); }
+      if (st === 4 || st === 12) bmSnare(a, t, .8);
       if (st % 2 === 0) bmNoise(a, t, "highpass", 7500, .7, st % 4 ? .04 : .08, .04);
     }
     if (BD.levers[1] && (st === 0 || st === 6 || st === 8 || st === 14)) bmVoice(a, t, "triangle", mf(ch[0] - 12 + (st === 14 ? 7 : 0)), .3, .01, s16 * 3);
@@ -3120,9 +3190,9 @@ function bdMusic(on) {
 function bmDrum(i) {
   const a = bmBus(); if (!a) return; const t = a.currentTime + .005;
   if (i === 0) bmKick(a, t);
-  else if (i === 1) { bmNoise(a, t, "bandpass", 1900, .8, .34, .18); bmVoice(a, t, "triangle", 200, .14, .002, .09); }
-  else if (i === 2) bmNoise(a, t, "highpass", 7500, .7, .14, .06);
-  else for (let k = 0; k < 3; k++) bmNoise(a, t + k * .012, "bandpass", 1300, 1.2, .22, k < 2 ? .02 : .16);
+  else if (i === 1) bmSnare(a, t);
+  else if (i === 2) bmNoise(a, t, "highpass", 7500, .7, .14, .09, .15);
+  else bmClap(a, t);
 }
 // the big button is the bass: each press walks up the current chord (root, third, fifth, octave); hold to let it swell
 function bmBass(down) {
@@ -3241,15 +3311,27 @@ function setTheme(t) {
 setTheme(pref("fidget-board-theme", "wood"));
 secBoard.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { setTheme(b.dataset.theme); S.tick(2200, .15, .03, "square"); buzz(10); }));
 // bubble wrap keeps its own look (it used to follow the board); it starts from whatever the board gave it before
-const SHEET_BG = { wood: "#C29567", cute: "#FFBCD7", blue: "var(--sheet)", scifi: "#0B0F17" }, secBub = $("#mode-bubbles");
+const SHEET_BG = { pink: "#F7A6C6", blue: "#93A6EE", green: "#A2DFC0", clear: "#DCE3E9" }, secBub = $("#mode-bubbles");
+const SHEET_OLD = { wood: "clear", cute: "pink", scifi: "green" }; // the old themes, for a saved choice
 function setSheetTheme(t) {
-  if (!SHEET_BG[t]) t = "wood";
+  t = SHEET_OLD[t] || t; if (!SHEET_BG[t]) t = "clear";
   $("#sheet").dataset.theme = t; document.documentElement.style.setProperty("--sheetbg", SHEET_BG[t]);
   secBub.querySelectorAll(".theme").forEach(b => b.setAttribute("aria-pressed", b.dataset.theme === t ? "true" : "false"));
   savePref("fidget-bubble-theme", t);
 }
 setSheetTheme(pref("fidget-bubble-theme", BD_THEMES[BD.theme].sheet));
 secBub.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { setSheetTheme(b.dataset.theme); S.tick(2200, .15, .03, "square"); buzz(10); }));
+// the bubble shape: round, heart or star
+function setBubbleShape(k) {
+  if (!["round", "heart", "star"].includes(k)) k = "round";
+  $("#sheet").dataset.shape = k; savePref("fidget-bubble-shape", k);
+  secBub.querySelectorAll(".bub-shape button").forEach(b => b.setAttribute("aria-pressed", b.dataset.shape === k ? "true" : "false"));
+}
+setBubbleShape(pref("fidget-bubble-shape", "round"));
+secBub.querySelectorAll(".bub-shape button").forEach(b => b.addEventListener("click", () => {
+  if (b.dataset.shape === $("#sheet").dataset.shape) return;
+  setBubbleShape(b.dataset.shape); layoutBubbles(true); S.tick(2200, .15, .03, "square"); buzz(10);
+}));
 
 /* ---- the 3D board ---- */
 const BD_W = 6.8, BD_D = 16.4, BD_Z = .75; // the plank: width, depth, and its centre along the board
@@ -3400,7 +3482,8 @@ function bdBuildBoard() {
   };
   P.labels = [];
   ["KICK", "SNARE", "HAT", "CLAP"].forEach((t, i) => label(t, 34, P.keys[i], .8));
-  label("BASS", 46, P.red, 1.3);
+  label("BOOM", 46, P.red, 1.3);
+  ["DRUMS", "BASS", "CHORDS"].forEach((t, i) => { const l = label(t, 26, P.levers[i].parent, 1.1); l.position.set(P.levers[i].position.x, .2, P.levers[i].position.z + .62); });
   BD.scene.add(g); bdCamera();
 }
 function bdCamera() {
@@ -3648,12 +3731,14 @@ function stSky() {
   const lin = c => new THREE.Color(c).convertSRGBToLinear();
   const U = ST.wu; U.uDeep.value.copy(lin(T.deep)); U.uTop.value.copy(lin(T.top)); U.uHor.value.copy(lin(T.hor)); U.uSun.value.copy(lin(T.sun)); U.uSunDir.value.set(...T.sunDir).normalize();
   // one haze colour for the far water, the fog and the sky's horizon, so they meet without a line
-  U.uFogC.value.copy(lin(T.hor)); U.uFogN.value = 12; U.uFogF.value = 95;
+  U.uFogC.value.copy(lin(T.hor)); U.uFogN.value = 10; U.uFogF.value = 140;
   ST.scene.fog.color.set(T.hor); ST.scene.fog.near = 20; ST.scene.fog.far = 230;
   ST.haze.material.color.set(T.hor);
   ST.hemi.color.setHex(T.hemi[0]); ST.hemi.groundColor.setHex(T.hemi[1]); ST.hemi.intensity = T.hemi[2]; ST.key.intensity = T.key;
   // three tree lines, each paler and more lost in the haze the further away it is
-  ST.treeLayers.forEach((m, i) => m.material.color.set(T.trees).lerp(new THREE.Color(T.hor), [.0, .45, .72][i]).convertSRGBToLinear());
+  ST.treeLayers.forEach((m, i) => { m.material.color.set(T.trees).lerp(new THREE.Color(T.hor), [.0, .45, .72][i]).convertSRGBToLinear(); m.material.userData.uHaze.value.copy(lin(T.hor)); });
+  for (const b of ST.banks) b.material.color.set(T.hor);
+  for (const s of ST.mist) s.material.color.set(T.hor).lerp(new THREE.Color(0xFFFFFF), .35);
   ST.sunDisc.visible = ST.time === "sunset"; ST.moon.visible = ST.stars.visible = ST.time === "night";
   secSt.querySelectorAll("[data-time]").forEach(b => b.setAttribute("aria-pressed", b.dataset.time === ST.time ? "true" : "false"));
   document.documentElement.style.setProperty("--stbg", T.hor);
@@ -3683,8 +3768,16 @@ function stBuild() {
     [180, (x) => [(x < .5 ? -1 : 1) * (15 + R() * 24), -8 - R() * 60, 7 + R() * 9]],
     [150, () => [-80 + R() * 160, -70 - R() * 20, 4 + R() * 4]],
     [160, () => [-200 + R() * 400, -150 - R() * 40, 7 + R() * 7]],
-  ].map(([n, place]) => {
-    const mat = tbT(0x33433D); mat.fog = false;
+  ].map(([n, place], li) => {
+    // far trees are flat silhouettes in the mist: no lighting (which speckles on far, huge cones on a phone),
+    // and each one melts into the haze towards its foot, so the shore line has no hard edge
+    const mat = new THREE.MeshBasicMaterial({ color: 0x33433D, fog: false }), uHaze = { value: new THREE.Color() }, fade = [.55, .9, 1][li];
+    mat.onBeforeCompile = sh => {
+      sh.uniforms.uHaze = uHaze;
+      sh.vertexShader = "varying float vTy;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvTy = position.y;");
+      sh.fragmentShader = "uniform vec3 uHaze; varying float vTy;\n" + sh.fragmentShader.replace("#include <tonemapping_fragment>", "gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze, (1.0 - smoothstep(-.5, .05, vTy)) * " + fade.toFixed(2) + ");\n#include <tonemapping_fragment>");
+    };
+    mat.customProgramCacheKey = () => "sttree" + li; mat.userData.uHaze = uHaze;
     const t = new THREE.InstancedMesh(cone, mat, n);
     for (let i = 0; i < n; i++) { const [x, z, h] = place(R()), w = h * (.22 + R() * .08); m4.compose(new THREE.Vector3(x, h / 2 - .3, z), new THREE.Quaternion(), new THREE.Vector3(w, h, w)); t.setMatrixAt(i, m4); }
     sc.add(t); return t;
@@ -3692,6 +3785,14 @@ function stBuild() {
   // a band of haze lying on the far water, softening the horizon
   ST.haze = new THREE.Mesh(new THREE.PlaneGeometry(600, 26), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, fog: false, map: tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.55, "rgba(255,255,255,.85)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }) }));
   ST.haze.position.set(0, 3, -110); ST.haze.renderOrder = 4; sc.add(ST.haze);
+  const bankTex = tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.6, "rgba(255,255,255,.55)"); g.addColorStop(.85, "rgba(255,255,255,.8)"); g.addColorStop(1, "rgba(255,255,255,.8)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+  ST.banks = [[-64, 7, 1.6], [-145, 16, 4]].map(([z, h, y], i) => {
+    const b = new THREE.Mesh(new THREE.PlaneGeometry(700, h), new THREE.MeshBasicMaterial({ map: bankTex, transparent: true, depthWrite: false, fog: false }));
+    b.position.set(0, y, z); b.renderOrder = 3 - i; sc.add(b); return b;
+  });
+  // and a thin veil straddling the far shore, drawn over the line where the water meets the mist, so it blurs away
+  const veil = new THREE.Mesh(new THREE.PlaneGeometry(700, 7), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false, fog: false, map: tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.5, "rgba(255,255,255,.7)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }) }));
+  veil.position.set(0, .2, -62); veil.renderOrder = 4; sc.add(veil); ST.banks.push(veil);
   const shore = new THREE.Mesh(new THREE.PlaneGeometry(40, 8), tbT(0xFFFFFF, { map: tbCanvas(512, 128, (x, w, h) => {
     x.fillStyle = "#8D8378"; x.fillRect(0, 0, w, h); const R2 = mulberry(5);
     for (let i = 0; i < 900; i++) { const v = 90 + R2() * 90; x.fillStyle = `rgb(${v + 20},${v + 12},${v})`; x.beginPath(); x.ellipse(R2() * w, R2() * h, 3 + R2() * 7, 2 + R2() * 4, R2() * 3, 0, 6.3); x.fill(); x.strokeStyle = "rgba(42,36,56,.35)"; x.lineWidth = 1; x.stroke(); }
@@ -3702,7 +3803,7 @@ function stBuild() {
   // mist drifting low over the water
   ST.mist = [];
   const mt = soft(0, g => { g.addColorStop(0, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)"); });
-  for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mt, transparent: true, depthWrite: false, opacity: .5, fog: false })); s.renderOrder = 5 + i; s.position.set(rnd(-30, 30), rnd(.8, 2.5), rnd(-60, -12)); s.scale.set(rnd(18, 34), rnd(3, 6), 1); s.userData.v = rnd(.2, .6) * (Math.random() < .5 ? -1 : 1); sc.add(s); ST.mist.push(s); }
+  for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mt, transparent: true, depthWrite: false, opacity: .38, fog: false })); s.renderOrder = 5 + i; s.position.set(rnd(-30, 30), rnd(.8, 2.5), rnd(-60, -12)); s.scale.set(rnd(18, 34), rnd(3, 6), 1); s.userData.v = rnd(.2, .6) * (Math.random() < .5 ? -1 : 1); sc.add(s); ST.mist.push(s); }
   // spray
   const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(120 * 3).fill(-100), 3));
   ST.spray = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xF0F6FA, size: .07, transparent: true, opacity: .9, depthWrite: false })); ST.spray.frustumCulled = false; sc.add(ST.spray);
@@ -4204,6 +4305,7 @@ function roomKit(sc, o) {
   const wallTex = tbCanvas(512, 256, (x, w, h) => { x.fillStyle = o.wall || "#E9DCCB"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(0,0,0,.05)"; for (let i = 0; i < w; i += 26) x.fillRect(i, 0, 2, h); x.fillStyle = o.trim || "#F7EFE4"; x.fillRect(0, h - 22, w, 22); x.fillStyle = "#2A2438"; x.fillRect(0, h - 24, w, 3); });
   const wall = (w2, x, z, ry) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w2, H), tbT(0xFFFFFF, { map: wallTex })); m.position.set(x, H / 2 - .01, z); m.rotation.y = ry; m.receiveShadow = true; g.add(m); return m; };
   wall(W, 0, -D / 2, 0); wall(D, -W / 2, 0, Math.PI / 2); wall(D, W / 2, 0, -Math.PI / 2);
+  if (o.front) wall(W, 0, D / 2, Math.PI); // a fourth wall, for rooms the camera can turn right round in
   if (o.window) {
     const [wx, wy, wz, ry, ww, wh] = o.window;
     const win = new THREE.Mesh(new THREE.PlaneGeometry(ww, wh), new THREE.MeshBasicMaterial({ map: tbCanvas(256, 256, (x, w, h) => {
@@ -4239,29 +4341,29 @@ function roomPlant(pot = 0xE7A27C) {
 
 /* ---- the living room for Twisty: links on a rug, a sofa, and a TV murmuring in the background ---- */
 function twRoom(sc) {
-  const room = roomKit(sc, { w: 28, d: 24, h: 13, floor: "#C38E5C", wall: "#E3D2BE", window: [13.95, 6.5, -3, -Math.PI / 2, 6, 5] });
+  const room = roomKit(sc, { w: 40, d: 36, h: 18, front: true, floor: "#C38E5C", wall: "#E3D2BE", window: [19.95, 8, -3, -Math.PI / 2, 6, 5] });
   const add = (o, x, y, z, ry = 0) => { o.position.set(x, y, z); o.rotation.y = ry; room.add(o); return o; };
-  add(roomSofa(0x7A9ACB), -11.8, 0, 1, Math.PI / 2);
-  add(roomPlant(), -11.5, 0, -10.2);
+  add(roomSofa(0x7A9ACB), -17.8, 0, 1, Math.PI / 2);
+  add(roomPlant(), -17.5, 0, -16.2);
   // a floor lamp
   const lamp = new THREE.Group();
   for (const [geo, col, y] of [[new THREE.CylinderGeometry(.7, .8, .2, 20), 0x2A2438, .1], [new THREE.CylinderGeometry(.08, .08, 6, 8), 0x2A2438, 3], [new THREE.CylinderGeometry(.9, 1.5, 1.6, 20, 1, true), 0xFFE7B8, 6.4]]) { const m = new THREE.Mesh(geo, tbT(col, { side: THREE.DoubleSide })); m.position.y = y; m.castShadow = true; lamp.add(m); }
-  add(lamp, 8, 0, -10.5);
+  add(lamp, 12, 0, -16.5);
   // the TV on a low cabinet, against the right wall, its screen gently changing colour
   const tv = new THREE.Group();
   const cab = new THREE.Mesh(new THREE.BoxGeometry(9, 2, 2.2), tbT(0xC48650, { map: tbWoodTex(TB_STYLES.natural) })); cab.position.y = 1; cab.castShadow = cab.receiveShadow = true; tv.add(cab);
   const body = new THREE.Mesh(new THREE.BoxGeometry(7.4, 4.4, .4), tbT(0x1E1A26)); body.position.set(0, 4.5, 0); tv.add(body);
   TW.tvC = document.createElement("canvas"); TW.tvC.width = 64; TW.tvC.height = 40; TW.tvTex = new THREE.CanvasTexture(TW.tvC); TW.tvTex.encoding = THREE.sRGBEncoding;
   const scr = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 3.9), new THREE.MeshBasicMaterial({ map: TW.tvTex })); scr.position.set(0, 4.5, .21); scr.userData.noInk = true; tv.add(scr);
-  add(tv, -1, 0, -10.9);
+  add(tv, -1, 0, -16.9);
   // the TV's light washes softly into the room
-  TW.tvLight = new THREE.PointLight(0x9FC8FF, .5, 22, 1.5); TW.tvLight.position.set(-1, 4.5, -8); sc.add(TW.tvLight);
+  TW.tvLight = new THREE.PointLight(0x9FC8FF, .5, 22, 1.5); TW.tvLight.position.set(-1, 4.5, -14); sc.add(TW.tvLight);
   // a coffee table with a mug and a remote
   const tbl = new THREE.Group(), top = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, .3, 28), tbT(0xE9D2B4)); top.position.y = 2; tbl.add(top);
   for (let k = 0; k < 3; k++) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 2, 8), tbT(0x8A5A30)); const a = k / 3 * 6.28; leg.position.set(Math.cos(a) * 1.6, 1, Math.sin(a) * 1.6); tbl.add(leg); }
   const mug = new THREE.Mesh(new THREE.CylinderGeometry(.35, .3, .7, 16), tbT(0xF2A5B8)); mug.position.set(.6, 2.5, .3); tbl.add(mug);
   const remote = new THREE.Mesh(new THREE.BoxGeometry(.4, .15, 1.3), tbT(0x2A2438)); remote.position.set(-.6, 2.22, -.2); remote.rotation.y = .5; tbl.add(remote);
-  add(tbl, 11, 0, 5);
+  add(tbl, 15, 0, 6);
   tbToonify(room, .05);
 }
 // the TV picture: soft cartoon colours drifting by
@@ -4295,77 +4397,187 @@ function twTvSound(dt) {
 /* ---- the 3D pop-it on a kitchen table: real silicone domes you press in, and flick (or tap Flip) to turn it over ---- */
 var P3 = { on: false, scene: null, cam: null, board: null, domes: [], ptrs: new Map(), shape: null };
 var secPop = $("#mode-pop");
-// the outline in pop-it units (radius 1, centred), as a three.js shape
+// the outline in pop-it units (radius 1, centred), as a three.js shape; the classic one is a tall rectangle that fills a phone
 function pop3Shape(s) {
   const sh = new THREE.Shape();
-  if (s === "circle") { sh.absarc(0, 0, 1, 0, Math.PI * 2, false); return sh; }
+  // the circle is drawn point by point, so its outline has no doubled seam point to snag the bevel
+  if (s === "circle") { for (let i = 0; i < 96; i++) { const a = i / 96 * Math.PI * 2; if (i) sh.lineTo(Math.cos(a) * 1.04, Math.sin(a) * 1.04); else sh.moveTo(1.04, 0); } sh.closePath(); return sh; }
   if (s === "heart") { for (let i = 0; i <= 120; i++) { const t = i / 120 * 6.2832, x = 16 * Math.sin(t) ** 3, y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t), k = 1 / 16.5; if (i) sh.lineTo(x * k, (y + 2.5) * k); else sh.moveTo(x * k, (y + 2.5) * k); } return sh; }
-  const r = .3; sh.moveTo(-1 + r, -1); sh.lineTo(1 - r, -1); sh.quadraticCurveTo(1, -1, 1, -1 + r); sh.lineTo(1, 1 - r); sh.quadraticCurveTo(1, 1, 1 - r, 1); sh.lineTo(-1 + r, 1); sh.quadraticCurveTo(-1, 1, -1, 1 - r); sh.lineTo(-1, -1 + r); sh.quadraticCurveTo(-1, -1, -1 + r, -1); return sh;
+  const w = 1.06, h = 1.56, r = .28; sh.moveTo(-w + r, -h); sh.lineTo(w - r, -h); sh.quadraticCurveTo(w, -h, w, -h + r); sh.lineTo(w, h - r); sh.quadraticCurveTo(w, h, w - r, h); sh.lineTo(-w + r, h); sh.quadraticCurveTo(-w, h, -w, h - r); sh.lineTo(-w, -h + r); sh.quadraticCurveTo(-w, -h, -w + r, -h); return sh;
 }
-// the same bubble layout as the flat pop-it, worked out on a little offscreen canvas
+// half the width and depth of each shape, in pop-it units, for framing the camera
+const POP3_EXT = { square: [1.06, 1.56], circle: [1.04, 1.04], heart: [1, 1] };
+// the bubble layout: the rectangle is a plain 6 by 9 grid; the heart and circle keep the grid spots that fit inside their 3D outline
 function pop3Layout(s) {
-  const c = document.createElement("canvas"); c.width = c.height = 600; const x = c.getContext("2d"), R = 250, path = POP_SHAPES[s](300, 300, R);
-  const n = s === "heart" ? 8 : 7, d = 2 * R / n, r = d * .39, out = [];
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-    const px = 300 - R + d * (i + .5), py = 300 - R + d * (j + .5); let inside = true;
-    for (let k = 0; k < 8 && inside; k++) { const a = k * Math.PI / 4; inside = x.isPointInPath(path, px + Math.cos(a) * r * 1.25, py + Math.sin(a) * r * 1.25); }
-    if (inside) out.push({ u: (px - 300) / R, v: (py - 300) / R, r: r / R, hue: Math.round(j / (n - 1) * 290), down: false, a: 0 });
+  const out = [];
+  if (s === "square") {
+    const d = 2 / 6;
+    for (let j = 0; j < 9; j++) for (let i = 0; i < 6; i++) out.push({ u: -1 + d * (i + .5), v: -1.5 + d * (j + .5), r: d * .39, hue: Math.round(j / 8 * 290), down: false, a: 0 });
+    return out;
   }
-  return out;
+  const c = document.createElement("canvas"); c.width = c.height = 600; const x = c.getContext("2d"), R = 250, path = new Path2D();
+  pop3Shape(s).getPoints(64).forEach((p, i) => i ? path.lineTo(300 + p.x * R * .95, 300 - p.y * R * .95) : path.moveTo(300 + p.x * R * .95, 300 - p.y * R * .95));
+  // the grid is nudged about to find where the most bubbles fit
+  const n = s === "heart" ? 9 : 8, d = 2 * R / n, r = d * .39;
+  let best = out;
+  for (let oy = 0; oy < 4; oy += s === "circle" ? 2 : 1) for (let ox = 0; ox < 2; ox++) {
+    const got = [];
+    for (let j = -1; j <= n; j++) for (let i = -1; i <= n; i++) {
+      const px = 300 - R + d * (i + .5 + ox / 2), py = 300 - R + d * (j + .5 + oy / 4); let inside = true;
+      for (let k = 0; k < 8 && inside; k++) { const a = k * Math.PI / 4; inside = x.isPointInPath(path, px + Math.cos(a) * r * 1.1, py + Math.sin(a) * r * 1.1); }
+      if (inside) got.push({ u: (px - 300) / R, v: (py - 300) / R, r: r / R, j, down: false, a: 0 });
+    }
+    if (got.length > best.length) best = got;
+  }
+  // rainbow by row, red at the top through to purple at the bottom
+  const j0 = Math.min(...best.map(p => p.j)), j1 = Math.max(...best.map(p => p.j));
+  for (const p of best) { p.hue = Math.round((p.j - j0) / Math.max(1, j1 - j0) * 290); delete p.j; }
+  return best;
 }
+// the living room: the pop-it lies on a big squashy couch cushion, with a throw pillow and a folded blanket beside it
 function pop3Room(sc) {
-  const room = roomKit(sc, { w: 26, d: 22, h: 12, floor: "#D8B48A", wall: "#F2E3CF", window: [0, 8, -10.95, 0, 8, 5], sky: "#BFE4FF" });
-  // the kitchen table, with a fruit bowl and a mug
-  const tb = new THREE.Group(); room.add(tb);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(16, .5, 11), tbT(0xFFFFFF, { map: tbWoodTex(TB_STYLES.natural) })); top.position.y = 4.75; top.receiveShadow = true; tb.add(top);
-  for (const [x, z] of [[-7, -4.6], [7, -4.6], [-7, 4.6], [7, 4.6]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.5, 4.5, .5), tbT(0x8A5A30)); l.position.set(x, 2.25, z); tb.add(l); }
-  const bowl = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), tbT(0x9FD2F2, { side: THREE.DoubleSide })); bowl.position.set(-5.4, 6.4, -3); tb.add(bowl);
-  for (const [x, z, c] of [[-5.8, -3.2, 0xE5484D], [-5, -2.7, 0xF5B921], [-5.3, -3.6, 0x7FB685]]) { const f = new THREE.Mesh(new THREE.SphereGeometry(.5, 14, 10), tbT(c)); f.position.set(x, 5.6, z); tb.add(f); }
-  const mug = new THREE.Mesh(new THREE.CylinderGeometry(.55, .5, 1.1, 18), tbT(0xF4A6B8)); mug.position.set(5.6, 5.55, -3.2); tb.add(mug);
-  tbToonify(room, .04);
-  return 5; // the table top's height
+  const Ys = 14, room = roomKit(sc, { w: 90, d: 56, h: 46, floor: "#C9A27A", wall: "#F2E3CF", window: [20, 32, -27.95, 0, 16, 12], sky: "#BFE4FF" });
+  room.position.z = 13;
+  // the couch sits so the pop-it is near the front right corner of a cushion, with the seam and the front edge in view
+  const g = new THREE.Group(); g.position.set(-4.7, 0, -2.9); sc.add(g);
+  // a soft woven fabric
+  const fabric = (col, rep) => { const t = tbCanvas(256, 256, (x, w, h) => {
+    x.fillStyle = col; x.fillRect(0, 0, w, h); const R = mulberry(7);
+    for (let i = 0; i < 2600; i++) { x.fillStyle = R() < .5 ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)"; x.fillRect(R() * w, R() * h, 2, 2); }
+    x.fillStyle = "rgba(0,0,0,.04)"; for (let i = 0; i < w; i += 6) { x.fillRect(i, 0, 1, h); x.fillRect(0, i, w, 1); }
+  }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); return t; };
+  const couch = tbT(0xFFFFFF, { map: fabric("#5E8C91", .12) }), frame = tbT(0xFFFFFF, { map: fabric("#4F7A7F", .12) });
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+  // a puffy cushion: a rounded block with soft bevelled edges
+  const cushion = (w, d, t, mat, x, y, z) => {
+    const s = new THREE.Shape(), r = 1.6, hw = w / 2, hd = d / 2;
+    s.moveTo(-hw + r, -hd); s.lineTo(hw - r, -hd); s.quadraticCurveTo(hw, -hd, hw, -hd + r); s.lineTo(hw, hd - r); s.quadraticCurveTo(hw, hd, hw - r, hd); s.lineTo(-hw + r, hd); s.quadraticCurveTo(-hw, hd, -hw, hd - r); s.lineTo(-hw, -hd + r); s.quadraticCurveTo(-hw, -hd, -hw + r, -hd);
+    const geo = new THREE.ExtrudeGeometry(s, { depth: t - 1.2, bevelEnabled: true, bevelThickness: .6, bevelSize: .6, bevelSegments: 4, curveSegments: 10 });
+    geo.rotateX(-Math.PI / 2); return add(geo, mat, x, y + .6, z);
+  };
+  // the base and the two seat cushions (the pop-it sits on the left one)
+  add(new THREE.BoxGeometry(46, Ys - 3.4, 22), frame, 8.6, (Ys - 3.4) / 2, -3);
+  cushion(17, 18, 3.4, couch, 0, Ys - 3.4, -.5); cushion(17, 18, 3.4, couch, 17.4, Ys - 3.4, -.5);
+  // the back, with two leaning back cushions
+  add(new THREE.BoxGeometry(46, 16, 5), frame, 8.6, Ys + 4, -12.5);
+  for (const x of [0, 17.4]) { const c = cushion(16.6, 13, 4, couch, x, Ys - 1, -10.2); c.rotation.x = Math.PI / 2 - .25; c.position.y = Ys + .2; }
+  // the arms
+  for (const x of [-11.2, 28.4]) add(new THREE.BoxGeometry(5, Ys + 4, 22), frame, x, (Ys + 4) / 2, -3);
+  // a mustard throw pillow, tipped against the back of the right cushion
+  const pil = add(new THREE.SphereGeometry(4, 24, 14), tbT(0xFFFFFF, { map: fabric("#E8B04A", .25) }), 19, Ys + 3.6, -6.5); pil.scale.set(1.15, 1, .45); pil.rotation.set(-.5, .3, .15);
+  // a folded pink knit blanket on the right cushion
+  const knit = tbCanvas(128, 128, (x, w, h) => { x.fillStyle = "#F4A6B8"; x.fillRect(0, 0, w, h); x.strokeStyle = "rgba(160,60,90,.25)"; x.lineWidth = 3; for (let i = 0; i < w; i += 10) { x.beginPath(); for (let y = 0; y <= h; y += 8) x.lineTo(i + (y / 8 % 2 ? 3 : -3), y); x.stroke(); } x.fillStyle = "#FFF4F7"; x.fillRect(0, h * .78, w, h * .08); });
+  const bl = add(new THREE.BoxGeometry(9, 1.1, 7), tbT(0xFFFFFF, { map: knit }), 16.5, Ys + .55, 4.2); bl.rotation.y = -.18;
+  // a little side table at the right with a mug
+  add(new THREE.CylinderGeometry(4.5, 4.5, .8, 32), tbT(0xFFFFFF, { map: tbWoodTex(TB_STYLES.natural) }), 37, Ys + 1, 1);
+  add(new THREE.CylinderGeometry(.6, .8, Ys + .6, 12), tbT(0x8A5A30), 37, (Ys + .6) / 2, 1);
+  add(new THREE.CylinderGeometry(1.1, 1, 2.2, 20), tbT(0xB98AF0), 36, Ys + 2.5, 0);
+  tbToonify(room, .04); tbToonify(g, .05);
+  return Ys + .05; // the seat cushion's top
 }
 function pop3Build(s) {
   const sc = P3.scene = P3.scene || new THREE.Scene();
   if (!P3.cam) {
     sc.background = new THREE.Color(0xF2E3CF); P3.cam = new THREE.PerspectiveCamera(36, 1, .1, 120);
-    const L = lookLights(sc, { keyPos: [-5, 16, 8], keyI: .8, hemi: .6, fillI: .25 }); Object.assign(L.key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 50 });
-    P3.y = pop3Room(sc);
+    const L = lookLights(sc, { keyPos: [-8, 44, 14], keyI: .8, hemi: .6, fillI: .25 }); Object.assign(L.key.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 90 });
+    P3.y = pop3Room(sc); L.key.position.y += P3.y; L.key.target.position.set(0, P3.y, 0);
+    // the inside of a popped bubble: lit at the bottom, in shadow under the top rim
+    P3.dishTex = tbCanvas(64, 64, (x, w, h) => {
+      x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, w, h);
+      x.fillStyle = "#6E6878"; x.beginPath(); x.arc(32, 32, 32, Math.PI, 0); x.arc(32, 44, 34, 0, Math.PI, true); x.fill();
+    });
   }
   if (P3.board) { sc.remove(P3.pivot); disposeTree(P3.pivot); }
   const S2 = 3.3, pivot = P3.pivot = new THREE.Group(); pivot.position.y = P3.y + .2; sc.add(pivot);
   const board = P3.board = new THREE.Group(); pivot.add(board);
-  // the silicone body, rainbow from top to bottom (vertex colours)
+  // the silicone body: a soft tint of its bubbles, so bold raised bubbles and dark popped ones both stand out on it
   const geo = new THREE.ExtrudeGeometry(pop3Shape(s), { depth: .16, bevelEnabled: true, bevelThickness: .05, bevelSize: .05, bevelSegments: 3, curveSegments: 48 });
   geo.rotateX(-Math.PI / 2); geo.scale(S2, 1, S2); geo.translate(0, -.05, 0);
-  // rainbow rows, painted top to bottom (the caps' UVs are the outline's own coordinates, -1..1)
-  const rb = tbCanvas(16, 256, (x, w, h) => { for (let j = 0; j < h; j++) { x.fillStyle = `hsl(${Math.round(j / h * 290)},82%,66%)`; x.fillRect(0, j, w, 1); } });
-  rb.repeat.set(.5, .5); rb.offset.set(.5, .5); rb.wrapS = rb.wrapT = THREE.ClampToEdgeWrapping;
-  const body = new THREE.Mesh(geo, tbT(0xFFFFFF, { map: rb })); body.castShadow = body.receiveShadow = true; board.add(body);
-  // the bubbles: domes that press in
-  const dome = new THREE.SphereGeometry(1, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), mats = {};
-  P.dots = pop3Layout(s); P3.domes = [];
+  const one = POP3_SHEETS[P3.sheet]; P.dots = pop3Layout(s);
+  if (one !== null) for (const p of P.dots) p.hue = one;
+  let bodyMat;
+  if (one === null) {
+    // rainbow rows painted to line up with the bubbles (the caps' UVs are the outline's own coordinates)
+    const e = 1.6, vs = P.dots.map(p => p.v), v0 = Math.min(...vs), v1 = Math.max(...vs);
+    const tex = tbCanvas(8, 256, (x, w, h) => { for (let j = 0; j < h; j++) { const lv = -((1 - (j + .5) / h) * 2 - 1) * e; x.fillStyle = `hsl(${Math.round(clamp((lv - v0) / (v1 - v0), 0, 1) * 290)},78%,83%)`; x.fillRect(0, j, w, 1); } });
+    tex.repeat.set(1 / (2 * e), 1 / (2 * e)); tex.offset.set(.5, .5); tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    bodyMat = tbT(0xFFFFFF, { map: tex });
+  } else bodyMat = tbT(new THREE.Color().setHSL(one / 360, .7, .84).getHex());
+  bodyMat.userData.pk = "sheet";
+  const body = new THREE.Mesh(geo, bodyMat); body.castShadow = body.receiveShadow = true; board.add(body);
+  // the bubbles: a bold shiny dome when it's up, a dark dish when it's been pushed in
+  const dome = new THREE.SphereGeometry(1, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), disc = new THREE.CircleGeometry(1, 28), glint = new THREE.SphereGeometry(1, 10, 6), mats = {};
+  const glintMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF }); glintMat.userData.pk = "glint";
+  const mat = (k, f) => mats[k] || (mats[k] = f());
+  P3.domes = [];
   for (const p of P.dots) {
-    const mat = mats[p.hue] || (mats[p.hue] = tbT(new THREE.Color().setHSL(p.hue / 360, .85, .62).getHex()));
-    const m = new THREE.Mesh(dome, mat); m.position.set(p.u * S2, .16, p.v * S2); m.scale.set(p.r * S2 * .92, p.r * S2 * .7, p.r * S2 * .92); m.castShadow = true; m.userData.dot = p; board.add(m);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(p.r * S2 * .95, .025, 6, 24), tbT(new THREE.Color().setHSL(p.hue / 360, .7, .45).getHex())); ring.rotation.x = -Math.PI / 2; ring.position.set(p.u * S2, .17, p.v * S2); board.add(ring);
-    p.m = m; p.ky = 1; P3.domes.push(m);
+    const h = p.hue / 360, rr = p.r * S2 * .92, x = p.u * S2, z = p.v * S2;
+    const m = new THREE.Mesh(dome, mat("up" + p.hue, () => { const u = tbT(new THREE.Color().setHSL(h, .95, .5).getHex()); u.userData.pk = "up"; return u; })); m.position.set(x, .16, z); m.scale.set(rr, rr * .76, rr); m.castShadow = true; m.userData.dot = p; board.add(m);
+    const g = new THREE.Mesh(glint, glintMat); g.scale.set(rr * .2, rr * .1, rr * .14); g.rotation.y = .7; g.userData.noInk = true; board.add(g);
+    const dish = new THREE.Mesh(disc, mat("in" + p.hue, () => tbT(new THREE.Color().setHSL(h, .7, .3).getHex(), { map: P3.dishTex }))); dish.rotation.x = -Math.PI / 2; dish.position.set(x, .165, z); dish.scale.setScalar(rr); dish.userData.noInk = true; dish.visible = false; board.add(dish);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(p.r * S2 * .95, .03, 6, 24), mat("ring" + p.hue, () => tbT(new THREE.Color().setHSL(h, .8, .4).getHex()))); ring.rotation.x = -Math.PI / 2; ring.position.set(x, .17, z); ring.userData.noInk = true; board.add(ring);
+    p.m = m; p.g = g; p.dish = dish; p.ky = 1; P3.domes.push(m);
   }
   tbToonify(board, .03);
-  P.flip = -1; popFlip.classList.remove("cheer"); P3.shape = s;
+  P.flip = -1; popFlip.classList.remove("cheer"); P3.shape = s; P3.built = P3.sheet;
+  pop3Night();
+}
+// sheet colours: rainbow, or one soft colour with bubbles to match (hues)
+const POP3_SHEETS = { rainbow: null, lilac: 268, mint: 158, peach: 18, sky: 205 };
+P3.sheet = POP3_SHEETS[pref("fidget-pop-sheet", "rainbow")] !== undefined ? pref("fidget-pop-sheet", "rainbow") : "rainbow";
+function setPopSheet(k) {
+  P3.sheet = k; savePref("fidget-pop-sheet", k);
+  document.querySelectorAll("#popSheets button").forEach(b => b.setAttribute("aria-pressed", b.dataset.sheet === k ? "true" : "false"));
+  if (P3.on) { pop3Build(P.shape); pop3Fit(); }
+}
+document.querySelectorAll("#popSheets button").forEach(b => b.addEventListener("click", () => { setPopSheet(b.dataset.sheet); S.thup(); buzz(10); }));
+setPopSheet(P3.sheet);
+// night, with the app's dark theme: the kitchen goes dark and the raised bubbles glow softly, so they're still easy to tell from popped ones
+function pop3Night() {
+  if (!P3.scene) return;
+  const v = document.documentElement.classList.contains("dark") ? 1 : 0, sc = P3.scene;
+  if (!P3.bg0) P3.bg0 = sc.background.clone();
+  const kRoom = new THREE.Color(1 - .7 * v, 1 - .68 * v, 1 - .5 * v), kSheet = new THREE.Color(1 - .5 * v, 1 - .5 * v, 1 - .38 * v);
+  sc.background.copy(P3.bg0).multiply(kRoom);
+  const seen = new Set();
+  sc.traverse(o => {
+    const m = o.isMesh && o.material; if (!m || !m.color || seen.has(m)) return; seen.add(m);
+    if (!m.userData.c0) m.userData.c0 = m.color.clone();
+    const pk = m.userData.pk;
+    if (pk === "up") { m.color.copy(m.userData.c0); if (m.emissive) m.emissive.copy(m.userData.c0).multiplyScalar(.22 * v); }
+    else if (pk === "glint") return;
+    else m.color.copy(m.userData.c0).multiply(pk === "sheet" ? kSheet : kRoom);
+  });
+}
+// the camera comes in as close as it can while the whole sheet fits between the shape buttons and the Flip button
+function pop3Fit() {
+  const cam = P3.cam, asp = cam.aspect = GL.w / GL.h, [ex, ez] = POP3_EXT[P3.shape].map(e => e * 3.3 + .1), y0 = P3.y + .2;
+  const pts = []; for (const x of [-ex, ex]) for (const z of [-ez, ez]) for (const y of [0, .5]) pts.push(new THREE.Vector3(x, y0 + y, z));
+  // on its side the shape buttons sit off to the right, so the sheet can use nearly the full height
+  const land = GL.w > GL.h, v = new THREE.Vector3(), mt = land ? 16 : 112, mb = land ? 80 : 112, mx = 12;
+  const place = d => { cam.clearViewOffset(); cam.position.set(0, y0 + d * .9, d * .44); cam.lookAt(0, y0, 0); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); };
+  const span = () => { let x0 = 1, x1 = -1, y1 = -1, y2 = 1; for (const p of pts) { v.copy(p).project(cam); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y2 = Math.min(y2, v.y); y1 = Math.max(y1, v.y); } return { w: x1 - x0, h: y1 - y2, top: y1, bot: y2 }; };
+  let lo = 3, hi = 80;
+  for (let k = 0; k < 28; k++) { const d = (lo + hi) / 2; place(d); const s = span(); if (s.w <= 2 - 4 * mx / GL.w && s.h <= 2 - 2 * (mt + mb) / GL.h) hi = d; else lo = d; }
+  place(hi); const s = span();
+  // slide the picture so the sheet sits in the middle of the free space
+  const have = (1 - (s.top + s.bot) / 2) / 2 * GL.h, want = mt + (GL.h - mt - mb) / 2;
+  cam.setViewOffset(GL.w, GL.h, 0, Math.round(have - want), GL.w, GL.h); cam.updateProjectionMatrix();
 }
 function pop3Setup() {
   if (typeof THREE === "undefined" || !mount3D(secPop)) { P3.on = false; pcv.style.display = ""; return false; }
-  if (!P3.board || P3.shape !== P.shape) pop3Build(P.shape);
+  if (!P3.board || P3.shape !== P.shape || P3.built !== P3.sheet) pop3Build(P.shape);
   pcv.style.display = "none"; P3.on = true;
-  const asp = P3.cam.aspect = GL.w / GL.h, t = Math.tan(18 * Math.PI / 180), d = Math.max(4 / t, 4.05 / (t * asp));
-  P3.cam.position.set(0, P3.y + d * .88, d * .48); P3.cam.lookAt(0, P3.y, .2); P3.cam.updateProjectionMatrix();
+  pop3Fit();
   return true;
 }
 function pop3Frame(dt) {
   for (const p of P.dots) {
-    const want = p.down ? -.55 : 1; p.ky += (want - p.ky) * Math.min(1, dt * .45);
-    p.m.scale.y = p.r * 3.3 * .7 * p.ky; p.m.position.y = .16 + (p.ky < 0 ? .02 : 0);
+    // pushed in: the dome sinks away and the dark dish shows; popped back up: the dome swells out again
+    p.ky += ((p.down ? 0 : 1) - p.ky) * Math.min(1, dt * .45);
+    const rr = p.r * 3.3 * .92, hy = rr * .76 * Math.max(.01, p.ky);
+    p.m.scale.y = hy; p.m.visible = p.ky > .05; p.dish.visible = p.ky < .6;
+    p.g.visible = p.ky > .6; p.g.position.set(p.u * 3.3 - rr * .34, .16 + hy * .86, p.v * 3.3 - rr * .34);
   }
   // the flop: up, over and back down; the states swap at the halfway point (in popFrame)
   const f = P.flip >= 0 ? P.flip : 0, e = f < .5 ? f * 2 : (1 - f) * 2;
@@ -4611,8 +4823,15 @@ function twBuild() {
 }
 function twCamera() {
   const d = (TW.W && TW.cam.aspect < 1 ? 15 / TW.cam.aspect * .62 : 15) / TW.zoom, cp = Math.cos(TW.pitch); TW.pitch = Math.min(TW.pitch, 1.3);
-  const T = TW.tgt || (TW.tgt = new THREE.Vector3(0, 1, 0));
-  TW.cam.position.set(T.x + Math.sin(TW.yaw) * cp * d, T.y + Math.sin(TW.pitch) * d, T.z + Math.cos(TW.yaw) * cp * d);
+  const T = TW.tgt || (TW.tgt = new THREE.Vector3(0, 1, 0)), P = TW.cam.position;
+  T.x = clamp(T.x, -16, 16); T.z = clamp(T.z, -14, 14);
+  P.set(T.x + Math.sin(TW.yaw) * cp * d, T.y + Math.sin(TW.pitch) * d, T.z + Math.cos(TW.yaw) * cp * d);
+  // stay inside the room: rather than pass through a wall or over the top, the camera comes in closer
+  let t = 1;
+  if (Math.abs(P.x) > 19) t = Math.min(t, (Math.sign(P.x) * 19 - T.x) / (P.x - T.x));
+  if (Math.abs(P.z) > 17) t = Math.min(t, (Math.sign(P.z) * 17 - T.z) / (P.z - T.z));
+  if (P.y > 17) t = Math.min(t, (17 - T.y) / (P.y - T.y));
+  if (t < 1) P.sub(T).multiplyScalar(t).add(T);
   TW.cam.lookAt(T); TW.cam.updateProjectionMatrix(); TW.cam.updateMatrixWorld();
 }
 function twistySetup() {
@@ -4810,6 +5029,7 @@ function spinShape(L, dl, rl, rc) {
 }
 function buildSpinner() {
   if (SP.root) { SP.scene.remove(SP.root); disposeTree(SP.root); }
+  if (SP.capG) { SP.scene.remove(SP.capG); disposeTree(SP.capG); }
   const L = SPIN_LOBES[SP.design], root = new THREE.Group(), flat = new THREE.Group(), T = .22, top = T / 2 + .04;
   flat.rotation.x = -Math.PI / 2; root.add(flat);
   const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; flat.add(m); return m; };
@@ -4851,8 +5071,12 @@ function buildSpinner() {
   // centre caps on both faces, with a dot so slow spins are easy to read
   const capMat = neon ? new THREE.MeshStandardMaterial({ color: 0x2A2450, roughness: .3, envMap: GL.env })
     : new THREE.MeshStandardMaterial({ color: 0xF2B21C, roughness: .28, metalness: .3, envMap: GL.env });
-  add(zcyl(.22, .07, 48), capMat, 0, 0, top + .02); add(zcyl(.22, .07, 48), capMat, 0, 0, -top - .02);
-  add(zcyl(.045, .02, 20), dark, .08, -.05, top + .06);
+  // they sit on the bearing in their own group, so they can stay still under a finger while the body spins on
+  const capG = new THREE.Group(), capFlat = new THREE.Group(); capFlat.rotation.x = -Math.PI / 2; capG.add(capFlat);
+  const cap = (geo, mat, z, x = 0, y = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; capFlat.add(m); return m; };
+  cap(zcyl(.22, .07, 48), capMat, top + .02); cap(zcyl(.22, .07, 48), capMat, -top - .02);
+  cap(zcyl(.045, .02, 20), dark, top + .06, .08, -.05);
+  SP.capG = capG; SP.scene.add(capG);
   const blur = new THREE.Mesh(new THREE.CircleGeometry(1, 72), new THREE.MeshBasicMaterial({ color: neon ? 0x00FFE0 : SP.design === "metal" ? 0xC9CED6 : 0x7B5CFF, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }));
   blur.position.z = top + .03; blur.visible = false; flat.add(blur);
   SP.blur = blur; SP.root = root; SP.scene.add(root);
@@ -4883,6 +5107,7 @@ function ensureSpinBed() {
 }
 function spinFrame(now) {
   const dts = clamp((now - (SP.last || now - 16.7)) / 1000, .004, .05); SP.last = now;
+  if (SP.brake && !SP.grab) { SP.om *= Math.exp(-dts * 18); if (Math.abs(SP.om) < .6) { SP.om = 0; SP.brake = false; } }
   if (!SP.grab) {
     const w = Math.abs(SP.om);
     if (w > 0) { const nw = Math.max(0, w - (.35 + .045 * w) * dts); SP.om = Math.sign(SP.om) * nw; SP.th += SP.om * dts; }
@@ -4908,6 +5133,11 @@ function spinFrame(now) {
   }
   // screen-clockwise spin is a negative turn about +Y seen from above
   SP.root.rotation.y = -SP.th;
+  // the centre caps turn with the body, but stay still and press in a little under a resting finger, which feels the spin hum
+  if (!SP.hold) SP.capA = (SP.capA || 0) + SP.th - (SP.thLast ?? SP.th);
+  SP.thLast = SP.th; SP.capG.rotation.y = -SP.capA;
+  SP.capG.position.y += ((SP.hold ? -.025 : 0) - SP.capG.position.y) * Math.min(1, dts * 20);
+  if (SP.hold && w > 2 && now - (SP.hum || 0) > 120) { SP.hum = now; buzz(Math.min(8, 2 + w * .08)); }
   const bo = clamp((w - 12) / 70, 0, .45); SP.blur.material.opacity = bo; SP.blur.visible = bo > .01;
   toonRender(GL.r, SP.scene, SP.cam, TOON_INK.spin);
 }
@@ -4921,10 +5151,15 @@ function spinHit(e) {
 on3D(secSpin, "pointerdown", e => {
   if (!SP.scene) return;
   GL.canvas.setPointerCapture(e.pointerId); ensureSpinBed(); sHint.classList.add("gone");
+  const h = spinHit(e);
+  // the background: a tap there brings it to a stop
+  if (!h || h.r > 1.12) { if (Math.abs(SP.om) > .6 && !SP.brake) { SP.brake = true; S.knock(.4); buzz(12); } return; }
+  // the middle: rest a finger on the cap and it keeps spinning, like holding a real spinner
+  if (h.r < .32) { if (!SP.hold) { SP.hold = { id: e.pointerId }; buzz(6); } return; }
+  // an arm: catch it, and flick to spin
   if (SP.grab) return;
-  const h = spinHit(e); if (!h) return;
   if (Math.abs(SP.om) > 3) { S.knock(.6); buzz(16); } // caught it mid-spin
-  SP.om = 0; SP.grab = { id: e.pointerId, a: h.a, t: performance.now(), vel: 0 };
+  SP.om = 0; SP.brake = false; SP.grab = { id: e.pointerId, a: h.a, t: performance.now(), vel: 0 };
 });
 on3D(secSpin, "pointermove", e => {
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
@@ -4936,6 +5171,7 @@ on3D(secSpin, "pointermove", e => {
   g.a = h.a; g.t = now;
 });
 const spinEnd = e => {
+  if (SP.hold && SP.hold.id === e.pointerId) { SP.hold = null; return; }
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
   SP.grab = null;
   SP.om = performance.now() - g.t > 90 ? 0 : clamp(g.vel, -90, 90);
@@ -5961,7 +6197,7 @@ function cubeSetup() {
   if (!mount3D(secCube)) return;
   if (!CB.scene) cubeBuild();
   CB.cam.aspect = GL.w / GL.h;
-  const t = Math.tan(17.5 * Math.PI / 180); CB.dist = 1.45 / (t * Math.min(1, CB.cam.aspect));
+  const t = Math.tan(17.5 * Math.PI / 180); CB.dist = 1.45 / (t * Math.min(1, CB.cam.aspect) * (CB.cam.aspect > 1 ? .78 : 1)); // a little smaller on its side, clear of the colour chips
   CB.cam.position.set(0, 0, CB.dist / CB.zoom); CB.cam.lookAt(0, 0, 0); CB.cam.updateProjectionMatrix();
   CB.W = GL.w;
 }
@@ -6205,12 +6441,16 @@ function ncDesk(sc) {
   }) }));
   wall.position.set(0, 5, -5); sc.add(wall);
   // a desk lamp on the left
-  const lamp = new THREE.Group(); lamp.position.set(-4.1, -.26, -2.2); g.add(lamp);
-  const L = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, tbT(col)); m.position.set(x, y, z); m.castShadow = true; lamp.add(m); return m; };
+  // a desk lamp on the left, bent over the cradle; tap it to switch it on and off
+  const lamp = NC.lampG = new THREE.Group(); lamp.position.set(-3.3, -.26, -1.7); g.add(lamp);
+  const L = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, tbT(col)); m.position.set(x, y, z); m.castShadow = true; m.userData.lamp = true; lamp.add(m); return m; };
   L(new THREE.CylinderGeometry(.55, .62, .14, 28), 0x5CC8B8, 0, .07, 0);
   L(new THREE.CylinderGeometry(.06, .06, 2.4, 10), 0x5CC8B8, .3, 1.2, 0).rotation.z = -.25;
   L(new THREE.CylinderGeometry(.06, .06, 1.4, 10), 0x5CC8B8, 1.0, 2.6, 0).rotation.z = -1.1;
-  const shade = L(new THREE.ConeGeometry(.55, .7, 24, 1, true), 0xFFC93C, 1.6, 2.7, 0); shade.rotation.z = -2.2; shade.material.side = THREE.DoubleSide;
+  // the shade hangs off the end of the arm with its open side facing down towards the cradle
+  const shade = NC.shade = L(new THREE.ConeGeometry(.55, .7, 24, 1, true), 0xFFC93C, 1.8, 2.6, 0); shade.rotation.z = .53; shade.material.side = THREE.DoubleSide;
+  shade.material.emissive = new THREE.Color(0xFFB030);
+  NC.bulb = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), new THREE.MeshBasicMaterial({ color: 0xFFF2C8 })); NC.bulb.position.set(1.8 + .5 * .12, 2.6 - .85 * .12, 0); NC.bulb.userData.noInk = true; NC.bulb.userData.lamp = true; lamp.add(NC.bulb);
   // a stack of books with a mug, a pencil cup and a little plant on the right
   [[2.2, .32, 1.5, 0xE5484D, .1], [2.0, .28, 1.4, 0x5CC8B8, -.08], [1.8, .3, 1.3, 0xFFC93C, .05]].reduce((y, [w, h, d, c, r]) => { add(new THREE.BoxGeometry(w, h, d), c, 7.4, y + h / 2, -2.6).rotation.y = r; return y + h; }, -.26);
   add(new THREE.CylinderGeometry(.32, .28, .6, 20), 0xF4F1EA, 7.5, .94, -2.6);
@@ -6218,15 +6458,15 @@ function ncDesk(sc) {
   for (let i = 0; i < 6; i++) { const p = add(new THREE.CylinderGeometry(.03, .03, .9, 6), [0xFFC93C, 0xE5484D, 0x4AA8FF][i % 3], -4.6 + Math.cos(i) * .1, .55, .9 + Math.sin(i) * .1); p.rotation.set(Math.sin(i * 2) * .2, 0, Math.cos(i * 2) * .2); }
   add(new THREE.CylinderGeometry(.35, .28, .55, 18), 0xE7A27C, 5.4, .02, .4);
   for (let i = 0; i < 5; i++) { const lf = add(new THREE.SphereGeometry(.3, 12, 8), 0x4FA24A, 5.4 + Math.cos(i * 1.3) * .25, .55 + (i % 2) * .2, .4 + Math.sin(i * 1.3) * .25); lf.scale.set(1, .5, .7); lf.rotation.y = i; }
-  // the office: a monitor with a slow screensaver behind the cradle, a keyboard, and a pinboard of notes
+  // the office: a monitor with a slow screensaver behind the cradle, and a pinboard of notes
   const mon = new THREE.Group(); mon.position.set(4.6, -.26, -3.3); mon.rotation.y = -.45; g.add(mon);
   const M = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, tbT(col)); m.position.set(x, y, z); m.castShadow = true; mon.add(m); return m; };
   M(new THREE.BoxGeometry(1.4, .08, .9), 0x2A2438, 0, .04, 0); M(new THREE.BoxGeometry(.18, 1.6, .18), 0x2A2438, 0, .8, -.1);
   M(new THREE.BoxGeometry(4.2, 2.6, .22), 0x2A2438, 0, 2.6, 0);
   NC.scrC = document.createElement("canvas"); NC.scrC.width = 96; NC.scrC.height = 60; NC.scrTex = new THREE.CanvasTexture(NC.scrC); NC.scrTex.encoding = THREE.sRGBEncoding;
-  const scr = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 2.35), new THREE.MeshBasicMaterial({ map: NC.scrTex })); scr.position.set(0, 2.6, .12); scr.userData.noInk = true; mon.add(scr);
-  const kb = add(new THREE.BoxGeometry(3.4, .14, 1.1), 0xF4F1EA, 3.4, -.19, 1.9); kb.rotation.y = -.3;
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) { const k = new THREE.Mesh(new THREE.BoxGeometry(.28, .06, .24), tbT(0xDCD6CC)); k.position.set(-1.35 + c * .34, .1, -.32 + r * .32); kb.add(k); }
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 2.35), NC.scrMat = new THREE.MeshBasicMaterial({ map: NC.scrTex })); scr.position.set(0, 2.6, .12); scr.userData.noInk = true; mon.add(scr);
+  // at night the screen's cool glow is the only light in the room
+  NC.monLight = new THREE.PointLight(0x8C9CFF, 0, 16, 1.4); NC.monLight.position.set(0, 2.6, 1.6); mon.add(NC.monLight);
   const board = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.2), new THREE.MeshBasicMaterial({ map: tbCanvas(256, 168, (x, w, h) => {
     x.fillStyle = "#C9935C"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(0,0,0,.08)"; for (let i = 0; i < 400; i++) x.fillRect(Math.random() * w, Math.random() * h, 2, 2);
     for (const [px, py, c, r] of [[30, 26, "#FFE27A", -.1], [110, 20, "#9FE3C4", .08], [180, 34, "#F4A6B8", -.05], [60, 96, "#A9D8FF", .06], [150, 100, "#FFE27A", -.08]]) {
@@ -6237,13 +6477,39 @@ function ncDesk(sc) {
   board.position.set(-4.2, 5.2, -4.95); sc.add(board);
   tbToonify(g, .03); sc.add(g);
   // a warm pool from the lamp
-  const spot = new THREE.SpotLight(0xFFD49A, .6, 14, .9, .8, 1.2); spot.position.set(-2.4, 3.4, -2.2); spot.target.position.set(0, 0, 0); sc.add(spot); sc.add(spot.target);
+  const spot = NC.spot = new THREE.SpotLight(0xFFD49A, .6, 14, .9, .8, 1.2); spot.position.set(-1.5, 2.3, -1.7); spot.target.position.set(0, 0, 0); sc.add(spot); sc.add(spot.target);
+  // a soft glow around the bulb
+  NC.halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: tbCanvas(64, 64, x => { const r = x.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,226,150,.9)"); r.addColorStop(1, "rgba(255,226,150,0)"); x.fillStyle = r; x.fillRect(0, 0, 64, 64); }), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  NC.halo.scale.setScalar(1.6); NC.halo.position.copy(NC.bulb.position); lamp.add(NC.halo);
+}
+// the lamp is the room's light: off, the office fades to a cosy night lit only by the monitor's screensaver
+function ncLamp(on, quiet) {
+  NC.lampOn = on; savePref("fidget-cradle-lamp", on ? "on" : "off");
+  NC.bulb.material.color.setHex(on ? 0xFFF2C8 : 0x8A8478); NC.halo.visible = on;
+  NC.shade.material.emissiveIntensity = on ? .35 : 0;
+  document.documentElement.classList.toggle("cradle-night", !on);
+  NC.nightT = on ? 0 : 1; if (quiet) ncNight(NC.nightV = NC.nightT);
+  if (!quiet) { S.tick(on ? 2600 : 1900, .3, .02, "square"); S.knock(.4); buzz(12); }
+}
+function ncNight(v) {
+  if (!NC.mats) {
+    // every colour in the room, kept so night can dim it (toon shading never goes fully dark on light alone)
+    NC.mats = []; NC.bg0 = NC.scene.background.clone();
+    NC.scene.traverse(o => { const m = o.isMesh && o.material; if (m && m.color && m !== NC.scrMat && m !== NC.bulb.material && !NC.mats.includes(m)) { m.userData.c0 = m.color.clone(); NC.mats.push(m); } });
+  }
+  const k = new THREE.Color(1 - .74 * v, 1 - .72 * v, 1 - .56 * v);
+  // the wall and pinboard aren't lit at all, so they're dimmed a little further by hand
+  const kb = k.clone().multiply(k).multiplyScalar(1 - .2 * v);
+  for (const m of NC.mats) m.color.copy(m.userData.c0).multiply(m.isMeshBasicMaterial ? kb : k);
+  NC.scene.background.copy(NC.bg0).multiply(k);
+  NC.hemi.intensity = .55 * (1 - .5 * v); NC.sun.intensity = 1 - .85 * v; NC.spot.intensity = 1.1 * (1 - v);
+  NC.monLight.intensity = 1.6 * v; if (NC.chrome) NC.chrome.envMapIntensity = 1.15 * (1 - .7 * v);
 }
 function cradleBuild() {
   const sc = new THREE.Scene(); NC.scene = sc;
   NC.cam = new THREE.PerspectiveCamera(35, 1, .1, 80);
-  sc.add(new THREE.HemisphereLight(0xFFFFFF, 0x9A8C7C, .55));
-  const sun = new THREE.DirectionalLight(0xFFF4E6, 1.0); sun.position.set(-3, 8, 5); sun.castShadow = true;
+  sc.add(NC.hemi = new THREE.HemisphereLight(0xFFFFFF, 0x9A8C7C, .55));
+  const sun = NC.sun = new THREE.DirectionalLight(0xFFF4E6, 1.0); sun.position.set(-3, 8, 5); sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 }); sun.shadow.bias = -.0005; sun.shadow.radius = 4; sc.add(sun);
   ncDesk(sc);
   // dark walnut base with a soft bevel
@@ -6269,6 +6535,7 @@ function cradleBuild() {
   const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(NC.n * 4 * 3), 3));
   NC.strings = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x6E6A70, transparent: true, opacity: .8 })); sc.add(NC.strings);
   NC.plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); NC.v = new THREE.Vector3();
+  ncLamp(pref("fidget-cradle-lamp", "on") === "on", true);
 }
 function ncScreenStep(t) {
   if (!NC.scrC || (NC.scrT = (NC.scrT || 0) + 1) % 8) return;
@@ -6297,6 +6564,7 @@ function ncWake() { NC.idle = 0; if (NC.desk) { NC.desk = false; secCradle.class
 function cradleFrame(now) {
   const dts = clamp((now - (NC.last || now - 16.7)) / 1000, .004, .04); NC.last = now;
   ncDeskMode(dts); ncScreenStep(now / 1000);
+  if (NC.nightV !== NC.nightT) { NC.nightV = NC.nightT > NC.nightV ? Math.min(NC.nightT, NC.nightV + dts * 2.2) : Math.max(NC.nightT, NC.nightV - dts * 2.2); ncNight(NC.nightV); }
   let hitV = 0; const sub = 12;
   for (let k = 0; k < sub; k++) hitV = Math.max(hitV, cradleStep(dts / sub));
   if (hitV > .09 && now - NC.hit > 35) {
@@ -6322,6 +6590,7 @@ on3D(secCradle, "pointerdown", e => {
   if (NC.grab || NC.ptrs.size > 2) return;
   const hit = rayAt(e, NC.cam).intersectObjects(NC.balls, false)[0];
   if (hit) { NC.grab = { id: e.pointerId, i: hit.object.userData.ball, set: [hit.object.userData.ball] }; S.tick(1200, .06, .02, "sine"); buzz(6); return; }
+  if (rayAt(e, NC.cam).intersectObject(NC.lampG, true).some(h => h.object.userData.lamp)) { ncLamp(!NC.lampOn); return; }
   NC.orbit = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 on3D(secCradle, "pointermove", e => {
@@ -7567,7 +7836,7 @@ function applyTheme() {
   const root = document.documentElement;
   if (themePref === "auto") root.removeAttribute("data-theme"); else root.dataset.theme = themePref;
   root.classList.toggle("dark", themePref === "dark" || (themePref === "auto" && darkQ.matches));
-  dTableLight();
+  dTableLight(); pop3Night();
 }
 document.querySelectorAll("#setTheme button").forEach(b => b.addEventListener("click", () => { themePref = b.dataset.th; savePref("fidget-theme", themePref); applyTheme(); syncSettings(); S.tick(1500, .08, .03, "sine"); }));
 (darkQ.addEventListener ? darkQ.addEventListener("change", applyTheme) : darkQ.addListener(applyTheme));
@@ -8545,7 +8814,16 @@ $("#trayHandle").addEventListener("pointermove", e => { if (TRAY.sy !== null) tr
 $("#trayHandle").addEventListener("pointerup", e => { const dy = TRAY.sy === null ? 0 : e.clientY - TRAY.sy; TRAY.sy = null; tray.style.setProperty("--pull", "0px"); if (dy > 60 || Math.abs(dy) < 6) closeDrawer(); });
 
 /* ================= loop + resize ================= */
-window.addEventListener("resize", () => { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); if (mode === "twisty") twistySetup(); if (mode === "stones") stonesSetup(); if (mode === "ice") iceSetup(); });
+function relayout() { if (mode === "dice" && D.ready) diceResize(); if (mode === "slime") slimeSetup(false); if (mode === "bubbles") layoutBubbles(false); if (mode === "grass") grassSetup(false); if (mode === "pop") popSetup(false); if (mode === "spin") spinSetup(); if (mode === "zen") zenSetup(); if (mode === "cradle") cradleSetup(); if (mode === "cube") cubeSetup(); if (mode === "rocks") rocksSetup(); if (mode === "home") tbSetup(); if (mode === "board") boardSetup(); if (mode === "twisty") twistySetup(); if (mode === "stones") stonesSetup(); if (mode === "ice") iceSetup(); }
+// turning the phone: iOS can send "resize" before the page has its new shape, which left every picture stretched to the old size.
+// So also watch the app's own box, and look again a moment after any resize or turn, once the new layout has settled.
+function onTurn() { relayout(); setTimeout(relayout, 150); setTimeout(relayout, 500); }
+window.addEventListener("resize", onTurn); window.addEventListener("orientationchange", onTurn);
+if (screen.orientation) screen.orientation.addEventListener("change", onTurn);
+if (window.ResizeObserver) new ResizeObserver(() => relayout()).observe($("#app"));
+// and as a last resort, a cheap look at the window's size a few times a second, in case no event comes at all
+let seenW = innerWidth, seenH = innerHeight;
+setInterval(() => { if (innerWidth !== seenW || innerHeight !== seenH) { seenW = innerWidth; seenH = innerHeight; onTurn(); } }, 250);
 // silence everything (including the slime squish bed) while the app is in the background
 document.addEventListener("visibilitychange", () => {
   if (!actx) return;
@@ -8558,7 +8836,7 @@ renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
-if (location.hash) window.__fidget = { P3, IC, iceFrame, icBrush, icHeightAt, icPick, G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, stStep, stNewHand, stSkill, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { P3, pop3Night, IC, iceFrame, icBrush, icHeightAt, icPick, G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, stStep, stNewHand, stSkill, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
@@ -8581,7 +8859,7 @@ if (location.hash) window.__fidget = { P3, IC, iceFrame, icBrush, icHeightAt, ic
   if (mode === "stones" && ST.W) stonesFrame(now || 0);
   if (mode === "ice" && IC.W) iceFrame(now || 0);
   else if (IC.bed) IC.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
-  else if (ST.bed) ST.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
+  if (mode !== "stones" && ST.bed) ST.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
   if (mode === "home" && TB.W && !secHome.classList.contains("list")) tbFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.rain.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
