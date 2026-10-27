@@ -742,7 +742,7 @@ html[data-mode="ice"]{background:#0B1626}
 
   <section class="mode" id="mode-pop" aria-label="Pop-it">
     <canvas id="popcv" aria-label="A silicone pop-it on a kitchen table. Press the bubbles in, then flick it or tap Flip to turn it over and pop them again."></canvas>
-    <p class="hint" id="pHint">Press the bubbles</p>
+    <p class="hint" id="pHint">Press the bubbles · flick from the edge to flip</p>
     <button class="newsheet" id="popFlip">Flip it over</button>
     <div class="themes" role="group" aria-label="Pop-it shape">
       <button class="opt" data-shape="square" aria-pressed="true"><i style="border-radius:5px;background:linear-gradient(180deg,#FF6B8A,#FFE14D,#4AA8FF)"></i>Square</button>
@@ -4358,7 +4358,7 @@ function pop3Setup() {
   if (typeof THREE === "undefined" || !mount3D(secPop)) { P3.on = false; pcv.style.display = ""; return false; }
   if (!P3.board || P3.shape !== P.shape) pop3Build(P.shape);
   pcv.style.display = "none"; P3.on = true;
-  const asp = P3.cam.aspect = GL.w / GL.h, t = Math.tan(18 * Math.PI / 180), d = Math.max(4.4 / t, 4 / (t * asp)) * 1.05;
+  const asp = P3.cam.aspect = GL.w / GL.h, t = Math.tan(18 * Math.PI / 180), d = Math.max(4 / t, 4.05 / (t * asp));
   P3.cam.position.set(0, P3.y + d * .88, d * .48); P3.cam.lookAt(0, P3.y, .2); P3.cam.updateProjectionMatrix();
   return true;
 }
@@ -4372,25 +4372,40 @@ function pop3Frame(dt) {
   P3.board.rotation.z = P.flip >= 0 ? Math.PI * (f < .5 ? f : f - 1) : 0; P3.pivot.position.y = P3.y + .2 + Math.sin(Math.PI * f) * 2.2;
   toonRender(GL.r, P3.scene, P3.cam, { ink: null });
 }
-// touch: tap or drag across the bubbles; a quick swipe flips it over
+// which bubble is under a screen point: where the ray meets the pop-it's top, the nearest bubble within reach
+let pop3Plane, pop3V;
+function pop3Hit(cx, cy) {
+  if (P.flip >= 0) return null;
+  if (!pop3Plane) { pop3Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); pop3V = new THREE.Vector3(); }
+  pop3Plane.constant = -(P3.pivot.position.y + .16);
+  if (!rayAt({ clientX: cx, clientY: cy }, P3.cam).ray.intersectPlane(pop3Plane, pop3V)) return null;
+  let best = null, bd = 1e9;
+  for (const p of P.dots) { const d = Math.hypot(pop3V.x - p.u * 3.3, pop3V.z - p.v * 3.3) / (p.r * 3.3); if (d < bd) { bd = d; best = p; } }
+  return bd < 1.12 ? best : null;
+}
+// touch: tap or drag across the bubbles to pop them; a quick flick that starts off the bubbles flips it over
 on3D(secPop, "pointerdown", e => {
   if (!P3.on) return;
   GL.canvas.setPointerCapture(e.pointerId); ac(); pHint.classList.add("gone");
-  const h = rayAt(e, P3.cam).intersectObjects(P3.domes, false)[0], p = h ? h.object.userData.dot : null;
-  P3.ptrs.set(e.pointerId, { p, x0: e.clientX, y0: e.clientY, t0: performance.now(), popped: [] });
-  if (p && !p.down) P3.ptrs.get(e.pointerId).popped.push(p);
+  const p = pop3Hit(e.clientX, e.clientY);
+  P3.ptrs.set(e.pointerId, { p, start: p, x0: e.clientX, y0: e.clientY, lx: e.clientX, ly: e.clientY, t0: performance.now(), popped: [] });
   popPress(p, true);
 });
 on3D(secPop, "pointermove", e => {
   const s = P3.ptrs.get(e.pointerId); if (!s) return;
-  const h = rayAt(e, P3.cam).intersectObjects(P3.domes, false)[0], p = h ? h.object.userData.dot : null;
-  if (p !== s.p) { s.p = p; if (p && !p.down) s.popped.push(p); popPress(p, false); }
+  // a fast drag jumps between samples, so every bubble along the way is checked
+  const n = Math.max(1, Math.ceil(Math.hypot(e.clientX - s.lx, e.clientY - s.ly) / 6));
+  for (let i = 1; i <= n; i++) {
+    const p = pop3Hit(s.lx + (e.clientX - s.lx) * i / n, s.ly + (e.clientY - s.ly) * i / n);
+    if (p !== s.p) { s.p = p; if (p && !p.down) s.popped.push(p); popPress(p, false); }
+  }
+  s.lx = e.clientX; s.ly = e.clientY;
 });
 const pop3End = e => {
   const s = P3.ptrs.get(e.pointerId); if (!s) return; P3.ptrs.delete(e.pointerId);
-  const dx = e.clientX - s.x0, dy = e.clientY - s.y0, dist = Math.hypot(dx, dy), ms = performance.now() - s.t0;
-  // a flick: fast and long; the bubbles it brushed on the way are let back up so the flick only flips
-  if (dist > 110 && ms < 260 && dist / ms > .9) { for (const p of s.popped) p.down = false; popFlipOver(); }
+  const dist = Math.hypot(e.clientX - s.x0, e.clientY - s.y0), ms = performance.now() - s.t0;
+  // a flick from the edge or the table, not a swipe along the bubbles; bubbles it brushed on the way are let back up
+  if (!s.start && dist > 100 && ms < 300 && dist / ms > .7) { for (const p of s.popped) p.down = false; popFlipOver(); }
 };
 on3D(secPop, "pointerup", pop3End); on3D(secPop, "pointercancel", pop3End);
 /* ================= twisty ================= */
@@ -8486,7 +8501,7 @@ renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
-if (location.hash) window.__fidget = { IC, iceFrame, icBrush, icHeightAt, icPick, G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, stStep, stNewHand, stSkill, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { P3, IC, iceFrame, icBrush, icHeightAt, icPick, G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, stStep, stNewHand, stSkill, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
