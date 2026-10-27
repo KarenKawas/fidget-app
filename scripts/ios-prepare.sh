@@ -13,10 +13,10 @@ const sharp = require("sharp"), fs = require("fs"), dir = "ios/App/App/Assets.xc
 
 P=ios/App/App/Info.plist
 set_key() { /usr/libexec/PlistBuddy -c "Set :$1 $3" "$P" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :$1 $2 $3" "$P"; }
-# portrait only
+# upright or on either side (the app holds still by itself while the dice follow the tilt)
 for K in UISupportedInterfaceOrientations "UISupportedInterfaceOrientations~ipad"; do
   /usr/libexec/PlistBuddy -c "Delete :$K" "$P" || true
-  /usr/libexec/PlistBuddy -c "Add :$K array" -c "Add :$K:0 string UIInterfaceOrientationPortrait" "$P"
+  /usr/libexec/PlistBuddy -c "Add :$K array" -c "Add :$K:0 string UIInterfaceOrientationPortrait" -c "Add :$K:1 string UIInterfaceOrientationLandscapeLeft" -c "Add :$K:2 string UIInterfaceOrientationLandscapeRight" "$P"
 done
 set_key UIRequiresFullScreen bool true
 # the dice can follow the phone's tilt

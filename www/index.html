@@ -14,7 +14,7 @@
   --sheet:#D9E9F4; --sheet-line:rgba(70,120,160,.10);
   --slimebg:#E62A64;
   color-scheme:light; box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-top:env(safe-area-inset-top,0px); --sl:env(safe-area-inset-left,0px); --sr:env(safe-area-inset-right,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -64,7 +64,7 @@ button{font:inherit;color:inherit}
 
 /* ---------- menu ---------- */
 .fab{
-  position:fixed; z-index:20; left:14px; top:calc(env(safe-area-inset-top,0px) + 12px);
+  position:fixed; z-index:20; left:calc(var(--sl) + 14px); top:calc(env(safe-area-inset-top,0px) + 12px);
   width:48px; height:48px; border-radius:16px; border:0; cursor:pointer;
   background:rgba(255,255,255,.72); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   box-shadow:0 2px 10px rgba(0,0,0,.18); display:grid; place-items:center;
@@ -184,7 +184,7 @@ html.dark .fab svg{stroke:#F1EDF8}
 html.dark .pill[aria-pressed="true"],html.dark .seg button[aria-pressed="true"]{background:#F1EDF8;color:#231F30}
 html.dark[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.08) 0 3px,transparent 3.5px) 0 0/28px 28px,#3A2232}
 html.dark #mode-pop .hint{color:rgba(240,232,250,.75)}
-.pop-sheets{position:absolute;top:64px;right:12px;z-index:3;display:flex;gap:8px}
+.pop-sheets{position:absolute;top:64px;right:calc(var(--sr) + 12px);z-index:3;display:flex;gap:8px}
 .pop-sheets button{width:28px;height:28px;border-radius:50%;border:3px solid #FFFFFF;box-shadow:0 2px 6px rgba(40,30,60,.25);cursor:pointer;padding:0}
 .pop-sheets button[aria-pressed="true"]{border-color:#2A2438;transform:scale(1.12)}
 html.dark .pop-sheets button{border-color:#3A3446}
@@ -204,9 +204,9 @@ html.dark[data-mode="home"]{background:radial-gradient(ellipse at 50% 28%,#3B314
 .tb-title{transition:opacity .4s;display:flex;align-items:center;gap:8px}
 .tb-mark{width:34px;height:35px;flex:none}
 #mode-home.tb-open .tb-title{opacity:0}
-.tb-title{position:fixed;z-index:4;left:74px;top:calc(env(safe-area-inset-top,0px) + 20px);margin:0;font-size:1.45rem;font-weight:600;color:#6B5240}
+.tb-title{position:fixed;z-index:4;left:calc(var(--sl) + 74px);top:calc(env(safe-area-inset-top,0px) + 20px);margin:0;font-size:1.45rem;font-weight:600;color:#6B5240}
 html.dark .tb-title{color:#EADFF5}
-.tb-top{position:fixed;z-index:5;right:14px;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;gap:8px}
+.tb-top{position:fixed;z-index:5;right:calc(var(--sr) + 14px);top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;gap:8px}
 .tb-top button{width:46px;height:46px;border:0;border-radius:16px;cursor:pointer;display:grid;place-items:center;color:#2A2438;
   background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .tb-top button svg{width:22px;height:22px}
@@ -214,7 +214,7 @@ html.dark .tb-title{color:#EADFF5}
 html.dark .tb-top button{background:rgba(40,36,56,.78);color:#F1EDF8}
 .tb-hint{bottom:100px;color:rgba(90,70,50,.75);text-shadow:none}
 html.dark .tb-hint{color:rgba(235,228,245,.75)}
-.tb-well{position:fixed;z-index:6;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);margin:0;justify-content:center}
+.tb-well{position:fixed;z-index:6;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 12px);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);margin:0;justify-content:center}
 .tb-well .pill{background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,.12)}
 html.dark .tb-well .pill{background:rgba(40,36,56,.8)}
 .tb-tag{position:fixed;z-index:6;left:50%;transform:translate(-50%,10px);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;
@@ -287,7 +287,7 @@ html[data-mode="stones"]{background:var(--stbg,#DCE3E6)}
 html[data-mode="ice"]{background:#0B1626}
 #mode-ice .hint{bottom:84px;color:#2A3A50;text-shadow:0 1px 4px rgba(255,255,255,.8)}
 #mode-ice .newsheet{z-index:3}
-.ice-book{position:absolute;z-index:4;right:14px;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;align-items:center;gap:6px;border:0;border-radius:16px;padding:10px 14px;cursor:pointer;
+.ice-book{position:absolute;z-index:4;right:calc(var(--sr) + 14px);top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;align-items:center;gap:6px;border:0;border-radius:16px;padding:10px 14px;cursor:pointer;
   font:inherit;font-weight:600;color:#2A2438;background:rgba(255,255,255,.85);box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .ice-book svg{width:22px;height:22px}
 .ice-card{position:absolute;z-index:5;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translateX(-50%);display:flex;gap:12px;align-items:center;width:min(88vw,360px);
@@ -310,13 +310,13 @@ html[data-mode="ice"]{background:#0B1626}
 #mode-stones .hint{bottom:72px}
 .st-skip{position:fixed;z-index:4;transform:translate(-50%,-50%);font-weight:700;font-size:1.6rem;color:#fff;-webkit-text-stroke:2.5px #2A2438;paint-order:stroke;pointer-events:none;animation:stskip .9s ease-out forwards}
 @keyframes stskip{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}20%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-160%) scale(1)}}
-#mode-twisty .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-twisty .themes{z-index:3;top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 #mode-twisty .tw-btns{position:absolute;left:0;right:0;bottom:74px;z-index:3;display:flex;justify-content:center;gap:10px}
 #mode-twisty .tw-btns .newsheet{position:static;transform:none}
 #mode-twisty .tw-icon{padding:10px 12px;display:grid;place-items:center}#mode-twisty .tw-icon svg{width:22px;height:22px}
 #mode-twisty .hint{bottom:128px}
 #mode-twisty.light .hint{color:#5A4E6A;text-shadow:none}
-#mode-board .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-board .themes{z-index:3;top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 /* the original controls stay for screen readers and keyboards, out of sight behind the 3D board */
 .board-a11y{position:absolute!important;width:1px;height:1px;padding:0!important;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;min-height:0!important}
 .plank{position:relative; min-height:100%; padding:84px 18px 48px; background:var(--plank-bg);}
@@ -383,7 +383,7 @@ html[data-mode="ice"]{background:#0B1626}
   --red-bg:radial-gradient(circle at 38% 28%,#FFE3F6 0 7%,#FF2E9A 32%,#C4007A 78%,#7A004C); --red-side:#4A002E; --red-glow:255,46,154;
   --k1:#00E5D4;--k1d:#008C82;--k2:#FF3DCB;--k2d:#A0197F;--k3:#A6FF3D;--k3d:#5FA81A;--k4:#FFB020;--k4d:#B36F00;
 }
-.themes{position:absolute;top:16px;left:72px;right:12px;display:flex;justify-content:flex-end;gap:6px;overflow-x:auto;scrollbar-width:none}
+.themes{position:absolute;top:16px;left:calc(var(--sl) + 72px);right:calc(var(--sr) + 12px);display:flex;justify-content:flex-end;gap:6px;overflow-x:auto;scrollbar-width:none}
 .theme,.season,.opt{flex:none;border:0;border-radius:999px;padding:6px 10px 6px 6px;display:flex;align-items:center;gap:6px;cursor:pointer;
   font-size:.82rem;font-weight:500;color:#2A2438;background:rgba(255,255,255,.78);box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .theme[aria-pressed="true"],.season[aria-pressed="true"],.opt[aria-pressed="true"]{background:#2A2438;color:#fff}
@@ -499,7 +499,7 @@ html[data-mode="ice"]{background:#0B1626}
 @keyframes burst{from{transform:scale(.6);opacity:1}to{transform:scale(1.7);opacity:0;border-width:0}}
 .newsheet{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);border:0;border-radius:999px;padding:12px 22px;cursor:pointer;
   font-weight:500;background:rgba(255,255,255,.8);color:#2A2438;box-shadow:0 3px 12px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.bub-bar{position:absolute;z-index:3;left:8px;right:8px;bottom:22px;display:flex;justify-content:center;align-items:center;gap:8px;pointer-events:none}
+.bub-bar{position:absolute;z-index:3;left:calc(var(--sl) + 8px);right:calc(var(--sr) + 8px);bottom:22px;display:flex;justify-content:center;align-items:center;gap:8px;pointer-events:none}
 .bub-bar>*{pointer-events:auto}
 .bub-track{position:absolute;left:0;top:0;right:0;height:0;will-change:transform}
 .bub-legend{position:absolute;z-index:3;left:0;right:0;bottom:74px;margin:0 auto;width:max-content;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
@@ -512,21 +512,21 @@ html[data-mode="ice"]{background:#0B1626}
 .bub-size button[aria-pressed="true"]{background:#2A2438;color:#fff}
 
 .ico.dice{border-radius:0;background:linear-gradient(160deg,#FFD27A,#F2A51F 60%,#C47F0A);clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
-.dice-hud{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;min-width:84px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
+.dice-hud{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(var(--sr) + 14px);min-width:84px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
   background:rgba(25,16,10,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .dice-hud .lbl{display:block;font-size:.8rem;opacity:.75}
 .dice-hud .total{display:block;font-size:2.1rem;font-weight:600;line-height:1.05}
 .dice-hud .crit{font-size:.8rem;font-weight:600;color:#FFD86B}
-.chips{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 14px);left:74px;right:112px;display:flex;flex-wrap:wrap;gap:6px}
+.chips{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 14px);left:calc(var(--sl) + 74px);right:calc(var(--sr) + 112px);display:flex;flex-wrap:wrap;gap:6px}
 .chip{border-radius:10px;padding:3px 9px;font-weight:600;font-size:.95rem;box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .chip small{font-weight:500;opacity:.75;margin-right:3px}
 .chips.dim{opacity:.4}
 /* the dice bag (bottom right) holds the dice and their colours; the character sheet (bottom left) holds roll, clear, tilt and the felt */
 .dbag,.dsheet{position:fixed;z-index:6;border:0;padding:0;cursor:pointer;background:none;-webkit-tap-highlight-color:transparent}
-.dbag{right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:68px;height:68px;filter:drop-shadow(0 5px 6px rgba(0,0,0,.45));transition:transform .2s ease}
+.dbag{right:calc(var(--sr) + 14px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:68px;height:68px;filter:drop-shadow(0 5px 6px rgba(0,0,0,.45));transition:transform .2s ease}
 .dbag svg{width:100%;height:100%;display:block}
 .dbag:active,.dbag[aria-expanded="true"]{transform:scale(.94) rotate(-4deg)}
-.dsheet{left:-18px;bottom:calc(env(safe-area-inset-bottom,0px) - 40px);width:96px;height:120px;border-radius:4px;transform:rotate(14deg);transition:transform .25s ease;
+.dsheet{left:calc(var(--sl) + -18px);bottom:calc(env(safe-area-inset-bottom,0px) - 40px);width:96px;height:120px;border-radius:4px;transform:rotate(14deg);transition:transform .25s ease;
   background:#EED9B0;box-shadow:0 6px 14px rgba(0,0,0,.45);text-align:left;padding:10px 0 0 26px;display:flex;flex-direction:column;gap:6px}
 .dsheet b{font:700 .8rem Georgia,serif;color:#6E4A20;letter-spacing:.06em}
 .dsheet i{display:block;height:3px;width:48px;background:rgba(110,74,32,.45)}
@@ -539,8 +539,8 @@ html[data-mode="ice"]{background:#0B1626}
 .dpop .row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 .dpop .dbtn{width:44px}
 .dpop-h{margin:0;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
-.dbag-pop{right:12px;transform-origin:bottom right;color:#F6E9FF;background:#4A2766;outline:2px dashed rgba(232,198,106,.55);outline-offset:-7px}
-.dsheet-pop{left:12px;transform-origin:bottom left;color:#5A3A18;background:#EED9B0;border-radius:6px;font-family:Georgia,serif}
+.dbag-pop{right:calc(var(--sr) + 12px);transform-origin:bottom right;color:#F6E9FF;background:#4A2766;outline:2px dashed rgba(232,198,106,.55);outline-offset:-7px}
+.dsheet-pop{left:calc(var(--sl) + 12px);transform-origin:bottom left;color:#5A3A18;background:#EED9B0;border-radius:6px;font-family:Georgia,serif}
 .dsheet-pop .act{color:#5A3A18;background:rgba(110,74,32,.14);box-shadow:0 3px 0 rgba(110,74,32,.35);font-family:inherit}
 .ds-row button{border:0;border-radius:999px;padding:5px 11px 5px 6px;font:inherit;font-size:.8rem;font-weight:600;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;display:flex;align-items:center;gap:6px}
 .ds-row button[aria-pressed="true"]{background:#FFE27A;color:#2A2438}
@@ -567,9 +567,9 @@ html[data-mode="ice"]{background:#0B1626}
 #mode-pop .themes,#mode-spin .themes{z-index:3}
 #mode-pop .hint{color:#6A4A30;text-shadow:none;bottom:84px}
 #mode-pop .newsheet.cheer{animation:cheer .5s ease-in-out 3}
-#mode-spin .themes{top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-spin .themes{top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 #mode-spin .hint{bottom:70px}
-.spin-hud{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;min-width:96px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
+.spin-hud{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(var(--sr) + 14px);min-width:96px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
   background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-variant-numeric:tabular-nums}
 .spin-hud .lbl{display:block;font-size:.8rem;opacity:.75}
 .spin-hud .total{display:block;font-size:2rem;font-weight:600;line-height:1.05}
@@ -583,33 +583,33 @@ html[data-mode="ice"]{background:#0B1626}
 .ico.rocks svg{width:34px;height:34px}
 #mode-rocks .hint{color:rgba(70,50,30,.75);text-shadow:0 1px 4px rgba(255,255,255,.6)}
 #mode-rocks .hint{bottom:140px}
-.rock-time{top:auto;bottom:84px;left:12px;right:12px;justify-content:center;z-index:3}
-.rock-center{position:fixed;z-index:4;left:14px;top:calc(env(safe-area-inset-top,0px) + 72px);width:48px;height:48px;border:0;border-radius:16px;cursor:pointer;
+.rock-time{top:auto;bottom:84px;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 12px);justify-content:center;z-index:3}
+.rock-center{position:fixed;z-index:4;left:calc(var(--sl) + 14px);top:calc(env(safe-area-inset-top,0px) + 72px);width:48px;height:48px;border:0;border-radius:16px;cursor:pointer;
   display:grid;place-items:center;background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .rock-center svg{width:24px;height:24px}
-.rock-new{position:fixed;z-index:4;right:14px;top:calc(env(safe-area-inset-top,0px) + 96px);margin:0;padding:6px 12px;border-radius:999px;font-weight:600;font-size:.85rem;color:#2A2438;background:#FFE27A;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.rock-new{position:fixed;z-index:4;right:calc(var(--sr) + 14px);top:calc(env(safe-area-inset-top,0px) + 96px);margin:0;padding:6px 12px;border-radius:999px;font-weight:600;font-size:.85rem;color:#2A2438;background:#FFE27A;box-shadow:0 3px 10px rgba(0,0,0,.2)}
 .rock-new.show{animation:rocknew 2.6s ease-out forwards}
 @keyframes rocknew{0%{transform:scale(.6);opacity:0}12%{transform:scale(1.12);opacity:1}20%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
 .rock-hud{background:rgba(40,40,50,.28)}
 .rock-hud small{font-size:.9rem;font-weight:500}
-.rock-tools{left:10px;right:10px;transform:none;gap:2px;padding:5px}
+.rock-tools{left:calc(var(--sl) + 10px);right:calc(var(--sr) + 10px);transform:none;gap:2px;padding:5px}
 .rock-tools .top-btn{min-width:0;flex:1;padding:6px 4px 5px;font-size:.74rem}
 .rock-tools .top-btn svg{width:26px;height:26px}
 .rock-tools .top-btn[aria-pressed="true"]{background:rgba(42,36,56,.13)}
 .ico.cube{background:radial-gradient(circle at 50% 40%,#FBF8FF,#E2DAEE);display:grid;place-items:center}
 .ico.cube svg{width:36px;height:36px}
-#mode-cube .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-cube .themes{z-index:3;top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 #mode-cube .hint{color:rgba(60,40,80,.7);text-shadow:none;bottom:70px}
 #mode-zen .hint{color:rgba(60,50,40,.7);text-shadow:none;bottom:96px}
-.zen-tools{left:10px;right:10px;transform:none;gap:2px;padding:5px}
+.zen-tools{left:calc(var(--sl) + 10px);right:calc(var(--sr) + 10px);transform:none;gap:2px;padding:5px}
 .zen-tools .top-btn{min-width:0;flex:1;padding:6px 4px 5px;font-size:.74rem}
 .zen-tools .top-btn svg{width:26px;height:26px}
 .zen-tools .top-btn[aria-pressed="true"],.zen-tools .top-btn[aria-expanded="true"]{background:rgba(42,36,56,.13)}
-.zen-view{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;display:flex;gap:8px}
+.zen-view{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(var(--sr) + 14px);display:flex;gap:8px}
 .zen-view button{width:46px;height:46px;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;background:rgba(255,255,255,.8);box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .zen-view svg{width:22px;height:22px}
 .zen-view button.off svg{opacity:.3}
-.zen-items{position:absolute;z-index:5;left:12px;right:12px;bottom:92px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px;border-radius:20px;
+.zen-items{position:absolute;z-index:5;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 12px);bottom:92px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px;border-radius:20px;
   background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 18px rgba(0,0,0,.18)}
 .zen-items[hidden]{display:none}
 .zen-items .opt{padding:7px 12px;box-shadow:none;background:rgba(42,36,56,.07)}
@@ -617,7 +617,7 @@ html[data-mode="ice"]{background:#0B1626}
   font-weight:500;color:#fff;background:rgba(200,50,50,.75);transition:transform .15s,background .15s;pointer-events:none}
 .zen-trash.over{transform:translateX(-50%) scale(1.12);background:#D0302C}
 #mode-cradle .hint{color:rgba(60,50,40,.7);text-shadow:none;bottom:40px}
-#mode-grass .themes{z-index:3;top:auto;bottom:18px;left:12px;justify-content:center}
+#mode-grass .themes{z-index:3;top:auto;bottom:18px;left:calc(var(--sl) + 12px);justify-content:center}
 #mode-grass .newsheet{bottom:70px}
 #mode-grass .hint{bottom:132px}
 @media (prefers-reduced-motion:reduce){.red{animation-duration:3s}.drawer{transition:none}}
@@ -1027,6 +1027,16 @@ const canVibrate = typeof navigator.vibrate === "function";
 const Cap = window.Capacitor;
 const HP = Cap && Cap.isNativePlatform && Cap.isNativePlatform() && Cap.Plugins && Cap.Plugins.Haptics ? Cap.Plugins.Haptics : null;
 if (!canVibrate && !HP) $("#hapticNote").hidden = false;
+// the app turns with the phone, except while the dice follow its tilt: then the screen stays the way it's facing, so tilting doesn't flip it round
+const SO = Cap && Cap.isNativePlatform && Cap.isNativePlatform() && Cap.Plugins && Cap.Plugins.ScreenOrientation ? Cap.Plugins.ScreenOrientation : null;
+let tiltLock = false, orientLocked = false;
+async function orientLock(on) {
+  if (on === orientLocked) return; orientLocked = on;
+  try {
+    if (SO) { if (on) await SO.lock({ orientation: (await SO.orientation()).type }); else await SO.unlock(); }
+    else if (screen.orientation && screen.orientation.lock) { if (on) await screen.orientation.lock(screen.orientation.type); else screen.orientation.unlock(); }
+  } catch (e) {}
+}
 // preferences (Settings sheet): volume, ambience, haptic strength, theme, calm mode, breathing guide
 const pref = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
 const savePref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
@@ -1136,7 +1146,7 @@ const drawer = $("#drawer"), scrim = $("#scrim"), menuBtn = $("#menuBtn");
 ["gesturestart", "gesturechange", "dblclick"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
 
 function setMode(m) {
-  mode = m; trayNote(m);
+  mode = m; trayNote(m); orientLock(m === "dice" && tiltLock);
   document.querySelectorAll(".mode").forEach(el => el.classList.toggle("active", el.id === "mode-" + m));
   document.querySelectorAll(".mode-btn").forEach(b => b.setAttribute("aria-current", b.dataset.mode === m ? "true" : "false"));
   document.documentElement.dataset.mode = m;
@@ -2132,6 +2142,11 @@ $("#clearDice").addEventListener("click", () => {
 });
 function saveDiceSet() { try { localStorage.setItem("fidget-dice-set", JSON.stringify(D.dice.map(d => d.type))); } catch (e) {} }
 
+// a sideways x, y from the phone's sensors, turned to match the screen (it's on its side in landscape)
+function toScreen(x, y) {
+  const a = ((screen.orientation && screen.orientation.angle) ?? window.orientation ?? 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  return [x * c - y * s, x * s + y * c];
+}
 // tilt or shake the phone to move the dice. iOS asks for motion permission, which must come from a tap.
 const shakeBtn = $("#shakeBtn"), askMotion = typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function";
 let shakeOn = false, motionOK = !askMotion, lastG = null, lastShake = 0;
@@ -2146,6 +2161,7 @@ function onMotion(e) {
     if (!lastG) { lastG = { x: g.x, y: g.y, z: g.z }; return; }
     ax = g.x - lastG.x; ay = g.y - lastG.y; az = g.z - lastG.z; lastG = { x: g.x, y: g.y, z: g.z };
   } else return;
+  [ax, ay] = toScreen(ax, ay);
   const mag = Math.hypot(ax, ay, az), now = performance.now();
   if (!D.dice.length) { if (mag > 15 && now - lastShake > 900) { lastShake = now; addDie("d6"); } return; }
   if (mag < 4 || now - lastShake < 50) return;
@@ -2168,8 +2184,8 @@ function onOrient(e) {
   if (mode !== "dice" || !D.ready || e.beta == null || e.gamma == null) return;
   const lim = 50 * Math.PI / 180, R = Math.PI / 180;
   const tz = clamp(e.beta * R, -lim, lim), tx = clamp(e.gamma * R, -lim, lim);
-  // tilt right -> roll right (+x); top edge up -> roll toward the bottom of the screen (+z)
-  const G = 34, sx = Math.sin(tx), sz = Math.sin(tz);
+  // tilt right -> roll right (+x); top edge up -> roll toward the bottom of the screen (+z), measured against the screen, not the phone
+  const [px, py] = toScreen(Math.sin(tx), -Math.sin(tz)), G = 34, sx = px, sz = -py;
   TILT.gx += (G * sx - TILT.gx) * .3; TILT.gz += (G * sz - TILT.gz) * .3;
   const gy = -G * Math.sqrt(Math.max(.2, 1 - sx * sx - sz * sz));
   D.world.gravity.set(TILT.gx, gy, TILT.gz);
@@ -2191,7 +2207,7 @@ async function askMotionPermission() {
   return motionOK;
 }
 function setShake(on) {
-  shakeOn = on; shakeBtn.textContent = on ? "Tilt: on" : "Tilt: off"; shakeBtn.setAttribute("aria-pressed", on);
+  shakeOn = on; tiltLock = on && motionOK; orientLock(mode === "dice" && tiltLock); shakeBtn.textContent = on ? "Tilt: on" : "Tilt: off"; shakeBtn.setAttribute("aria-pressed", on);
   const verb = on && motionOK ? "addEventListener" : "removeEventListener";
   window[verb]("devicemotion", onMotion); window[verb]("deviceorientation", onOrient);
   TILT.gx = TILT.gz = 0; TILT.kick = [0, 0];
@@ -4489,7 +4505,8 @@ function pop3Night() {
 function pop3Fit() {
   const cam = P3.cam, asp = cam.aspect = GL.w / GL.h, [ex, ez] = POP3_EXT[P3.shape].map(e => e * 3.3 + .1), y0 = P3.y + .2;
   const pts = []; for (const x of [-ex, ex]) for (const z of [-ez, ez]) for (const y of [0, .5]) pts.push(new THREE.Vector3(x, y0 + y, z));
-  const v = new THREE.Vector3(), mt = 112, mb = 112, mx = 12;
+  // on its side the shape buttons sit off to the right, so the sheet can use nearly the full height
+  const land = GL.w > GL.h, v = new THREE.Vector3(), mt = land ? 16 : 112, mb = land ? 80 : 112, mx = 12;
   const place = d => { cam.clearViewOffset(); cam.position.set(0, y0 + d * .9, d * .44); cam.lookAt(0, y0, 0); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); };
   const span = () => { let x0 = 1, x1 = -1, y1 = -1, y2 = 1; for (const p of pts) { v.copy(p).project(cam); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y2 = Math.min(y2, v.y); y1 = Math.max(y1, v.y); } return { w: x1 - x0, h: y1 - y2, top: y1, bot: y2 }; };
   let lo = 3, hi = 80;
@@ -6108,7 +6125,7 @@ function cubeSetup() {
   if (!mount3D(secCube)) return;
   if (!CB.scene) cubeBuild();
   CB.cam.aspect = GL.w / GL.h;
-  const t = Math.tan(17.5 * Math.PI / 180); CB.dist = 1.45 / (t * Math.min(1, CB.cam.aspect));
+  const t = Math.tan(17.5 * Math.PI / 180); CB.dist = 1.45 / (t * Math.min(1, CB.cam.aspect) * (CB.cam.aspect > 1 ? .78 : 1)); // a little smaller on its side, clear of the colour chips
   CB.cam.position.set(0, 0, CB.dist / CB.zoom); CB.cam.lookAt(0, 0, 0); CB.cam.updateProjectionMatrix();
   CB.W = GL.w;
 }
