@@ -4258,6 +4258,7 @@ function roomKit(sc, o) {
   const wallTex = tbCanvas(512, 256, (x, w, h) => { x.fillStyle = o.wall || "#E9DCCB"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(0,0,0,.05)"; for (let i = 0; i < w; i += 26) x.fillRect(i, 0, 2, h); x.fillStyle = o.trim || "#F7EFE4"; x.fillRect(0, h - 22, w, 22); x.fillStyle = "#2A2438"; x.fillRect(0, h - 24, w, 3); });
   const wall = (w2, x, z, ry) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w2, H), tbT(0xFFFFFF, { map: wallTex })); m.position.set(x, H / 2 - .01, z); m.rotation.y = ry; m.receiveShadow = true; g.add(m); return m; };
   wall(W, 0, -D / 2, 0); wall(D, -W / 2, 0, Math.PI / 2); wall(D, W / 2, 0, -Math.PI / 2);
+  if (o.front) wall(W, 0, D / 2, Math.PI); // a fourth wall, for rooms the camera can turn right round in
   if (o.window) {
     const [wx, wy, wz, ry, ww, wh] = o.window;
     const win = new THREE.Mesh(new THREE.PlaneGeometry(ww, wh), new THREE.MeshBasicMaterial({ map: tbCanvas(256, 256, (x, w, h) => {
@@ -4293,29 +4294,29 @@ function roomPlant(pot = 0xE7A27C) {
 
 /* ---- the living room for Twisty: links on a rug, a sofa, and a TV murmuring in the background ---- */
 function twRoom(sc) {
-  const room = roomKit(sc, { w: 28, d: 24, h: 13, floor: "#C38E5C", wall: "#E3D2BE", window: [13.95, 6.5, -3, -Math.PI / 2, 6, 5] });
+  const room = roomKit(sc, { w: 40, d: 36, h: 18, front: true, floor: "#C38E5C", wall: "#E3D2BE", window: [19.95, 8, -3, -Math.PI / 2, 6, 5] });
   const add = (o, x, y, z, ry = 0) => { o.position.set(x, y, z); o.rotation.y = ry; room.add(o); return o; };
-  add(roomSofa(0x7A9ACB), -11.8, 0, 1, Math.PI / 2);
-  add(roomPlant(), -11.5, 0, -10.2);
+  add(roomSofa(0x7A9ACB), -17.8, 0, 1, Math.PI / 2);
+  add(roomPlant(), -17.5, 0, -16.2);
   // a floor lamp
   const lamp = new THREE.Group();
   for (const [geo, col, y] of [[new THREE.CylinderGeometry(.7, .8, .2, 20), 0x2A2438, .1], [new THREE.CylinderGeometry(.08, .08, 6, 8), 0x2A2438, 3], [new THREE.CylinderGeometry(.9, 1.5, 1.6, 20, 1, true), 0xFFE7B8, 6.4]]) { const m = new THREE.Mesh(geo, tbT(col, { side: THREE.DoubleSide })); m.position.y = y; m.castShadow = true; lamp.add(m); }
-  add(lamp, 8, 0, -10.5);
+  add(lamp, 12, 0, -16.5);
   // the TV on a low cabinet, against the right wall, its screen gently changing colour
   const tv = new THREE.Group();
   const cab = new THREE.Mesh(new THREE.BoxGeometry(9, 2, 2.2), tbT(0xC48650, { map: tbWoodTex(TB_STYLES.natural) })); cab.position.y = 1; cab.castShadow = cab.receiveShadow = true; tv.add(cab);
   const body = new THREE.Mesh(new THREE.BoxGeometry(7.4, 4.4, .4), tbT(0x1E1A26)); body.position.set(0, 4.5, 0); tv.add(body);
   TW.tvC = document.createElement("canvas"); TW.tvC.width = 64; TW.tvC.height = 40; TW.tvTex = new THREE.CanvasTexture(TW.tvC); TW.tvTex.encoding = THREE.sRGBEncoding;
   const scr = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 3.9), new THREE.MeshBasicMaterial({ map: TW.tvTex })); scr.position.set(0, 4.5, .21); scr.userData.noInk = true; tv.add(scr);
-  add(tv, -1, 0, -10.9);
+  add(tv, -1, 0, -16.9);
   // the TV's light washes softly into the room
-  TW.tvLight = new THREE.PointLight(0x9FC8FF, .5, 22, 1.5); TW.tvLight.position.set(-1, 4.5, -8); sc.add(TW.tvLight);
+  TW.tvLight = new THREE.PointLight(0x9FC8FF, .5, 22, 1.5); TW.tvLight.position.set(-1, 4.5, -14); sc.add(TW.tvLight);
   // a coffee table with a mug and a remote
   const tbl = new THREE.Group(), top = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, .3, 28), tbT(0xE9D2B4)); top.position.y = 2; tbl.add(top);
   for (let k = 0; k < 3; k++) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 2, 8), tbT(0x8A5A30)); const a = k / 3 * 6.28; leg.position.set(Math.cos(a) * 1.6, 1, Math.sin(a) * 1.6); tbl.add(leg); }
   const mug = new THREE.Mesh(new THREE.CylinderGeometry(.35, .3, .7, 16), tbT(0xF2A5B8)); mug.position.set(.6, 2.5, .3); tbl.add(mug);
   const remote = new THREE.Mesh(new THREE.BoxGeometry(.4, .15, 1.3), tbT(0x2A2438)); remote.position.set(-.6, 2.22, -.2); remote.rotation.y = .5; tbl.add(remote);
-  add(tbl, 11, 0, 5);
+  add(tbl, 15, 0, 6);
   tbToonify(room, .05);
 }
 // the TV picture: soft cartoon colours drifting by
@@ -4775,8 +4776,15 @@ function twBuild() {
 }
 function twCamera() {
   const d = (TW.W && TW.cam.aspect < 1 ? 15 / TW.cam.aspect * .62 : 15) / TW.zoom, cp = Math.cos(TW.pitch); TW.pitch = Math.min(TW.pitch, 1.3);
-  const T = TW.tgt || (TW.tgt = new THREE.Vector3(0, 1, 0));
-  TW.cam.position.set(T.x + Math.sin(TW.yaw) * cp * d, T.y + Math.sin(TW.pitch) * d, T.z + Math.cos(TW.yaw) * cp * d);
+  const T = TW.tgt || (TW.tgt = new THREE.Vector3(0, 1, 0)), P = TW.cam.position;
+  T.x = clamp(T.x, -16, 16); T.z = clamp(T.z, -14, 14);
+  P.set(T.x + Math.sin(TW.yaw) * cp * d, T.y + Math.sin(TW.pitch) * d, T.z + Math.cos(TW.yaw) * cp * d);
+  // stay inside the room: rather than pass through a wall or over the top, the camera comes in closer
+  let t = 1;
+  if (Math.abs(P.x) > 19) t = Math.min(t, (Math.sign(P.x) * 19 - T.x) / (P.x - T.x));
+  if (Math.abs(P.z) > 17) t = Math.min(t, (Math.sign(P.z) * 17 - T.z) / (P.z - T.z));
+  if (P.y > 17) t = Math.min(t, (17 - T.y) / (P.y - T.y));
+  if (t < 1) P.sub(T).multiplyScalar(t).add(T);
   TW.cam.lookAt(T); TW.cam.updateProjectionMatrix(); TW.cam.updateMatrixWorld();
 }
 function twistySetup() {
