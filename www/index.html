@@ -183,7 +183,12 @@ html.dark .fab{background:rgba(40,36,56,.78)}
 html.dark .fab svg{stroke:#F1EDF8}
 html.dark .pill[aria-pressed="true"],html.dark .seg button[aria-pressed="true"]{background:#F1EDF8;color:#231F30}
 html.dark[data-mode="pop"]{background:radial-gradient(circle,rgba(255,255,255,.08) 0 3px,transparent 3.5px) 0 0/28px 28px,#3A2232}
-html.dark #mode-pop .hint{color:#6A4A30}
+html.dark #mode-pop .hint{color:rgba(240,232,250,.75)}
+.pop-sheets{position:absolute;top:64px;right:12px;z-index:3;display:flex;gap:8px}
+.pop-sheets button{width:28px;height:28px;border-radius:50%;border:3px solid #FFFFFF;box-shadow:0 2px 6px rgba(40,30,60,.25);cursor:pointer;padding:0}
+.pop-sheets button[aria-pressed="true"]{border-color:#2A2438;transform:scale(1.12)}
+html.dark .pop-sheets button{border-color:#3A3446}
+html.dark .pop-sheets button[aria-pressed="true"]{border-color:#F4EEFF}
 html.dark[data-mode="zen"]:not(.zen-night){background:radial-gradient(ellipse at 50% 45%,#3A3A42,#1A1A20 80%)}
 html.dark[data-mode="cradle"]{background:linear-gradient(180deg,#2C2824,#141210)}
 html.dark[data-mode="cube"]:not(.dodec-night){background:#E6DAF0}
@@ -750,6 +755,13 @@ html[data-mode="ice"]{background:#0B1626}
       <button class="opt" data-shape="square" aria-pressed="true"><i style="width:12px;border-radius:4px;background:linear-gradient(180deg,#F2243A,#F7C21B,#1DB954,#1C7CF0,#B523E8)"></i>Rectangle</button>
       <button class="opt" data-shape="heart" aria-pressed="false"><i style="background:linear-gradient(180deg,#F2243A,#F7C21B,#1DB954)"></i>Heart</button>
       <button class="opt" data-shape="circle" aria-pressed="false"><i style="background:linear-gradient(180deg,#1DB954,#1C7CF0,#B523E8)"></i>Circle</button>
+    </div>
+    <div class="pop-sheets" id="popSheets" role="group" aria-label="Pop-it colour">
+      <button data-sheet="rainbow" aria-pressed="true" aria-label="Rainbow" style="background:linear-gradient(180deg,#FFB3BC,#FFE9A8,#B9F0C4,#B5D6FF,#E3BDFF)"></button>
+      <button data-sheet="lilac" aria-pressed="false" aria-label="Lilac" style="background:#DCC6FA"></button>
+      <button data-sheet="mint" aria-pressed="false" aria-label="Mint" style="background:#BFF2DA"></button>
+      <button data-sheet="peach" aria-pressed="false" aria-label="Peach" style="background:#FFD3C2"></button>
+      <button data-sheet="sky" aria-pressed="false" aria-label="Sky" style="background:#C4E2FA"></button>
     </div>
   </section>
 
@@ -4358,24 +4370,53 @@ function pop3Layout(s) {
   for (const p of best) { p.hue = Math.round((p.j - j0) / Math.max(1, j1 - j0) * 290); delete p.j; }
   return best;
 }
+// the living room: the pop-it lies on a big squashy couch cushion, with a throw pillow and a folded blanket beside it
 function pop3Room(sc) {
-  const room = roomKit(sc, { w: 26, d: 22, h: 12, floor: "#D8B48A", wall: "#F2E3CF", window: [0, 8, -10.95, 0, 8, 5], sky: "#BFE4FF" });
-  // the kitchen table, with a fruit bowl and a mug
-  const tb = new THREE.Group(); room.add(tb);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(16, .5, 13), tbT(0xFFFFFF, { map: tbWoodTex(TB_STYLES.natural) })); top.position.y = 4.75; top.receiveShadow = true; tb.add(top);
-  for (const [x, z] of [[-7, -5.6], [7, -5.6], [-7, 5.6], [7, 5.6]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.5, 4.5, .5), tbT(0x8A5A30)); l.position.set(x, 2.25, z); tb.add(l); }
-  const bowl = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), tbT(0x9FD2F2, { side: THREE.DoubleSide })); bowl.position.set(-5.4, 6.4, -4); tb.add(bowl);
-  for (const [x, z, c] of [[-5.8, -4.2, 0xE5484D], [-5, -3.7, 0xF5B921], [-5.3, -4.6, 0x7FB685]]) { const f = new THREE.Mesh(new THREE.SphereGeometry(.5, 14, 10), tbT(c)); f.position.set(x, 5.6, z); tb.add(f); }
-  const mug = new THREE.Mesh(new THREE.CylinderGeometry(.55, .5, 1.1, 18), tbT(0xF4A6B8)); mug.position.set(5.6, 5.55, -4.2); tb.add(mug);
-  tbToonify(room, .04);
-  return 5; // the table top's height
+  const Ys = 14, room = roomKit(sc, { w: 90, d: 56, h: 46, floor: "#C9A27A", wall: "#F2E3CF", window: [20, 32, -27.95, 0, 16, 12], sky: "#BFE4FF" });
+  room.position.z = 13;
+  // the couch sits so the pop-it is near the front right corner of a cushion, with the seam and the front edge in view
+  const g = new THREE.Group(); g.position.set(-4.7, 0, -2.9); sc.add(g);
+  // a soft woven fabric
+  const fabric = (col, rep) => { const t = tbCanvas(256, 256, (x, w, h) => {
+    x.fillStyle = col; x.fillRect(0, 0, w, h); const R = mulberry(7);
+    for (let i = 0; i < 2600; i++) { x.fillStyle = R() < .5 ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)"; x.fillRect(R() * w, R() * h, 2, 2); }
+    x.fillStyle = "rgba(0,0,0,.04)"; for (let i = 0; i < w; i += 6) { x.fillRect(i, 0, 1, h); x.fillRect(0, i, w, 1); }
+  }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); return t; };
+  const couch = tbT(0xFFFFFF, { map: fabric("#5E8C91", .12) }), frame = tbT(0xFFFFFF, { map: fabric("#4F7A7F", .12) });
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+  // a puffy cushion: a rounded block with soft bevelled edges
+  const cushion = (w, d, t, mat, x, y, z) => {
+    const s = new THREE.Shape(), r = 1.6, hw = w / 2, hd = d / 2;
+    s.moveTo(-hw + r, -hd); s.lineTo(hw - r, -hd); s.quadraticCurveTo(hw, -hd, hw, -hd + r); s.lineTo(hw, hd - r); s.quadraticCurveTo(hw, hd, hw - r, hd); s.lineTo(-hw + r, hd); s.quadraticCurveTo(-hw, hd, -hw, hd - r); s.lineTo(-hw, -hd + r); s.quadraticCurveTo(-hw, -hd, -hw + r, -hd);
+    const geo = new THREE.ExtrudeGeometry(s, { depth: t - 1.2, bevelEnabled: true, bevelThickness: .6, bevelSize: .6, bevelSegments: 4, curveSegments: 10 });
+    geo.rotateX(-Math.PI / 2); return add(geo, mat, x, y + .6, z);
+  };
+  // the base and the two seat cushions (the pop-it sits on the left one)
+  add(new THREE.BoxGeometry(46, Ys - 3.4, 22), frame, 8.6, (Ys - 3.4) / 2, -3);
+  cushion(17, 18, 3.4, couch, 0, Ys - 3.4, -.5); cushion(17, 18, 3.4, couch, 17.4, Ys - 3.4, -.5);
+  // the back, with two leaning back cushions
+  add(new THREE.BoxGeometry(46, 16, 5), frame, 8.6, Ys + 4, -12.5);
+  for (const x of [0, 17.4]) { const c = cushion(16.6, 13, 4, couch, x, Ys - 1, -10.2); c.rotation.x = Math.PI / 2 - .25; c.position.y = Ys + .2; }
+  // the arms
+  for (const x of [-11.2, 28.4]) add(new THREE.BoxGeometry(5, Ys + 4, 22), frame, x, (Ys + 4) / 2, -3);
+  // a mustard throw pillow, tipped against the back of the right cushion
+  const pil = add(new THREE.SphereGeometry(4, 24, 14), tbT(0xFFFFFF, { map: fabric("#E8B04A", .25) }), 19, Ys + 3.6, -6.5); pil.scale.set(1.15, 1, .45); pil.rotation.set(-.5, .3, .15);
+  // a folded pink knit blanket on the right cushion
+  const knit = tbCanvas(128, 128, (x, w, h) => { x.fillStyle = "#F4A6B8"; x.fillRect(0, 0, w, h); x.strokeStyle = "rgba(160,60,90,.25)"; x.lineWidth = 3; for (let i = 0; i < w; i += 10) { x.beginPath(); for (let y = 0; y <= h; y += 8) x.lineTo(i + (y / 8 % 2 ? 3 : -3), y); x.stroke(); } x.fillStyle = "#FFF4F7"; x.fillRect(0, h * .78, w, h * .08); });
+  const bl = add(new THREE.BoxGeometry(9, 1.1, 7), tbT(0xFFFFFF, { map: knit }), 16.5, Ys + .55, 4.2); bl.rotation.y = -.18;
+  // a little side table at the right with a mug
+  add(new THREE.CylinderGeometry(4.5, 4.5, .8, 32), tbT(0xFFFFFF, { map: tbWoodTex(TB_STYLES.natural) }), 37, Ys + 1, 1);
+  add(new THREE.CylinderGeometry(.6, .8, Ys + .6, 12), tbT(0x8A5A30), 37, (Ys + .6) / 2, 1);
+  add(new THREE.CylinderGeometry(1.1, 1, 2.2, 20), tbT(0xB98AF0), 36, Ys + 2.5, 0);
+  tbToonify(room, .04); tbToonify(g, .05);
+  return Ys + .05; // the seat cushion's top
 }
 function pop3Build(s) {
   const sc = P3.scene = P3.scene || new THREE.Scene();
   if (!P3.cam) {
     sc.background = new THREE.Color(0xF2E3CF); P3.cam = new THREE.PerspectiveCamera(36, 1, .1, 120);
-    const L = lookLights(sc, { keyPos: [-5, 16, 8], keyI: .8, hemi: .6, fillI: .25 }); Object.assign(L.key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 50 });
-    P3.y = pop3Room(sc);
+    const L = lookLights(sc, { keyPos: [-8, 44, 14], keyI: .8, hemi: .6, fillI: .25 }); Object.assign(L.key.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 90 });
+    P3.y = pop3Room(sc); L.key.position.y += P3.y; L.key.target.position.set(0, P3.y, 0);
     // the inside of a popped bubble: lit at the bottom, in shadow under the top rim
     P3.dishTex = tbCanvas(64, 64, (x, w, h) => {
       x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, w, h);
@@ -4385,31 +4426,70 @@ function pop3Build(s) {
   if (P3.board) { sc.remove(P3.pivot); disposeTree(P3.pivot); }
   const S2 = 3.3, pivot = P3.pivot = new THREE.Group(); pivot.position.y = P3.y + .2; sc.add(pivot);
   const board = P3.board = new THREE.Group(); pivot.add(board);
-  // the silicone body: plain white, so the bold bubbles stand out on it
+  // the silicone body: a soft tint of its bubbles, so bold raised bubbles and dark popped ones both stand out on it
   const geo = new THREE.ExtrudeGeometry(pop3Shape(s), { depth: .16, bevelEnabled: true, bevelThickness: .05, bevelSize: .05, bevelSegments: 3, curveSegments: 48 });
   geo.rotateX(-Math.PI / 2); geo.scale(S2, 1, S2); geo.translate(0, -.05, 0);
-  const body = new THREE.Mesh(geo, tbT(0xFFF9F2)); body.castShadow = body.receiveShadow = true; board.add(body);
+  const one = POP3_SHEETS[P3.sheet]; P.dots = pop3Layout(s);
+  if (one !== null) for (const p of P.dots) p.hue = one;
+  let bodyMat;
+  if (one === null) {
+    // rainbow rows painted to line up with the bubbles (the caps' UVs are the outline's own coordinates)
+    const e = 1.6, vs = P.dots.map(p => p.v), v0 = Math.min(...vs), v1 = Math.max(...vs);
+    const tex = tbCanvas(8, 256, (x, w, h) => { for (let j = 0; j < h; j++) { const lv = -((1 - (j + .5) / h) * 2 - 1) * e; x.fillStyle = `hsl(${Math.round(clamp((lv - v0) / (v1 - v0), 0, 1) * 290)},78%,83%)`; x.fillRect(0, j, w, 1); } });
+    tex.repeat.set(1 / (2 * e), 1 / (2 * e)); tex.offset.set(.5, .5); tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    bodyMat = tbT(0xFFFFFF, { map: tex });
+  } else bodyMat = tbT(new THREE.Color().setHSL(one / 360, .7, .84).getHex());
+  bodyMat.userData.pk = "sheet";
+  const body = new THREE.Mesh(geo, bodyMat); body.castShadow = body.receiveShadow = true; board.add(body);
   // the bubbles: a bold shiny dome when it's up, a dark dish when it's been pushed in
   const dome = new THREE.SphereGeometry(1, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), disc = new THREE.CircleGeometry(1, 28), glint = new THREE.SphereGeometry(1, 10, 6), mats = {};
-  const glintMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+  const glintMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF }); glintMat.userData.pk = "glint";
   const mat = (k, f) => mats[k] || (mats[k] = f());
-  P.dots = pop3Layout(s); P3.domes = [];
+  P3.domes = [];
   for (const p of P.dots) {
     const h = p.hue / 360, rr = p.r * S2 * .92, x = p.u * S2, z = p.v * S2;
-    const m = new THREE.Mesh(dome, mat("up" + p.hue, () => tbT(new THREE.Color().setHSL(h, .95, .5).getHex()))); m.position.set(x, .16, z); m.scale.set(rr, rr * .76, rr); m.castShadow = true; m.userData.dot = p; board.add(m);
+    const m = new THREE.Mesh(dome, mat("up" + p.hue, () => { const u = tbT(new THREE.Color().setHSL(h, .95, .5).getHex()); u.userData.pk = "up"; return u; })); m.position.set(x, .16, z); m.scale.set(rr, rr * .76, rr); m.castShadow = true; m.userData.dot = p; board.add(m);
     const g = new THREE.Mesh(glint, glintMat); g.scale.set(rr * .2, rr * .1, rr * .14); g.rotation.y = .7; g.userData.noInk = true; board.add(g);
     const dish = new THREE.Mesh(disc, mat("in" + p.hue, () => tbT(new THREE.Color().setHSL(h, .7, .3).getHex(), { map: P3.dishTex }))); dish.rotation.x = -Math.PI / 2; dish.position.set(x, .165, z); dish.scale.setScalar(rr); dish.userData.noInk = true; dish.visible = false; board.add(dish);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(p.r * S2 * .95, .03, 6, 24), mat("ring" + p.hue, () => tbT(new THREE.Color().setHSL(h, .8, .4).getHex()))); ring.rotation.x = -Math.PI / 2; ring.position.set(x, .17, z); ring.userData.noInk = true; board.add(ring);
     p.m = m; p.g = g; p.dish = dish; p.ky = 1; P3.domes.push(m);
   }
   tbToonify(board, .03);
-  P.flip = -1; popFlip.classList.remove("cheer"); P3.shape = s;
+  P.flip = -1; popFlip.classList.remove("cheer"); P3.shape = s; P3.built = P3.sheet;
+  pop3Night();
+}
+// sheet colours: rainbow, or one soft colour with bubbles to match (hues)
+const POP3_SHEETS = { rainbow: null, lilac: 268, mint: 158, peach: 18, sky: 205 };
+P3.sheet = POP3_SHEETS[pref("fidget-pop-sheet", "rainbow")] !== undefined ? pref("fidget-pop-sheet", "rainbow") : "rainbow";
+function setPopSheet(k) {
+  P3.sheet = k; savePref("fidget-pop-sheet", k);
+  document.querySelectorAll("#popSheets button").forEach(b => b.setAttribute("aria-pressed", b.dataset.sheet === k ? "true" : "false"));
+  if (P3.on) { pop3Build(P.shape); pop3Fit(); }
+}
+document.querySelectorAll("#popSheets button").forEach(b => b.addEventListener("click", () => { setPopSheet(b.dataset.sheet); S.thup(); buzz(10); }));
+setPopSheet(P3.sheet);
+// night, with the app's dark theme: the kitchen goes dark and the raised bubbles glow softly, so they're still easy to tell from popped ones
+function pop3Night() {
+  if (!P3.scene) return;
+  const v = document.documentElement.classList.contains("dark") ? 1 : 0, sc = P3.scene;
+  if (!P3.bg0) P3.bg0 = sc.background.clone();
+  const kRoom = new THREE.Color(1 - .7 * v, 1 - .68 * v, 1 - .5 * v), kSheet = new THREE.Color(1 - .5 * v, 1 - .5 * v, 1 - .38 * v);
+  sc.background.copy(P3.bg0).multiply(kRoom);
+  const seen = new Set();
+  sc.traverse(o => {
+    const m = o.isMesh && o.material; if (!m || !m.color || seen.has(m)) return; seen.add(m);
+    if (!m.userData.c0) m.userData.c0 = m.color.clone();
+    const pk = m.userData.pk;
+    if (pk === "up") { m.color.copy(m.userData.c0); if (m.emissive) m.emissive.copy(m.userData.c0).multiplyScalar(.22 * v); }
+    else if (pk === "glint") return;
+    else m.color.copy(m.userData.c0).multiply(pk === "sheet" ? kSheet : kRoom);
+  });
 }
 // the camera comes in as close as it can while the whole sheet fits between the shape buttons and the Flip button
 function pop3Fit() {
   const cam = P3.cam, asp = cam.aspect = GL.w / GL.h, [ex, ez] = POP3_EXT[P3.shape].map(e => e * 3.3 + .1), y0 = P3.y + .2;
   const pts = []; for (const x of [-ex, ex]) for (const z of [-ez, ez]) for (const y of [0, .5]) pts.push(new THREE.Vector3(x, y0 + y, z));
-  const v = new THREE.Vector3(), mt = 76, mb = 112, mx = 12;
+  const v = new THREE.Vector3(), mt = 112, mb = 112, mx = 12;
   const place = d => { cam.clearViewOffset(); cam.position.set(0, y0 + d * .9, d * .44); cam.lookAt(0, y0, 0); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); };
   const span = () => { let x0 = 1, x1 = -1, y1 = -1, y2 = 1; for (const p of pts) { v.copy(p).project(cam); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y2 = Math.min(y2, v.y); y1 = Math.max(y1, v.y); } return { w: x1 - x0, h: y1 - y2, top: y1, bot: y2 }; };
   let lo = 3, hi = 80;
@@ -4421,7 +4501,7 @@ function pop3Fit() {
 }
 function pop3Setup() {
   if (typeof THREE === "undefined" || !mount3D(secPop)) { P3.on = false; pcv.style.display = ""; return false; }
-  if (!P3.board || P3.shape !== P.shape) pop3Build(P.shape);
+  if (!P3.board || P3.shape !== P.shape || P3.built !== P3.sheet) pop3Build(P.shape);
   pcv.style.display = "none"; P3.on = true;
   pop3Fit();
   return true;
@@ -7667,7 +7747,7 @@ function applyTheme() {
   const root = document.documentElement;
   if (themePref === "auto") root.removeAttribute("data-theme"); else root.dataset.theme = themePref;
   root.classList.toggle("dark", themePref === "dark" || (themePref === "auto" && darkQ.matches));
-  dTableLight();
+  dTableLight(); pop3Night();
 }
 document.querySelectorAll("#setTheme button").forEach(b => b.addEventListener("click", () => { themePref = b.dataset.th; savePref("fidget-theme", themePref); applyTheme(); syncSettings(); S.tick(1500, .08, .03, "sine"); }));
 (darkQ.addEventListener ? darkQ.addEventListener("change", applyTheme) : darkQ.addListener(applyTheme));
@@ -8658,7 +8738,7 @@ renderHome();
 // wait for the deferred 3D engine scripts in case the mode needs them
 if (savedMode && $("#mode-" + savedMode)) document.addEventListener("DOMContentLoaded", () => setMode(savedMode));
 else document.addEventListener("DOMContentLoaded", () => { if (mode === "home") tbSetup(); });
-if (location.hash) window.__fidget = { P3, IC, iceFrame, icBrush, icHeightAt, icPick, G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, stStep, stNewHand, stSkill, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
+if (location.hash) window.__fidget = { P3, pop3Night, IC, iceFrame, icBrush, icHeightAt, icPick, G, D, P, SP, Z, NC, CB, RK, TB, BD, ST, stonesFrame, stThrow, stDrop, stStep, stNewHand, stSkill, bdFrame, grassFrame, TW, twistyFrame, twJoinFor, twJoin, twEndFrame, tbFrame, tbOpen, tbPickToy, tbShake, tbToggleLamp, popFrame, spinFrame, cradleFrame, rocksFrame, setMode, rkLanding, rkSupportHit }; // state handle for browser previews and tests
 (function loop(now) {
   // ask for the next frame first, so an error in one mode can never freeze the whole app
   requestAnimationFrame(loop);
