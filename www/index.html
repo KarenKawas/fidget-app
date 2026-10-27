@@ -461,38 +461,51 @@ html[data-mode="ice"]{background:#0B1626}
 
 /* ---------- bubbles ---------- */
 #sheet{position:absolute;inset:0;touch-action:none;overflow:hidden;background:var(--sheet-bg)}
-#sheet[data-theme="wood"]{
-  --sheet-bg:linear-gradient(115deg,rgba(255,255,255,.18),rgba(255,255,255,0) 40%,rgba(255,255,255,.12) 60%,rgba(255,255,255,0)),repeating-linear-gradient(97deg,rgba(110,70,30,.08) 0 1px,transparent 1px 7px),repeating-linear-gradient(3deg,rgba(255,240,215,.08) 0 1px,transparent 1px 11px),linear-gradient(180deg,#CFA77C,#C29567);
-  --b1:rgba(255,255,255,.5);--b2:rgba(240,228,210,.35);--b3:rgba(140,105,70,.8);--bsh:70,42,15;--bglow:transparent;
-  --p1:rgba(255,245,230,.22);--p2:rgba(140,105,70,.45);--burst:rgba(255,255,255,.95)}
-#sheet[data-theme="cute"]{
-  --sheet-bg:linear-gradient(115deg,rgba(255,255,255,.18),rgba(255,255,255,0) 40%,rgba(255,255,255,.12) 60%,rgba(255,255,255,0)),radial-gradient(circle,rgba(255,255,255,.5) 0 3px,transparent 3.5px) 0 0/30px 30px,linear-gradient(180deg,#FFD2E4,#FFBCD7);
-  --b1:rgba(255,242,248,.65);--b2:rgba(255,168,205,.55);--b3:rgba(222,70,140,.9);--bsh:165,30,95;--bglow:transparent;
-  --p1:rgba(255,200,225,.25);--p2:rgba(222,90,150,.45);--burst:rgba(255,255,255,.95)}
+/* colours like real bubble wrap rolls: pink, periwinkle blue, mint green, and classic clear */
+#sheet[data-theme="pink"]{
+  --under:#FBB9D3;--sheet-bg:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%,rgba(255,255,255,.14) 60%,rgba(255,255,255,0)),linear-gradient(180deg,#FFC6DC,#F7A6C6);
+  --b1:rgba(255,238,246,.72);--b2:rgba(255,172,207,.55);--b3:rgba(222,78,142,.9);--bsh:165,35,98;--bglow:transparent;
+  --p1:rgba(255,205,228,.3);--p2:rgba(222,95,152,.5);--burst:rgba(255,255,255,.95)}
 #sheet[data-theme="blue"]{
-  --sheet-bg:linear-gradient(115deg,rgba(255,255,255,.18),rgba(255,255,255,0) 40%,rgba(255,255,255,.12) 60%,rgba(255,255,255,0)),repeating-linear-gradient(0deg,var(--sheet-line) 0 1px,transparent 1px 34px),var(--sheet);
-  --b1:rgba(232,246,255,.55);--b2:rgba(160,208,240,.55);--b3:rgba(70,128,186,.9);--bsh:15,50,90;--bglow:transparent;
-  --p1:rgba(140,185,220,.2);--p2:rgba(110,160,205,.45);--burst:rgba(255,255,255,.95)}
-#sheet[data-theme="scifi"]{
-  --sheet-bg:linear-gradient(rgba(0,255,224,.07) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,rgba(0,255,224,.07) 1px,transparent 1px) 0 0/24px 24px,radial-gradient(ellipse at 50% 30%,#1C2638,#0B0F17 70%);
-  --b1:rgba(170,255,248,.3);--b2:rgba(0,190,180,.3);--b3:rgba(0,255,224,.9);--bsh:0,0,0;--bglow:rgba(0,255,224,.45);
-  --p1:rgba(0,255,224,.08);--p2:rgba(0,255,224,.35);--burst:#00FFE0}
+  --under:#A6B6F3;--sheet-bg:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%,rgba(255,255,255,.14) 60%,rgba(255,255,255,0)),linear-gradient(180deg,#B4C2F7,#93A6EE);
+  --b1:rgba(240,244,255,.68);--b2:rgba(165,182,246,.55);--b3:rgba(78,98,208,.9);--bsh:38,48,138;--bglow:transparent;
+  --p1:rgba(195,208,255,.3);--p2:rgba(88,108,210,.48);--burst:rgba(255,255,255,.95)}
+#sheet[data-theme="green"]{
+  --under:#B6E8CD;--sheet-bg:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%,rgba(255,255,255,.14) 60%,rgba(255,255,255,0)),linear-gradient(180deg,#C6EFD9,#A2DFC0);
+  --b1:rgba(238,255,247,.7);--b2:rgba(152,226,192,.55);--b3:rgba(38,148,104,.9);--bsh:18,88,58;--bglow:transparent;
+  --p1:rgba(195,242,218,.32);--p2:rgba(48,150,105,.48);--burst:rgba(255,255,255,.95)}
+#sheet[data-theme="clear"]{
+  --under:#E9EEF2;--sheet-bg:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%,rgba(255,255,255,.14) 60%,rgba(255,255,255,0)),radial-gradient(circle,rgba(255,255,255,.55) 0 2px,transparent 2.5px) 0 0/26px 26px,linear-gradient(180deg,#F1F4F7,#DCE3E9);
+  --b1:rgba(255,255,255,.78);--b2:rgba(226,234,241,.45);--b3:rgba(132,154,176,.75);--bsh:60,80,100;--bglow:transparent;
+  --p1:rgba(255,255,255,.32);--p2:rgba(132,154,176,.42);--burst:rgba(255,255,255,.95)}
 #mode-bubbles .themes{z-index:3}
 /* toon bubbles: three flat bands, a crisp painted highlight and sparkle, a plum ink outline and a flat drop shadow */
 .bub{position:absolute;box-sizing:border-box;border-radius:50%;transition:transform .09s cubic-bezier(.3,1.6,.5,1),filter .09s;
   border:2.5px solid rgba(42,36,56,.6);
-  background:
+  --bands:
     radial-gradient(ellipse 22% 14% at 33% 28%,#fff 0 85%,rgba(255,255,255,0) 100%),
     radial-gradient(circle at 71% 73%,rgba(255,255,255,.9) 0 6%,rgba(255,255,255,0) 7.5%),
     radial-gradient(circle at 44% 38%,var(--b1) 0 50%,var(--b2) 52% 76%,var(--b3) 78%);
+  background:var(--bands);
   box-shadow:0 6px 0 -1px rgba(var(--bsh),.3),0 0 12px var(--bglow)}
 .bub::after{content:none}
 .bub.squeeze{transform:scale(.9,.84);filter:brightness(.94) saturate(1.2);box-shadow:0 3px 0 -1px rgba(var(--bsh),.3),0 0 16px var(--bglow)}
 .bub.popped{transform:scale(.88) rotate(var(--rot));border-radius:46% 54% 42% 58%/55% 44% 56% 45%;animation:popjig .24s ease-out;
-  background:
+  --pop:
     conic-gradient(from var(--rot),rgba(255,255,255,.4) 0 7deg,transparent 7deg 52deg,rgba(255,255,255,.3) 52deg 58deg,transparent 58deg 128deg,rgba(255,255,255,.35) 128deg 135deg,transparent 135deg 214deg,rgba(255,255,255,.28) 214deg 220deg,transparent 220deg 298deg,rgba(255,255,255,.33) 298deg 305deg,transparent 305deg),
     radial-gradient(circle,var(--p1) 0 55%,var(--p2) 82%,transparent 100%);
-  border-color:rgba(42,36,56,.4);box-shadow:inset 0 3px 0 rgba(var(--bsh),.25)}
+  background:var(--pop);border-color:rgba(42,36,56,.4);box-shadow:inset 0 3px 0 rgba(var(--bsh),.25)}
+/* heart and star bubbles: the same look cut to shape by a mask, with the ink as a layer underneath and the shadow following the shape */
+#sheet[data-shape="heart"]{--shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 92C20 72 5 54 5 33 5 17 17 6 31 6c9 0 15 5 19 12 4-7 10-12 19-12 14 0 26 11 26 27 0 21-15 39-45 59z'/%3E%3C/svg%3E")}
+#sheet[data-shape="star"]{--shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 10L61.8 37.8 91.8 40.4 69 60.2 75.9 89.6 50 74 24.1 89.6 31 60.2 8.2 40.4 38.2 37.8z' stroke='%23000' stroke-width='9' stroke-linejoin='round'/%3E%3C/svg%3E")}
+#sheet:not([data-shape="round"]) .bub{border:0;border-radius:0;background:none;box-shadow:none;filter:drop-shadow(0 5px 0 rgba(var(--bsh),.3))}
+#sheet:not([data-shape="round"]) .bub::before,#sheet:not([data-shape="round"]) .bub::after{content:"";position:absolute;-webkit-mask:var(--shape) center/contain no-repeat;mask:var(--shape) center/contain no-repeat}
+#sheet:not([data-shape="round"]) .bub::before{inset:0;background:rgba(42,36,56,.6)}
+#sheet:not([data-shape="round"]) .bub::after{inset:7%;background:var(--bands),var(--under)} /* the sheet colour underneath, so the ink layer does not grey the bubble */
+#sheet:not([data-shape="round"]) .bub.squeeze{filter:drop-shadow(0 2px 0 rgba(var(--bsh),.3)) brightness(.94) saturate(1.2)}
+#sheet:not([data-shape="round"]) .bub.popped{filter:none}
+#sheet:not([data-shape="round"]) .bub.popped::before{background:rgba(42,36,56,.4)}
+#sheet:not([data-shape="round"]) .bub.popped::after{background:var(--pop),var(--under)}
 @keyframes popjig{0%{transform:scale(1.1) rotate(var(--rot))}45%{transform:scale(.78) rotate(var(--rot))}100%{transform:scale(.88) rotate(var(--rot))}}
 .burst{position:absolute;pointer-events:none;border-radius:50%;border:3px solid var(--burst);
   background:radial-gradient(circle,rgba(255,255,255,.75),rgba(255,255,255,0) 60%);animation:burst .34s ease-out forwards}
@@ -510,6 +523,7 @@ html[data-mode="ice"]{background:#0B1626}
 .bub-size{display:flex;padding:3px;gap:2px;border-radius:999px;background:rgba(255,255,255,.62)}
 .bub-size button{border:0;width:34px;height:34px;border-radius:50%;cursor:pointer;font-weight:600;background:transparent;color:#2A2438}
 .bub-size button[aria-pressed="true"]{background:#2A2438;color:#fff}
+.bub-shape button{display:grid;place-items:center}.bub-shape svg{width:17px;height:17px;fill:currentColor;stroke:currentColor}
 
 .ico.dice{border-radius:0;background:linear-gradient(160deg,#FFD27A,#F2A51F 60%,#C47F0A);clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
 .dice-hud{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(var(--sr) + 14px);min-width:84px;padding:8px 14px 10px;border-radius:18px;text-align:center;color:#fff;
@@ -699,19 +713,22 @@ html[data-mode="ice"]{background:#0B1626}
   </section>
 
   <section class="mode" id="mode-bubbles" aria-label="Bubble wrap">
-    <div id="sheet" data-theme="wood" tabindex="0" aria-label="Bubble wrap. Press space to pop a bubble, arrow keys to scroll."><div class="bub-track" id="bubTrack"></div></div>
+    <div id="sheet" data-theme="clear" data-shape="round" tabindex="0" aria-label="Bubble wrap. Press space to pop a bubble, arrow keys to scroll."><div class="bub-track" id="bubTrack"></div></div>
     <p class="bub-legend"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 013 0V11m0-1.5V4.5a1.5 1.5 0 013 0V11m0-4a1.5 1.5 0 013 0v7c0 3.5-2.5 6-6 6s-5-2-6.5-4.5L5 13.5a1.5 1.5 0 012.5-1.6L8 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 1.5v-1M9 2l-.5-.8M15 2l.5-.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Scroll with two fingers</p>
     <div class="bub-bar">
       <span class="bub-count" id="bubCount" aria-live="off">0 popped</span>
       <div class="bub-size" role="group" aria-label="Bubble size">
         <button data-size="S" aria-pressed="false" aria-label="Small bubbles">S</button><button data-size="M" aria-pressed="true" aria-label="Medium bubbles">M</button><button data-size="L" aria-pressed="false" aria-label="Large bubbles">L</button>
       </div>
+      <div class="bub-size bub-shape" role="group" aria-label="Bubble shape">
+        <button data-shape="round" aria-pressed="true" aria-label="Round bubbles"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/></svg></button><button data-shape="heart" aria-pressed="false" aria-label="Heart bubbles"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 92C20 72 5 54 5 33 5 17 17 6 31 6c9 0 15 5 19 12 4-7 10-12 19-12 14 0 26 11 26 27 0 21-15 39-45 59z"/></svg></button><button data-shape="star" aria-pressed="false" aria-label="Star bubbles"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 10L61.8 37.8 91.8 40.4 69 60.2 75.9 89.6 50 74 24.1 89.6 31 60.2 8.2 40.4 38.2 37.8z" stroke-width="9" stroke-linejoin="round"/></svg></button>
+      </div>
     </div>
     <div class="themes" role="group" aria-label="Bubble wrap style">
-        <button class="theme" data-theme="wood" aria-pressed="true"><i style="background:linear-gradient(135deg,#C98B52 50%,#F5402B 50%)"></i>Wood</button>
-        <button class="theme" data-theme="cute" aria-pressed="false"><i style="background:linear-gradient(135deg,#FFB0CF 50%,#A8EBD0 50%)"></i>Cute</button>
-        <button class="theme" data-theme="blue" aria-pressed="false"><i style="background:linear-gradient(135deg,#173E82 50%,#5FE3FF 50%)"></i>Blue</button>
-        <button class="theme" data-theme="scifi" aria-pressed="false"><i style="background:linear-gradient(135deg,#0B0F17 50%,#00FFE0 50%)"></i>Sci-fi</button>
+        <button class="theme" data-theme="pink" aria-pressed="false"><i style="background:radial-gradient(circle at 35% 35%,#FFE6F0,#F7A6C6 60%,#DE4E8E)"></i>Pink</button>
+        <button class="theme" data-theme="blue" aria-pressed="false"><i style="background:radial-gradient(circle at 35% 35%,#EEF2FF,#93A6EE 60%,#4E62D0)"></i>Blue</button>
+        <button class="theme" data-theme="green" aria-pressed="false"><i style="background:radial-gradient(circle at 35% 35%,#EEFFF6,#A2DFC0 60%,#269468)"></i>Green</button>
+        <button class="theme" data-theme="clear" aria-pressed="true"><i style="background:radial-gradient(circle at 35% 35%,#FFFFFF,#E2EAF1 60%,#849AB0)"></i>Clear</button>
       </div>
   </section>
 
@@ -765,9 +782,9 @@ html[data-mode="ice"]{background:#0B1626}
     </div>
   </section>
 
-  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick it round to spin it, touch it to stop it.">
+  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick it round to spin it. Rest a finger on the middle to hold it while it spins; tap an arm or the background to stop it.">
     <div class="spin-hud" aria-live="off"><span class="lbl">RPM</span><span class="total" id="spinRpm">0</span><span class="best" id="spinBest"></span></div>
-    <p class="hint" id="sHint">Flick it round to spin</p>
+    <p class="hint" id="sHint">Flick it to spin · hold the middle · tap the edge to stop</p>
     <div class="themes" role="group" aria-label="Spinner design">
       <button class="opt" data-design="classic" aria-pressed="true"><i style="background:linear-gradient(135deg,#7B5CFF 50%,#C9CED6 50%)"></i>Classic</button>
       <button class="opt" data-design="metal" aria-pressed="false"><i style="background:linear-gradient(135deg,#E9ECF1,#8C939E)"></i>Metal</button>
@@ -1560,11 +1577,11 @@ const showPops = () => bubCount.textContent = bPops.toLocaleString() + " popped"
 showPops();
 function setBubbleSize(z) {
   bSize = z;
-  document.querySelectorAll(".bub-size button").forEach(b => b.setAttribute("aria-pressed", b.dataset.size === z ? "true" : "false"));
+  document.querySelectorAll(".bub-size button[data-size]").forEach(b => b.setAttribute("aria-pressed", b.dataset.size === z ? "true" : "false"));
   try { localStorage.setItem("fidget-bubble-size", z); } catch (e) {}
 }
 setBubbleSize(bSize);
-document.querySelectorAll(".bub-size button").forEach(b => b.addEventListener("click", () => {
+document.querySelectorAll(".bub-size button[data-size]").forEach(b => b.addEventListener("click", () => {
   if (b.dataset.size === bSize) return;
   setBubbleSize(b.dataset.size); layoutBubbles(true); S.tick(2200, .15, .03, "square"); buzz(10);
 }));
@@ -1902,7 +1919,7 @@ function diceResize() {
 // the felt fills the whole screen
 function dTable() {
   const B = D.b;
-  // the candle is off screen in the far corner; its warm light still flickers over the felt
+  // the candle is off screen in the far corner; its warm light still falls over the felt
   D.candle.position.set(B.xh - 1, 10, B.zf + 3);
   dTableLight();
 }
@@ -2099,7 +2116,7 @@ function diceFrame(now) {
     if (D.settle > .3) { D.rolling = false; showResults(); }
   }
   if (D.style === "blossom") for (const d of D.dice) { const g = d.mesh.getObjectByName("petals"); if (g) g.children.forEach(s => { s.userData.ph += .01; s.position.y += Math.sin(s.userData.ph) * .002; s.material.rotation = s.userData.ph; }); }
-  if (D.candle) { const f = .85 + Math.sin(now * .013) * .08 + Math.sin(now * .031) * .06; D.candle.intensity = (D.dark ? 1.8 : .7) * f; }
+  if (D.candle) D.candle.intensity = (D.dark ? 1.8 : .7) * .85; // a steady candle: warm, no flicker
   toonRender(D.r, D.scene, D.cam, TOON_INK.dice);
 }
 
@@ -3294,15 +3311,27 @@ function setTheme(t) {
 setTheme(pref("fidget-board-theme", "wood"));
 secBoard.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { setTheme(b.dataset.theme); S.tick(2200, .15, .03, "square"); buzz(10); }));
 // bubble wrap keeps its own look (it used to follow the board); it starts from whatever the board gave it before
-const SHEET_BG = { wood: "#C29567", cute: "#FFBCD7", blue: "var(--sheet)", scifi: "#0B0F17" }, secBub = $("#mode-bubbles");
+const SHEET_BG = { pink: "#F7A6C6", blue: "#93A6EE", green: "#A2DFC0", clear: "#DCE3E9" }, secBub = $("#mode-bubbles");
+const SHEET_OLD = { wood: "clear", cute: "pink", scifi: "green" }; // the old themes, for a saved choice
 function setSheetTheme(t) {
-  if (!SHEET_BG[t]) t = "wood";
+  t = SHEET_OLD[t] || t; if (!SHEET_BG[t]) t = "clear";
   $("#sheet").dataset.theme = t; document.documentElement.style.setProperty("--sheetbg", SHEET_BG[t]);
   secBub.querySelectorAll(".theme").forEach(b => b.setAttribute("aria-pressed", b.dataset.theme === t ? "true" : "false"));
   savePref("fidget-bubble-theme", t);
 }
 setSheetTheme(pref("fidget-bubble-theme", BD_THEMES[BD.theme].sheet));
 secBub.querySelectorAll(".theme").forEach(b => b.addEventListener("click", () => { setSheetTheme(b.dataset.theme); S.tick(2200, .15, .03, "square"); buzz(10); }));
+// the bubble shape: round, heart or star
+function setBubbleShape(k) {
+  if (!["round", "heart", "star"].includes(k)) k = "round";
+  $("#sheet").dataset.shape = k; savePref("fidget-bubble-shape", k);
+  secBub.querySelectorAll(".bub-shape button").forEach(b => b.setAttribute("aria-pressed", b.dataset.shape === k ? "true" : "false"));
+}
+setBubbleShape(pref("fidget-bubble-shape", "round"));
+secBub.querySelectorAll(".bub-shape button").forEach(b => b.addEventListener("click", () => {
+  if (b.dataset.shape === $("#sheet").dataset.shape) return;
+  setBubbleShape(b.dataset.shape); layoutBubbles(true); S.tick(2200, .15, .03, "square"); buzz(10);
+}));
 
 /* ---- the 3D board ---- */
 const BD_W = 6.8, BD_D = 16.4, BD_Z = .75; // the plank: width, depth, and its centre along the board
@@ -3702,12 +3731,14 @@ function stSky() {
   const lin = c => new THREE.Color(c).convertSRGBToLinear();
   const U = ST.wu; U.uDeep.value.copy(lin(T.deep)); U.uTop.value.copy(lin(T.top)); U.uHor.value.copy(lin(T.hor)); U.uSun.value.copy(lin(T.sun)); U.uSunDir.value.set(...T.sunDir).normalize();
   // one haze colour for the far water, the fog and the sky's horizon, so they meet without a line
-  U.uFogC.value.copy(lin(T.hor)); U.uFogN.value = 12; U.uFogF.value = 95;
+  U.uFogC.value.copy(lin(T.hor)); U.uFogN.value = 10; U.uFogF.value = 140;
   ST.scene.fog.color.set(T.hor); ST.scene.fog.near = 20; ST.scene.fog.far = 230;
   ST.haze.material.color.set(T.hor);
   ST.hemi.color.setHex(T.hemi[0]); ST.hemi.groundColor.setHex(T.hemi[1]); ST.hemi.intensity = T.hemi[2]; ST.key.intensity = T.key;
   // three tree lines, each paler and more lost in the haze the further away it is
-  ST.treeLayers.forEach((m, i) => m.material.color.set(T.trees).lerp(new THREE.Color(T.hor), [.0, .45, .72][i]).convertSRGBToLinear());
+  ST.treeLayers.forEach((m, i) => { m.material.color.set(T.trees).lerp(new THREE.Color(T.hor), [.0, .45, .72][i]).convertSRGBToLinear(); m.material.userData.uHaze.value.copy(lin(T.hor)); });
+  for (const b of ST.banks) b.material.color.set(T.hor);
+  for (const s of ST.mist) s.material.color.set(T.hor).lerp(new THREE.Color(0xFFFFFF), .35);
   ST.sunDisc.visible = ST.time === "sunset"; ST.moon.visible = ST.stars.visible = ST.time === "night";
   secSt.querySelectorAll("[data-time]").forEach(b => b.setAttribute("aria-pressed", b.dataset.time === ST.time ? "true" : "false"));
   document.documentElement.style.setProperty("--stbg", T.hor);
@@ -3737,8 +3768,16 @@ function stBuild() {
     [180, (x) => [(x < .5 ? -1 : 1) * (15 + R() * 24), -8 - R() * 60, 7 + R() * 9]],
     [150, () => [-80 + R() * 160, -70 - R() * 20, 4 + R() * 4]],
     [160, () => [-200 + R() * 400, -150 - R() * 40, 7 + R() * 7]],
-  ].map(([n, place]) => {
-    const mat = tbT(0x33433D); mat.fog = false;
+  ].map(([n, place], li) => {
+    // far trees are flat silhouettes in the mist: no lighting (which speckles on far, huge cones on a phone),
+    // and each one melts into the haze towards its foot, so the shore line has no hard edge
+    const mat = new THREE.MeshBasicMaterial({ color: 0x33433D, fog: false }), uHaze = { value: new THREE.Color() }, fade = [.55, .9, 1][li];
+    mat.onBeforeCompile = sh => {
+      sh.uniforms.uHaze = uHaze;
+      sh.vertexShader = "varying float vTy;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvTy = position.y;");
+      sh.fragmentShader = "uniform vec3 uHaze; varying float vTy;\n" + sh.fragmentShader.replace("#include <tonemapping_fragment>", "gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze, (1.0 - smoothstep(-.5, .05, vTy)) * " + fade.toFixed(2) + ");\n#include <tonemapping_fragment>");
+    };
+    mat.customProgramCacheKey = () => "sttree" + li; mat.userData.uHaze = uHaze;
     const t = new THREE.InstancedMesh(cone, mat, n);
     for (let i = 0; i < n; i++) { const [x, z, h] = place(R()), w = h * (.22 + R() * .08); m4.compose(new THREE.Vector3(x, h / 2 - .3, z), new THREE.Quaternion(), new THREE.Vector3(w, h, w)); t.setMatrixAt(i, m4); }
     sc.add(t); return t;
@@ -3746,6 +3785,14 @@ function stBuild() {
   // a band of haze lying on the far water, softening the horizon
   ST.haze = new THREE.Mesh(new THREE.PlaneGeometry(600, 26), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, fog: false, map: tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.55, "rgba(255,255,255,.85)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }) }));
   ST.haze.position.set(0, 3, -110); ST.haze.renderOrder = 4; sc.add(ST.haze);
+  const bankTex = tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.6, "rgba(255,255,255,.55)"); g.addColorStop(.85, "rgba(255,255,255,.8)"); g.addColorStop(1, "rgba(255,255,255,.8)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+  ST.banks = [[-64, 7, 1.6], [-145, 16, 4]].map(([z, h, y], i) => {
+    const b = new THREE.Mesh(new THREE.PlaneGeometry(700, h), new THREE.MeshBasicMaterial({ map: bankTex, transparent: true, depthWrite: false, fog: false }));
+    b.position.set(0, y, z); b.renderOrder = 3 - i; sc.add(b); return b;
+  });
+  // and a thin veil straddling the far shore, drawn over the line where the water meets the mist, so it blurs away
+  const veil = new THREE.Mesh(new THREE.PlaneGeometry(700, 7), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false, fog: false, map: tbCanvas(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.5, "rgba(255,255,255,.7)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }) }));
+  veil.position.set(0, .2, -62); veil.renderOrder = 4; sc.add(veil); ST.banks.push(veil);
   const shore = new THREE.Mesh(new THREE.PlaneGeometry(40, 8), tbT(0xFFFFFF, { map: tbCanvas(512, 128, (x, w, h) => {
     x.fillStyle = "#8D8378"; x.fillRect(0, 0, w, h); const R2 = mulberry(5);
     for (let i = 0; i < 900; i++) { const v = 90 + R2() * 90; x.fillStyle = `rgb(${v + 20},${v + 12},${v})`; x.beginPath(); x.ellipse(R2() * w, R2() * h, 3 + R2() * 7, 2 + R2() * 4, R2() * 3, 0, 6.3); x.fill(); x.strokeStyle = "rgba(42,36,56,.35)"; x.lineWidth = 1; x.stroke(); }
@@ -3756,7 +3803,7 @@ function stBuild() {
   // mist drifting low over the water
   ST.mist = [];
   const mt = soft(0, g => { g.addColorStop(0, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)"); });
-  for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mt, transparent: true, depthWrite: false, opacity: .5, fog: false })); s.renderOrder = 5 + i; s.position.set(rnd(-30, 30), rnd(.8, 2.5), rnd(-60, -12)); s.scale.set(rnd(18, 34), rnd(3, 6), 1); s.userData.v = rnd(.2, .6) * (Math.random() < .5 ? -1 : 1); sc.add(s); ST.mist.push(s); }
+  for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mt, transparent: true, depthWrite: false, opacity: .38, fog: false })); s.renderOrder = 5 + i; s.position.set(rnd(-30, 30), rnd(.8, 2.5), rnd(-60, -12)); s.scale.set(rnd(18, 34), rnd(3, 6), 1); s.userData.v = rnd(.2, .6) * (Math.random() < .5 ? -1 : 1); sc.add(s); ST.mist.push(s); }
   // spray
   const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(120 * 3).fill(-100), 3));
   ST.spray = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xF0F6FA, size: .07, transparent: true, opacity: .9, depthWrite: false })); ST.spray.frustumCulled = false; sc.add(ST.spray);
@@ -4982,6 +5029,7 @@ function spinShape(L, dl, rl, rc) {
 }
 function buildSpinner() {
   if (SP.root) { SP.scene.remove(SP.root); disposeTree(SP.root); }
+  if (SP.capG) { SP.scene.remove(SP.capG); disposeTree(SP.capG); }
   const L = SPIN_LOBES[SP.design], root = new THREE.Group(), flat = new THREE.Group(), T = .22, top = T / 2 + .04;
   flat.rotation.x = -Math.PI / 2; root.add(flat);
   const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; flat.add(m); return m; };
@@ -5023,8 +5071,12 @@ function buildSpinner() {
   // centre caps on both faces, with a dot so slow spins are easy to read
   const capMat = neon ? new THREE.MeshStandardMaterial({ color: 0x2A2450, roughness: .3, envMap: GL.env })
     : new THREE.MeshStandardMaterial({ color: 0xF2B21C, roughness: .28, metalness: .3, envMap: GL.env });
-  add(zcyl(.22, .07, 48), capMat, 0, 0, top + .02); add(zcyl(.22, .07, 48), capMat, 0, 0, -top - .02);
-  add(zcyl(.045, .02, 20), dark, .08, -.05, top + .06);
+  // they sit on the bearing in their own group, so they can stay still under a finger while the body spins on
+  const capG = new THREE.Group(), capFlat = new THREE.Group(); capFlat.rotation.x = -Math.PI / 2; capG.add(capFlat);
+  const cap = (geo, mat, z, x = 0, y = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; capFlat.add(m); return m; };
+  cap(zcyl(.22, .07, 48), capMat, top + .02); cap(zcyl(.22, .07, 48), capMat, -top - .02);
+  cap(zcyl(.045, .02, 20), dark, top + .06, .08, -.05);
+  SP.capG = capG; SP.scene.add(capG);
   const blur = new THREE.Mesh(new THREE.CircleGeometry(1, 72), new THREE.MeshBasicMaterial({ color: neon ? 0x00FFE0 : SP.design === "metal" ? 0xC9CED6 : 0x7B5CFF, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }));
   blur.position.z = top + .03; blur.visible = false; flat.add(blur);
   SP.blur = blur; SP.root = root; SP.scene.add(root);
@@ -5055,6 +5107,7 @@ function ensureSpinBed() {
 }
 function spinFrame(now) {
   const dts = clamp((now - (SP.last || now - 16.7)) / 1000, .004, .05); SP.last = now;
+  if (SP.brake && !SP.grab) { SP.om *= Math.exp(-dts * 18); if (Math.abs(SP.om) < .6) { SP.om = 0; SP.brake = false; } }
   if (!SP.grab) {
     const w = Math.abs(SP.om);
     if (w > 0) { const nw = Math.max(0, w - (.35 + .045 * w) * dts); SP.om = Math.sign(SP.om) * nw; SP.th += SP.om * dts; }
@@ -5080,6 +5133,11 @@ function spinFrame(now) {
   }
   // screen-clockwise spin is a negative turn about +Y seen from above
   SP.root.rotation.y = -SP.th;
+  // the centre caps turn with the body, but stay still and press in a little under a resting finger, which feels the spin hum
+  if (!SP.hold) SP.capA = (SP.capA || 0) + SP.th - (SP.thLast ?? SP.th);
+  SP.thLast = SP.th; SP.capG.rotation.y = -SP.capA;
+  SP.capG.position.y += ((SP.hold ? -.025 : 0) - SP.capG.position.y) * Math.min(1, dts * 20);
+  if (SP.hold && w > 2 && now - (SP.hum || 0) > 120) { SP.hum = now; buzz(Math.min(8, 2 + w * .08)); }
   const bo = clamp((w - 12) / 70, 0, .45); SP.blur.material.opacity = bo; SP.blur.visible = bo > .01;
   toonRender(GL.r, SP.scene, SP.cam, TOON_INK.spin);
 }
@@ -5093,10 +5151,15 @@ function spinHit(e) {
 on3D(secSpin, "pointerdown", e => {
   if (!SP.scene) return;
   GL.canvas.setPointerCapture(e.pointerId); ensureSpinBed(); sHint.classList.add("gone");
+  const h = spinHit(e);
+  // the background: a tap there brings it to a stop
+  if (!h || h.r > 1.12) { if (Math.abs(SP.om) > .6 && !SP.brake) { SP.brake = true; S.knock(.4); buzz(12); } return; }
+  // the middle: rest a finger on the cap and it keeps spinning, like holding a real spinner
+  if (h.r < .32) { if (!SP.hold) { SP.hold = { id: e.pointerId }; buzz(6); } return; }
+  // an arm: catch it, and flick to spin
   if (SP.grab) return;
-  const h = spinHit(e); if (!h) return;
   if (Math.abs(SP.om) > 3) { S.knock(.6); buzz(16); } // caught it mid-spin
-  SP.om = 0; SP.grab = { id: e.pointerId, a: h.a, t: performance.now(), vel: 0 };
+  SP.om = 0; SP.brake = false; SP.grab = { id: e.pointerId, a: h.a, t: performance.now(), vel: 0 };
 });
 on3D(secSpin, "pointermove", e => {
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
@@ -5108,6 +5171,7 @@ on3D(secSpin, "pointermove", e => {
   g.a = h.a; g.t = now;
 });
 const spinEnd = e => {
+  if (SP.hold && SP.hold.id === e.pointerId) { SP.hold = null; return; }
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
   SP.grab = null;
   SP.om = performance.now() - g.t > 90 ? 0 : clamp(g.vel, -90, 90);
@@ -8795,7 +8859,7 @@ if (location.hash) window.__fidget = { P3, pop3Night, IC, iceFrame, icBrush, icH
   if (mode === "stones" && ST.W) stonesFrame(now || 0);
   if (mode === "ice" && IC.W) iceFrame(now || 0);
   else if (IC.bed) IC.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
-  else if (ST.bed) ST.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
+  if (mode !== "stones" && ST.bed) ST.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
   if (mode === "home" && TB.W && !secHome.classList.contains("list")) tbFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.rain.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
