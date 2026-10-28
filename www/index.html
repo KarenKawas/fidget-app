@@ -1124,6 +1124,8 @@ const S = {
   plop() { const a = ac(); if (!a || !soundOn) return; tone(a, "sine", 520, 130, .4, .13); nz(a, "lowpass", 1400, 300, 6, .3, .1); },
   rattle() { for (let i = 0; i < 7; i++) setTimeout(() => S.clack(.25 + Math.random() * .4), i * 30 + Math.random() * 25); },
   rustle(v) { const a = ac(); if (!a || !soundOn) return; const f = 3500 + Math.random() * 3000; nz(a, "bandpass", f, f * .8, 1.2, .18 * v, .09, 0, .02); },
+  // a soft gust through leaves: low and airy, easing in and out rather than snapping
+  gust(v) { const a = ac(); if (!a || !soundOn) return; const f = 700 + Math.random() * 300; nz(a, "bandpass", f, f * 1.7, .6, .1 * v, .8, 0, .18); nz(a, "lowpass", 900, 400, .5, .06 * v, .9, 0, .22); },
   crunch(v) { for (let i = 0; i < 4; i++) setTimeout(() => { const a = ac(); if (!a || !soundOn) return; const f = 1800 + Math.random() * 2600; nz(a, "bandpass", f, f * .7, 3, .35 * v, .03); }, i * 18 + Math.random() * 20); },
   snow(v) { const a = ac(); if (!a || !soundOn) return; const f = 500 + Math.random() * 400; nz(a, "bandpass", f, f * 1.6, 2.5, .3 * v, .12, 0, .015); nz(a, "highpass", 2500, 1800, 1, .08 * v, .05); },
   whoosh() { const a = ac(); if (!a || !soundOn) return; nz(a, "bandpass", 400, 2400, 1.4, .3, .35, 0, .08); },
@@ -2428,7 +2430,7 @@ function bugsStep(ps, dt) {
     if (near && nd < 110) {
       const k = (110 - nd) / 110;
       b.vx += (b.x - near.x) / nd * .7 * k * dt; b.vy += (b.y - near.y) / nd * .7 * k * dt;
-      if (b.rest > 0) { b.rest = 0; S.rustle(.35); }
+      if (b.rest > 0) { b.rest = 0; S.gust(.35); }
       b.wt = 0;
     }
     if (b.rest > 0) { b.rest -= dt; b.vx *= .8; b.vy *= .8; b.ph += .03 * dt; }
@@ -2699,12 +2701,32 @@ function grassFrame(now) {
   c.globalAlpha = 1;
   if (G.bugs.length) { bugsStep(ps, dt); drawBugs(c); }
   if (G.mower) drawMower(c);
-  if (G.mower) { if (G.mower.cut && now - G.bz > 90) { G.bz = now; buzz(3); } return; }
-  if (speed > 2 && now - G.snd > Math.max(50, 140 - speed * 4)) {
-    G.snd = now; const v = Math.min(1, .25 + speed * .03);
-    if (s === "autumn") S.crunch(v * .5); else S.rustle(v);
+  if (G.mower) { if (G.wind) G.wind.g.gain.setTargetAtTime(0, actx.currentTime, .3); if (G.mower.cut && now - G.bz > 90) { G.bz = now; buzz(3); } return; }
+  if (s === "autumn") {
+    if (speed > 2 && now - G.snd > Math.max(50, 140 - speed * 4)) { G.snd = now; S.crunch(Math.min(1, .25 + speed * .03) * .5); }
+  } else {
+    // you're the wind: brushing swells one soft, airy breeze through the leaves, with a gentle flutter that quickens as
+    // you go faster, and it sighs away when you stop
+    const Wd = grassWind();
+    if (Wd) {
+      const t = actx.currentTime, k = clamp((speed - 1) / 24, 0, 1);
+      Wd.g.gain.setTargetAtTime(soundOn ? k * .2 : 0, t, k > Wd.k ? .15 : .6);
+      Wd.bp.frequency.setTargetAtTime(650 + k * 1000, t, .4); Wd.lfo.frequency.setTargetAtTime(3.5 + k * 5, t, .4); Wd.k = k;
+    }
   }
   if (speed > 3 && now - G.bz > 90) { G.bz = now; buzz(Math.min(8, 2 + speed * .1) | 0); }
+}
+// the breeze bed for the grass: looping noise, filtered soft and low, with a slow flutter like leaves moving
+function grassWind() {
+  if (G.wind) return G.wind;
+  const a = ac(); if (!a) return null;
+  const s = a.createBufferSource(); s.buffer = noise(a); s.loop = true; s.playbackRate.value = .7;
+  const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 700; bp.Q.value = .55;
+  const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400;
+  const flutter = a.createGain(), lfo = a.createOscillator(), depth = a.createGain(), g = a.createGain();
+  flutter.gain.value = .85; lfo.frequency.value = 4; depth.gain.value = .15; lfo.connect(depth).connect(flutter.gain); lfo.start();
+  g.gain.value = 0; s.connect(bp).connect(lp).connect(flutter).connect(g).connect(out(a)); s.start();
+  return G.wind = { g, bp, lfo, k: 0 };
 }
 function grassTap(x, y) {
   const s = G.season;
@@ -2722,7 +2744,7 @@ function grassTap(x, y) {
       else kick(p, dx / d * rnd(.5, 1.5), dy / d * rnd(.3, 1), rnd(.9, 1.6) + f);
     }
   }
-  if (s === "autumn") { S.crunch(1); if (flew) S.whoosh(); buzz(flew ? 22 : 12); } else { S.rustle(1); buzz(8); }
+  if (s === "autumn") { S.crunch(1); if (flew) S.whoosh(); buzz(flew ? 22 : 12); } else { S.gust(1); buzz(8); }
 }
 gcv.addEventListener("pointerdown", e => {
   gcv.setPointerCapture(e.pointerId); ac(); gHint.classList.add("gone");
@@ -5384,8 +5406,9 @@ function zStoneMat(R) {
   const k = R();
   if (k < .4) return new THREE.MeshStandardMaterial({ map: rkGranite(), color: new THREE.Color().setHSL(.08, .05, .55 + R() * .12), roughness: .9 });
   if (k < .75) return new THREE.MeshStandardMaterial({ roughness: .75, color: 0xFFFFFF, map: zCanvasTex("basalt", x => {
-    x.fillStyle = "#3A3C40"; x.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 9000; i++) { const l = 18 + Math.random() * 16; x.fillStyle = `hsla(220,5%,${l}%,.6)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.4, 1.4); }
+    // a dark slate grey, not black: it still has to read as stone at night
+    x.fillStyle = "#6A6E75"; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 9000; i++) { const l = 34 + Math.random() * 22; x.fillStyle = `hsla(220,6%,${l}%,.6)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.4, 1.4); }
   }) });
   return new THREE.MeshStandardMaterial({ roughness: .95, color: 0xFFFFFF, map: zCanvasTex("mossy", x => {
     x.fillStyle = "#8D8E88"; x.fillRect(0, 0, 256, 256);
@@ -5464,15 +5487,28 @@ function zMakeItem(kind, seed) {
       add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, .02, 6), rail);
     }
   } else if (kind === "tree") {
-    const rock = add(lumpy(new THREE.DodecahedronGeometry(.32, 1), R, .15), zMat(0x5A3F2E, .9), 0, .1); rock.scale.set(1.2, .5, .9);
-    const bark = zMat(0x4A3426, .9); let x = 0, y = .22, z = 0;
-    for (let k = 0; k < 4; k++) { const nx = x + (R() - .5) * .1, ny = y + .16, nz = z + (R() - .5) * .1, seg = add(new THREE.CylinderGeometry(.03 - k * .005, .04 - k * .005, .17, 8), bark, (x + nx) / 2, (y + ny) / 2, (z + nz) / 2); seg.lookAt(nx, ny, nz); seg.rotateX(Math.PI / 2); x = nx; y = ny; z = nz; }
-    g.userData.canopy = new THREE.Vector3(x, y, z);
-    const pinks = [0xF7A8C4, 0xFFD1E0, 0xE97FA6, 0xFFC0D6], geo = new THREE.IcosahedronGeometry(1, 1);
-    const blos = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: .9 }), 70), m4 = new THREE.Matrix4(), col = new THREE.Color();
-    for (let i = 0; i < 70; i++) {
-      const a = R() * 6.3, d = Math.sqrt(R()) * .26, s = .04 + R() * .04;
-      m4.makeScale(s, s, s).setPosition(x + Math.cos(a) * d, y + (R() - .3) * .2, z + Math.sin(a) * d); blos.setMatrixAt(i, m4); blos.setColorAt(i, col.setHex(pinks[i % 4]));
+    // a cherry tree like a bonsai in the sand: a low mossy mound at its foot, a short sturdy trunk with a gentle lean,
+    // branches reaching out, and a wide, airy crown of blossom clusters at their ends
+    const mound = add(lumpy(new THREE.SphereGeometry(.2, 18, 8, 0, 6.2832, 0, Math.PI / 2), R, .1), zMat(0x7A8A52, .95)); mound.scale.set(1, .22, .85);
+    const bark = zMat(0x5A4032, .9), up = new THREE.Vector3(0, 1, 0);
+    const limb = (a, b, r0, r1) => { const s = add(new THREE.CylinderGeometry(r1, r0, a.distanceTo(b), 8), bark); s.position.copy(a).add(b).multiplyScalar(.5); s.quaternion.setFromUnitVectors(up, b.clone().sub(a).normalize()); return s; };
+    const lean = R() * 6.28, lx = Math.cos(lean), lz = Math.sin(lean);
+    const foot = new THREE.Vector3(0, .02, 0), mid = new THREE.Vector3(lx * .04, .25, lz * .04), top = new THREE.Vector3(lx * .09, .42, lz * .09);
+    limb(foot, mid, .06, .045); limb(mid, top, .045, .032);
+    const tips = [top.clone().setY(top.y + .06)];
+    for (let k = 0; k < 4; k++) {
+      const a = lean + k * 1.571 + (R() - .5) * .7, from = k % 2 ? mid.clone().lerp(top, .55) : top, reach = .2 + R() * .1;
+      const to = new THREE.Vector3(from.x + Math.cos(a) * reach, from.y + .07 + R() * .07, from.z + Math.sin(a) * reach);
+      limb(from, to, .026, .013); tips.push(to);
+    }
+    const c = new THREE.Vector3(); tips.forEach(t => c.add(t)); c.divideScalar(tips.length); c.y += .05;
+    g.userData.canopy = c;
+    const pinks = [0xF7A8C4, 0xFFD1E0, 0xE97FA6, 0xFFC0D6], geo = new THREE.IcosahedronGeometry(1, 1), N = 130;
+    const blos = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: .9 }), N), m4 = new THREE.Matrix4(), col = new THREE.Color();
+    for (let i = 0; i < N; i++) {
+      // most blossom clusters gather round the branch ends, flattened into a broad umbrella; a few fill the middle
+      const t = i % 6 === 5 ? c : tips[i % tips.length], a = R() * 6.3, d = Math.sqrt(R()) * (t === c ? .22 : .15), s = .045 + R() * .04;
+      m4.makeScale(s, s * .85, s).setPosition(t.x + Math.cos(a) * d, t.y + (R() - .4) * .09, t.z + Math.sin(a) * d); blos.setMatrixAt(i, m4); blos.setColorAt(i, col.setHex(pinks[i % 4]));
     }
     blos.castShadow = true; g.add(blos);
   } else if (kind === "incense") {
@@ -5553,11 +5589,15 @@ function zPetalsInit() {
   const geo = new THREE.CircleGeometry(.055, 8), p = geo.attributes.position;
   for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i) * .62; p.setXYZ(i, x, y, (x * x + y * y) * 3.5); } // a little cupped
   geo.computeVertexNormals();
-  ZP.mat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: .7, emissive: 0xFF6FA5, emissiveIntensity: .12 });
+  // unlit: two-sided lit petals turn black on some phone graphics chips (their back faces get lit from inside); these just
+  // keep their soft pinks, dimmed a little at night
+  ZP.mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: 0xFFFFFF });
   ZP.mesh = new THREE.InstancedMesh(geo, ZP.mat, ZP.max);
-  ZP.mesh.count = 0; ZP.mesh.castShadow = true; ZP.mesh.frustumCulled = false; Z.scene.add(ZP.mesh);
+  // the colours first: three.js sizes the colour list by the current count, so setting count to 0 beforehand left it empty
+  // and every petal drew black
   const col = new THREE.Color(), pinks = [0xFF8FB8, 0xFFB3CF, 0xFF6FA5, 0xFFC9DC];
   for (let i = 0; i < ZP.max; i++) ZP.mesh.setColorAt(i, col.setHex(pinks[i % 4]));
+  ZP.mesh.count = 0; ZP.mesh.castShadow = true; ZP.mesh.frustumCulled = false; Z.scene.add(ZP.mesh);
   ZP.dummy = new THREE.Object3D();
 }
 function zPetalAt(x, y, z, vx = 0) {
@@ -5691,7 +5731,7 @@ function zNightStep(dt) {
   const v = Z.nv, t = performance.now() / 1000;
   Z.hemi.intensity = .55 - .43 * v; Z.hemi.color.setRGB(1 - .65 * v, 1 - .6 * v, 1 - .33 * v);
   Z.sun.intensity = 1 - .65 * v; Z.sun.color.setRGB(1 - .38 * v, .965 - .26 * v, .918 + .08 * v);
-  ZP.mat.emissiveIntensity = .12 + v * .3;
+  ZP.mat.color.setRGB(1 - .42 * v, 1 - .45 * v, 1 - .3 * v); // the petals dim to a moonlit pink
   let lamps = 0;
   for (const it of Z.items) {
     const gl = it.obj.userData.glow, tip = it.obj.userData.tip;
@@ -8983,6 +9023,7 @@ if (location.hash) window.__fidget = { P3, pop3Night, IC, iceFrame, icBrush, icH
   if (mode === "ice" && IC.W) iceFrame(now || 0);
   else if (IC.bed) IC.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
   if (mode !== "stones" && ST.bed) ST.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
+  if (mode !== "grass" && G.wind) G.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2);
   if (mode === "home" && TB.W && !secHome.classList.contains("list")) tbFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.rain.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
