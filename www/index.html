@@ -6312,10 +6312,16 @@ function cubeRoom(sc) {
   }) })); pic.position.set(-2.3, top + 4.1, wz); sc.add(pic);
   // fairy lights along the top of the wall: they glow at night
   CB.fairy = [];
+  const wirePts = [new THREE.Vector3(-5.6, top + 5.95, wz + .05)];
   for (let i = 0; i < 14; i++) {
     const x = -5 + i * .78, y = top + 5.75 - Math.sin(i / 13 * Math.PI) * .6;
     const b = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: [0xFFD86B, 0xFF9EC4, 0x9FE3C4][i % 3] })); b.position.set(x, y, wz + .08); b.userData.noInk = true; sc.add(b); CB.fairy.push(b);
+    // each bulb hangs from the wire on a little dark cap, so the string reads as lights and not loose dots
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(.06, .07, .12, 8), new THREE.MeshBasicMaterial({ color: 0x2A2438 })); cap.position.set(x, y + .15, wz + .08); cap.userData.noInk = true; sc.add(cap);
+    wirePts.push(new THREE.Vector3(x, y + .22, wz + .06));
   }
+  wirePts.push(new THREE.Vector3(5.6, top + 5.95, wz + .05));
+  const wire = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wirePts), 80, .022, 4), new THREE.MeshBasicMaterial({ color: 0x2A2438 })); wire.userData.noInk = true; sc.add(wire);
   // a soft glow halo for the fairy lights at night
   tbToonify(room, .03);
   // the room's own colours, kept so night can dim them
@@ -6905,16 +6911,24 @@ function rkThrow(rk, fl) {
   const b = rk.body, s = Math.hypot(fl.vx, fl.vy);
   // throw along the camera's view across the sand, a little to the side if the flick leaned
   const fwd = RK.cam.getWorldDirection(new THREE.Vector3()).setY(0).normalize(), side = new THREE.Vector3(-fwd.z, 0, fwd.x);
-  const v = fwd.multiplyScalar(clamp(s / 220, 6, 15)).addScaledVector(side, clamp(fl.vx / 260, -4, 4));
+  const v = fwd.multiplyScalar(clamp(s / 180, 8, 18)).addScaledVector(side, clamp(fl.vx / 260, -4, 4));
   b.type = CANNON.Body.DYNAMIC; b.mass = rk.m; b.updateMassProperties(); b.collisionResponse = true; b.wakeUp();
-  b.velocity.set(v.x, clamp(s / 380, 3.5, 7), v.z); b.angularVelocity.set(rnd(-8, 8), rnd(-4, 4), rnd(-8, 8));
+  b.velocity.set(v.x, clamp(s / 300, 4.5, 8), v.z); b.angularVelocity.set(rnd(-8, 8), rnd(-4, 4), rnd(-8, 8));
   rk.thrown = true; rk.locked = false; rk.place = null; RK.dirty = true;
   S.whoosh(); buzz(10);
 }
 function rkThrownStep(r) {
-  const p = r.body.position;
-  // past the waterline it no longer touches the (flat) physics ground, so it can fall into the sea
-  if (p.z < RK_WATER_Z + 1) r.body.collisionResponse = false;
+  const p = r.body.position, v = r.body.velocity;
+  // where the beach slopes down to the water the flat physics ground would hold it up in mid-air above the sand, so from
+  // there it leaves the physics ground and skids down the real slope, bouncing lower each time, and on into the sea
+  if (p.z < RK_SHORE_Z) {
+    r.body.collisionResponse = false;
+    const gy = rkGroundH(p.x, p.z) + r.b;
+    if (p.y < gy && p.z > RK_WATER_Z) {
+      p.y = gy; if (v.y < 0) v.y = -v.y * .3; v.x *= .92; v.z = Math.min(v.z * .92, -2.2);
+      if (!r.skid) { r.skid = true; rkStone(.25, r.a); }
+    }
+  }
   if (p.z < RK_WATER_Z && p.y < RK_SEA + .1) { rkSplash(p.x, p.z, Math.max(r.a, r.c)); rkRemove(r); }
   else if (p.y < -6 || Math.hypot(p.x - RK.tx, p.z - RK.tz) > 60) rkRemove(r);
 }
@@ -7219,10 +7233,13 @@ const smooth01 = (e0, e1, v) => { const t = clamp((v - e0) / (e1 - e0), 0, 1); r
 function rkGroundH(x, z) {
   const r = Math.hypot(x, z - 1);
   const dune = smooth01(8, 14, r) * smooth01(RK_SHORE_Z, RK_SHORE_Z + 4, z) * (Math.sin(x * .35 + 1.3) * .5 + Math.sin(z * .28 + x * .12) * .45 + Math.sin(x * .9 - z * .6) * .15 + .6);
-  const slope = z < RK_SHORE_Z ? (z - RK_SHORE_Z) * .11 - Math.pow(Math.max(0, RK_SHORE_Z - z - 4), 1.4) * .04 : 0;
+  // the beach rolls gently over into its slope (a sharp fold there caught the light as a dark ledge along the water)
+  const s = RK_SHORE_Z - z, roll = s <= 0 ? 0 : s < 1.6 ? s * s / 3.2 : s - .8;
+  const slope = -roll * .11 - Math.pow(Math.max(0, s - 4), 1.4) * .04;
   return dune * 1.1 + slope;
 }
-const RK_WATER_Z = RK_SHORE_Z + RK_SEA / .11; // where the slope meets the still water line
+// where the slope meets the still water line
+const RK_WATER_Z = (() => { let a = RK_SHORE_Z - 20, b = RK_SHORE_Z; for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if (rkGroundH(0, m) < RK_SEA) a = m; else b = m; } return (a + b) / 2; })();
 function rkBeachBuild(sc) {
   // sand: warm grain for colour, wind ripples for relief
   const st = rkCanvasTex("sand", x => {
@@ -7236,15 +7253,20 @@ function rkBeachBuild(sc) {
     for (let i = 0; i < 6000; i++) { x.fillStyle = Math.random() < .5 ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.25)"; x.fillRect(Math.random() * 256, Math.random() * 256, 1, 1); }
   }, false);
   rip.repeat.set(26, 26);
-  const g = new THREE.PlaneGeometry(110, 110, 220, 220); g.rotateX(-Math.PI / 2); g.translate(0, 0, 15);
+  // wide enough that the sand runs on into the haze whichever way you turn, never stopping at an edge
+  const g = new THREE.PlaneGeometry(260, 110, 330, 220); g.rotateX(-Math.PI / 2); g.translate(0, 0, 15);
   const p = g.attributes.position, col = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), z = p.getZ(i), y = rkGroundH(x, z); p.setY(i, y);
     // damp, darker sand toward the water; dune crests a touch lighter
-    const wet = smooth01(-.05, -.42, y), v = (1 - .2 * wet) * (1 + Math.max(0, y) * .04);
+    const wet = smooth01(-.28, -.5, y), v = (1 - .12 * wet) * (1 + Math.max(0, y) * .04); // only a narrow damp edge at the water
     col[i * 3] = v; col[i * 3 + 1] = v * (1 - .03 * wet); col[i * 3 + 2] = v * (1 - .05 * wet);
   }
   g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
+  // the slope down to the water faces away from the sun, and seen low along the shore it read as a dark ledge; light it
+  // almost as if it were level, so the sand runs on into the water in one colour
+  const nrm = g.attributes.normal;
+  for (let i = 0; i < p.count; i++) if (p.getZ(i) < RK_SHORE_Z + .5) { const k = .85 * smooth01(RK_SHORE_Z + .5, RK_SHORE_Z - 1, p.getZ(i)), nx = nrm.getX(i) * (1 - k), ny = nrm.getY(i) * (1 - k) + k, nz = nrm.getZ(i) * (1 - k), l = Math.hypot(nx, ny, nz); nrm.setXYZ(i, nx / l, ny / l, nz / l); }
   RK.sand = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: st, bumpMap: rip, bumpScale: .035, vertexColors: true, roughness: 1 }));
   RK.sand.receiveShadow = true; sc.add(RK.sand);
   // the sea: shallow turquoise at the shore deepening offshore, with ripples from a scrolling normal map
@@ -7260,7 +7282,7 @@ function rkBeachBuild(sc) {
     x.putImageData(img, 0, 0);
   }, false);
   nm.repeat.set(36, 18); RK.waterNormal = nm;
-  const wg = new THREE.PlaneGeometry(240, 112, 120, 56); wg.rotateX(-Math.PI / 2); wg.translate(0, RK_SEA, RK_WATER_Z - 54);
+  const wg = new THREE.PlaneGeometry(400, 112, 200, 56); wg.rotateX(-Math.PI / 2); wg.translate(0, RK_SEA, RK_WATER_Z - 54);
   wg.setAttribute("color", new THREE.BufferAttribute(new Float32Array(wg.attributes.position.count * 3), 3));
   RK.sea = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ vertexColors: true, normalMap: nm, normalScale: new THREE.Vector2(.45, .45), roughness: .3, metalness: 0, envMap: GL.env, envMapIntensity: .15, transparent: true, opacity: .97, fog: false }));
   // two ripple layers at different scales and directions, and slow swells offshore, so the water never looks tiled
@@ -7276,7 +7298,10 @@ function rkBeachBuild(sc) {
   // the wash: a thin sheet of water and a foam edge that run up the slope and slide back, and the wet shine they leave
   const NX = 96, strip = rows => { const geo = new THREE.BufferGeometry(), pos = new Float32Array(NX * rows * 3), uv = new Float32Array(NX * rows * 2), idx = [];
     for (let r = 0; r < rows; r++) for (let i = 0; i < NX; i++) { uv[(r * NX + i) * 2] = i / (NX - 1) * 10; uv[(r * NX + i) * 2 + 1] = r / (rows - 1); if (r < rows - 1 && i < NX - 1) { const k = r * NX + i; idx.push(k, k + NX, k + 1, k + 1, k + NX, k + NX + 1); } }
-    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx); return geo; };
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx);
+    // facing up: without normals the lit sheets (the wash and the wet shine) came out almost black, a dark band at the water
+    const nrm = new Float32Array(NX * rows * 3); for (let i = 1; i < nrm.length; i += 3) nrm[i] = 1; geo.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+    return geo; };
   // the wash fades in from clear at the waterline to a sheen at its leading edge, so it never lies over the open sea like a slab
   const fade = rkCanvasTex("washfade", x => { const g = x.createLinearGradient(0, 256, 0, 0); g.addColorStop(0, "#000"); g.addColorStop(.55, "#777"); g.addColorStop(1, "#FFF"); x.fillStyle = g; x.fillRect(0, 0, 256, 256); }, false);
   RK.swash = new THREE.Mesh(strip(2), new THREE.MeshStandardMaterial({ color: 0x58C3C0, alphaMap: fade, transparent: true, opacity: .6, roughness: .3, envMapIntensity: .2, depthWrite: false }));
@@ -7312,7 +7337,10 @@ function rkBeachBuild(sc) {
 // the sea and the wash reflect this beach's own sky (not the studio light the rocks use), so the water reads as ocean
 function rkSkyEnv(T) {
   const c = document.createElement("canvas"); c.width = 256; c.height = 128; const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 128);
-  g.addColorStop(0, T.sky[0]); g.addColorStop(.3, T.sky[1]); g.addColorStop(.49, T.sky[2]); g.addColorStop(.51, "#" + new THREE.Color(T.deep).getHexString()); g.addColorStop(1, "#" + new THREE.Color(T.deep).multiplyScalar(.5).getHexString());
+  // below the horizon: the sea's own colour, kept light. Ripples tip the water's reflection down into this half, and a
+  // dark lower half turned the shallows near the shore (and whole patches at grazing angles) nearly black
+  const below = new THREE.Color(T.sky[2]).lerp(new THREE.Color(T.shallow), .55);
+  g.addColorStop(0, T.sky[0]); g.addColorStop(.3, T.sky[1]); g.addColorStop(.49, T.sky[2]); g.addColorStop(.51, "#" + below.getHexString()); g.addColorStop(1, "#" + below.clone().lerp(new THREE.Color(T.deep), .35).getHexString());
   x.fillStyle = g; x.fillRect(0, 0, 256, 128);
   const tex = new THREE.CanvasTexture(c); tex.mapping = THREE.EquirectangularReflectionMapping; tex.encoding = THREE.sRGBEncoding;
   const pm = new THREE.PMREMGenerator(GL.r), env = pm.fromEquirectangular(tex).texture; pm.dispose(); tex.dispose();
