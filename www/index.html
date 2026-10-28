@@ -864,7 +864,7 @@ html[data-mode="ice"]{background:#0B1626}
   </section>
 
   <section class="mode" id="mode-twisty" aria-label="Twisty: a chain of clicky links. Drag a link to twist it a quarter turn at a time, or tap it for one notch. Pull a link well away to pop it off, bring a socket to a loose peg to connect, drag the first link of a piece to move it, and drag empty space to look around.">
-    <p class="hint" id="twHint">Drag a link to twist it · pull hard to pop it off</p>
+    <p class="hint" id="twHint">Drag a link to twist it · pull hard to pop it off · tap the remote for the TV</p>
     <div class="tw-btns"><button class="newsheet" id="twAdd">+ Link</button><button class="newsheet" id="twTidy">Tidy</button><button class="newsheet tw-icon" id="twCenter" aria-label="Recenter on your biggest chain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button><button class="newsheet" id="twReset">New</button></div>
     <div class="themes" role="group" aria-label="Twisty colours">
       <button class="theme" data-tw="mint" aria-pressed="true"><i style="background:linear-gradient(135deg,#B9E8C8 50%,#7CC4F0 50%)"></i>Mint</button>
@@ -4413,37 +4413,87 @@ function twRoom(sc) {
   const tbl = new THREE.Group(), top = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, .3, 28), tbT(0xE9D2B4)); top.position.y = 2; tbl.add(top);
   for (let k = 0; k < 3; k++) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 2, 8), tbT(0x8A5A30)); const a = k / 3 * 6.28; leg.position.set(Math.cos(a) * 1.6, 1, Math.sin(a) * 1.6); tbl.add(leg); }
   const mug = new THREE.Mesh(new THREE.CylinderGeometry(.35, .3, .7, 16), tbT(0xF2A5B8)); mug.position.set(.6, 2.5, .3); tbl.add(mug);
-  const remote = new THREE.Mesh(new THREE.BoxGeometry(.4, .15, 1.3), tbT(0x2A2438)); remote.position.set(-.6, 2.22, -.2); remote.rotation.y = .5; tbl.add(remote);
   add(tbl, 15, 0, 6);
+  // the TV remote, lying on the cabinet in front of the screen: tap it to turn the TV (and its soft hush) on or off
+  add(TW.remote = twRemoteBuild(), -3.4, 2.15, -16.25, Math.PI / 2 - .2);
   tbToonify(room, .05);
+  // a roomier, unseen target round it, so it is easy to tap from across the room
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 5.4), new THREE.MeshBasicMaterial()); hit.visible = false; TW.remote.add(hit);
+}
+function twRemoteBuild() {
+  const g = new THREE.Group(), sh = new THREE.Shape(), w = .55, h = 1.7, r = .4;
+  sh.moveTo(-w + r, -h); sh.lineTo(w - r, -h); sh.quadraticCurveTo(w, -h, w, -h + r); sh.lineTo(w, h - r); sh.quadraticCurveTo(w, h, w - r, h); sh.lineTo(-w + r, h); sh.quadraticCurveTo(-w, h, -w, h - r); sh.lineTo(-w, -h + r); sh.quadraticCurveTo(-w, -h, -w + r, -h);
+  const body = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: .16, bevelEnabled: true, bevelThickness: .08, bevelSize: .08, bevelSegments: 3, curveSegments: 8 }), tbT(0x3A3448));
+  body.rotation.x = -Math.PI / 2; body.position.y = .08; body.castShadow = body.receiveShadow = true; g.add(body);
+  const btn = (rad, col, x, z, ht = .1) => { const b = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, ht, 18), tbT(col)); b.position.set(x, .36, z); g.add(b); return b; };
+  // a big round power button at the top, a ring of arrows, and rows of little pastel keys
+  TW.remPow = btn(.24, 0xFF6F86, 0, -1.2, .14);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.26, .07, 8, 24), tbT(0xBFB6D4)); ring.rotation.x = Math.PI / 2; ring.position.set(0, .34, -.35); g.add(ring);
+  btn(.11, 0xFFFFFF, 0, -.35);
+  const keys = [0x9FD8C4, 0xFFE27A, 0x9CC8F5];
+  for (let row = 0; row < 3; row++) for (let c = -1; c <= 1; c++) btn(.1, keys[row], c * .3, .35 + row * .34, .08);
+  // the little window the signal comes out of; it blinks when you press
+  TW.remLed = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), new THREE.MeshBasicMaterial({ color: 0x40303A })); TW.remLed.position.set(0, .2, -1.78); TW.remLed.userData.noInk = true; g.add(TW.remLed);
+  g.scale.setScalar(.75); return g;
+}
+// pressing the remote: the power button dips, the light at the tip blinks, and the TV pops on or winds off
+function twRemote() {
+  TW.tvOn = !TW.tvOn; savePref("fidget-twisty-tv", TW.tvOn ? "1" : "0"); TW.remT = .25;
+  S.tick(TW.tvOn ? 1700 : 1300, .25, .025, "square"); buzz(12);
+  const a = ac(); if (a && soundOn) setTimeout(() => { if (TW.tvOn) tone(a, "sine", 320, 640, .05, .16); else tone(a, "sine", 520, 170, .05, .2); }, 90);
 }
 // the TV picture: soft cartoon colours drifting by
-function twTvStep(t) {
-  if (!TW.tvC || (TW.tvT = (TW.tvT || 0) + 1) % 6) return;
-  const x = TW.tvC.getContext("2d"), w = 64, h = 40, hue = (t * 12) % 360;
+function twTvStep(t, dt) {
+  if (!TW.tvC) return;
+  // the power eases on, or winds off like an old set (the picture squeezes to a bright line and fades)
+  const pw = TW.tvPow ?? (TW.tvPow = TW.tvOn ? 1 : 0), goal = TW.tvOn ? 1 : 0;
+  TW.tvPow = goal > pw ? Math.min(1, pw + dt * 3) : Math.max(0, pw - dt * 4);
+  if (TW.remT > 0) { TW.remT -= dt; const k = Math.max(0, TW.remT) / .25; TW.remPow.position.y = .36 - .07 * k; TW.remLed.material.color.setHex(k > .3 ? 0xFF4A5A : 0x40303A); }
+  const fading = TW.tvPow !== pw || TW.tvPow !== goal;
+  if ((TW.tvT = (TW.tvT || 0) + 1) % (fading ? 2 : 6)) return;
+  const x = TW.tvC.getContext("2d"), w = 64, h = 40, hue = (t * 12) % 360, P = TW.tvPow;
+  TW.tvLight.intensity = .5 * P;
+  if (P <= 0) { x.fillStyle = "#16141C"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(255,255,255,.06)"; x.fillRect(4, 3, 18, 2); TW.tvTex.needsUpdate = true; return; }
   const g = x.createLinearGradient(0, 0, w, h); g.addColorStop(0, `hsl(${hue},55%,55%)`); g.addColorStop(1, `hsl(${(hue + 80) % 360},55%,40%)`); x.fillStyle = g; x.fillRect(0, 0, w, h);
   x.fillStyle = `hsla(${(hue + 180) % 360},70%,75%,.8)`; x.beginPath(); x.arc(20 + Math.sin(t * .7) * 14, 22 + Math.cos(t * 1.1) * 6, 7, 0, 6.3); x.fill();
   x.fillStyle = "rgba(255,255,255,.25)"; x.fillRect(0, (t * 30) % h, w, 2);
+  if (P < 1) {
+    // squeezed toward a bright line across the middle as it switches off (or opens out from one as it comes on)
+    const lh = Math.max(1, h * P * P); x.fillStyle = "#16141C"; x.fillRect(0, 0, w, (h - lh) / 2); x.fillRect(0, (h + lh) / 2, w, h);
+    x.fillStyle = `rgba(255,255,255,${(1 - P) * .8})`; x.fillRect(0, (h - lh) / 2, w, lh);
+  }
   TW.tvTex.needsUpdate = true; TW.tvLight.color.setHSL(hue / 360, .5, .7);
 }
-// the TV's sound: muffled voices from another programme, with the odd swell of a laugh track
+// a soothing hush for the TV: a long stereo loop of warm pink and brown noise (the deep, soft kind, not hissy white),
+// its seam crossfaded so the loop can't be heard
+function twHushBuf(a) {
+  const sr = a.sampleRate, N = sr * 9, F = sr, b = a.createBuffer(2, N, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const x = new Float32Array(N + F); let b0 = 0, b1 = 0, b2 = 0, br = 0, pk = 0;
+    for (let i = 0; i < N + F; i++) {
+      const w = Math.random() * 2 - 1;
+      b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913;
+      br = (br + .02 * w) / 1.02;
+      x[i] = (b0 + b1 + b2 + w * .1848) * .11 + br * 2.2;
+    }
+    const d = b.getChannelData(ch);
+    for (let i = 0; i < N; i++) { const k = i < F ? i / F : 1; d[i] = x[i] * Math.sqrt(k) + (i < F ? x[N + i] * Math.sqrt(1 - k) : 0); pk = Math.max(pk, Math.abs(d[i])); }
+    for (let i = 0; i < N; i++) d[i] *= .9 / pk;
+  }
+  return b;
+}
 function twTvSound(dt) {
   const a = actx; if (!a) return;
   if (!TW.tv) {
-    const s = a.createBufferSource(), f = a.createBiquadFilter(), f2 = a.createBiquadFilter(), g = a.createGain();
-    s.buffer = noise(a); s.loop = true; f.type = "bandpass"; f.frequency.value = 700; f.Q.value = 3; f2.type = "lowpass"; f2.frequency.value = 1400; g.gain.value = 0;
-    s.connect(f).connect(f2).connect(g).connect(out(a)); s.start(); TW.tv = { f, g, t: 0, syl: 0, laugh: 0 };
+    const s = a.createBufferSource(), hp = a.createBiquadFilter(), lp = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = twHushBuf(a); s.loop = true; hp.type = "highpass"; hp.frequency.value = 70; lp.type = "lowpass"; lp.frequency.value = 1500; lp.Q.value = .5; g.gain.value = 0;
+    s.connect(hp).connect(lp).connect(g).connect(out(a)); s.start(); TW.tv = { g, lp, t: 0 };
   }
-  const T = TW.tv, on = mode === "twisty" && soundOn && ambienceOn, now = a.currentTime;
-  T.t += dt; T.syl -= dt;
-  // syllables: little bursts at changing pitches, with pauses between phrases
-  if (T.syl <= 0) {
-    T.syl = Math.random() < .12 ? rnd(.5, 1.2) : rnd(.08, .2);
-    const lvl = on ? (T.syl > .4 ? 0 : rnd(.012, .03)) : 0;
-    T.g.gain.setTargetAtTime(lvl, now, .03); T.f.frequency.setTargetAtTime(rnd(450, 1100), now, .04);
-  }
-  if (on && Math.random() < dt / 25) { T.g.gain.setTargetAtTime(.045, now + .05, .3); T.g.gain.setTargetAtTime(0, now + 1.4, .4); T.syl = 1.8; }
-  if (!on) T.g.gain.setTargetAtTime(0, now, .2);
+  // it breathes: a very slow swell in level and brightness, like distant waves
+  const T = TW.tv, on = mode === "twisty" && soundOn && ambienceOn && TW.tvOn, now = a.currentTime; T.t += dt;
+  const sw = Math.sin(T.t * .45) * .6 + Math.sin(T.t * .17) * .4;
+  T.g.gain.setTargetAtTime(on ? .16 * (1 + .12 * sw) : 0, now, on ? .8 : .25);
+  T.lp.frequency.setTargetAtTime(1500 + 250 * sw, now, .8);
 }
 /* ---- the 3D pop-it on a kitchen table: real silicone domes you press in, and flick (or tap Flip) to turn it over ---- */
 var P3 = { on: false, scene: null, cam: null, board: null, domes: [], ptrs: new Map(), shape: null };
@@ -4677,7 +4727,7 @@ on3D(secPop, "pointerup", pop3End); on3D(secPop, "pointercancel", pop3End);
 // The first link of any piece is its handle: drag it to move the whole piece.
 const secTw = $("#mode-twisty"), twHint = $("#twHint");
 const TW = { W: 0, scene: null, cam: null, pieces: [], ptrs: new Map(), drag: null, orbit: null, pinch: null, yaw: .3, pitch: .5, zoom: 1.05, last: 0,
-  style: pref("fidget-twisty-style", "mint"), lastTap: 0, saveT: 0, dirty: false };
+  style: pref("fidget-twisty-style", "mint"), lastTap: 0, saveT: 0, dirty: false, tvOn: pref("fidget-twisty-tv", "1") === "1" };
 const TW_R = 1, TW_T = .3, Q = Math.PI / 2; // arc radius, tube radius, a quarter turn
 const TW_STYLES = {
   mint: { bg: "#2E2A36", mat: "#3E3850", cols: ["#B9E8C8", "#7CC4F0"], glitter: [false, true] },
@@ -4897,7 +4947,7 @@ function twistyFrame(now) {
   const dt = clamp((now - (TW.last || now - 16.7)) / 1000, .004, .05); TW.last = now;
   // joints that were let go ease into their notch
   for (const p of TW.pieces) for (const s of p.segs) if (s.th !== s.tt && !(TW.drag && TW.drag.p === p && TW.drag.s === s)) { s.th += (s.tt - s.th) * Math.min(1, dt * 14); if (Math.abs(s.tt - s.th) < 1e-3) s.th = s.tt; }
-  twSettleStep(dt); twTvStep(TW.t = (TW.t || 0) + dt); twTvSound(dt);
+  twSettleStep(dt); twTvStep(TW.t = (TW.t || 0) + dt, dt); twTvSound(dt);
   if (TW.tgtGoal) { const k = Math.min(1, dt * 5); TW.tgt.lerp(TW.tgtGoal, k); TW.zoom += (TW.zoomGoal - TW.zoom) * k; twCamera(); if (TW.tgt.distanceTo(TW.tgtGoal) < .01) TW.tgtGoal = null; }
   for (const p of TW.pieces) { const F = twFrames(p); p.segs.forEach((s, i) => { s.g.matrix.copy(F[i]); s.g.matrixWorldNeedsUpdate = true; }); }
   // the snap ring pulses while a carried piece is in range, and bursts when it clicks on
@@ -4978,7 +5028,8 @@ on3D(secTw, "pointerdown", e => {
   if (TW.drag) return;
   const links = []; for (const p of TW.pieces) for (const s of p.segs) links.push(s.g.children[0]);
   const h = rayAt(e, TW.cam).intersectObjects(links, false)[0];
-  if (!h) { TW.orbit = { id: e.pointerId }; return; }
+  // nothing to hold: the touch moves the view, unless it's a tap on the remote
+  if (!h) { TW.orbit = { id: e.pointerId, remote: !!(TW.remote && rayAt(e, TW.cam).intersectObject(TW.remote, true)[0]) }; return; }
   const { p, i } = h.object.userData.tw;
   if (i === 0) { TW.drag = Object.assign(twStartCarry(p, e), { id: e.pointerId }); p.settle = null; S.tick(1400, .12, .02); buzz(5); return; }
   // twisting link i about its joint: work out which way on screen turns it forward
@@ -5051,7 +5102,8 @@ const twEndPtr = e => {
   if (TW.drag && TW.drag.id === e.pointerId) twDrop(TW.drag, e.type === "pointerup" && !TW.drag.moved && performance.now() - pt.t0 < 300);
   if (TW.pinch) { if (TW.ptrs.size < 2) TW.pinch = null; return; }
   if (TW.orbit && TW.orbit.id === e.pointerId) {
-    TW.orbit = null;
+    const O = TW.orbit; TW.orbit = null;
+    if (O.remote && e.type === "pointerup" && Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 12 && performance.now() - pt.t0 < 500) { twRemote(); return; }
     // a double-tap on empty space eases back to the starting view
     if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 10) { const now = performance.now(); if (now - TW.lastTap < 330) { TW.yaw = .3; TW.pitch = .5; TW.zoom = 1.05; TW.tgt.set(0, 1, 0); TW.tgtGoal = null; twCamera(); buzz(6); TW.lastTap = 0; } else TW.lastTap = now; }
     return;
