@@ -1189,13 +1189,15 @@ document.querySelectorAll(".mode-btn").forEach(b => b.addEventListener("click", 
 /* ================= slime ================= */
 const PALETTES = [
   { name: "Hot pink", a: [.91, .12, .36], b: [.96, .2, .44], c: [.84, .08, .3], sw: "#E62A64", glit: 0, sprinkles: true },
-  { name: "Bubblegum", a: [1, .45, .7], b: [1, .85, .93], c: [.85, .3, .62], sw: "#FF7AB6", glit: .35 },
-  { name: "Lagoon", a: [.12, .58, .95], b: [.72, .95, 1], c: [.1, .35, .8], sw: "#2E9EF2", glit: .45 },
-  { name: "Lime", a: [.5, .84, .26], b: [.95, 1, .68], c: [.25, .62, .2], sw: "#85D94D", glit: .25 },
-  { name: "Galaxy", a: [.22, .14, .52], b: [.78, .45, 1], c: [.08, .05, .25], sw: "#3D2A8F", glit: 1 },
-  { name: "Glow", a: [.06, .16, .13], b: [.45, 1, .55], c: [.02, .06, .09], sw: "#1E5C3E", glit: .8 },
-  { name: "Butter", a: [1, .84, .42], b: [1, .96, .78], c: [.92, .66, .28], sw: "#FFD36B", glit: 0 },
-  { name: "Clear", a: [.62, .84, .9], b: [.94, 1, 1], c: [.42, .68, .8], sw: "#A9DCE8", glit: .6 },
+  // matte like the hot pink: the swirls are only a shade lighter and a shade deeper than the slime itself (near-white
+  // swirls read as shiny white streaks), and little or no glitter
+  { name: "Bubblegum", a: [1, .45, .7], b: [1, .53, .77], c: [.9, .36, .62], sw: "#FF7AB6", glit: 0 },
+  { name: "Lagoon", a: [.12, .58, .95], b: [.2, .66, .98], c: [.08, .47, .86], sw: "#2E9EF2", glit: 0 },
+  { name: "Lime", a: [.5, .84, .26], b: [.58, .89, .34], c: [.41, .73, .2], sw: "#85D94D", glit: 0 },
+  { name: "Galaxy", a: [.22, .14, .52], b: [.31, .2, .63], c: [.15, .09, .4], sw: "#3D2A8F", glit: .3 },
+  { name: "Glow", a: [.12, .36, .24], b: [.17, .45, .31], c: [.08, .27, .18], sw: "#1E5C3E", glit: .15 },
+  { name: "Butter", a: [1, .82, .4], b: [1, .87, .5], c: [.94, .72, .3], sw: "#FFD36B", glit: 0 },
+  { name: "Clear", a: [.6, .82, .89], b: [.68, .88, .93], c: [.5, .74, .83], sw: "#A9DCE8", glit: .1 },
 ];
 let pal = PALETTES[0];
 try { pal = PALETTES.find(p => p.name === localStorage.getItem("fidget-slime-color")) || pal; } catch (e) {}
@@ -1531,6 +1533,8 @@ function slimeRender(now) {
   const fdt = now - (TOP_CAP.last || now); TOP_CAP.last = now; if (fdt > 0 && fdt < 100) TOP_CAP.ema += (fdt - TOP_CAP.ema) * .05;
   if (overloadOn && tops.length > 700 && TOP_CAP.ema > 26 && now - TOP_CAP.cutT > 2000) { TOP_CAP.cutT = now; TOP_CAP.max = Math.max(700, Math.round(tops.length * .8)); tops.splice(0, tops.length - TOP_CAP.max); }
   const d = img.data, gl = pal.b;
+  // light colours get gentler light and shade, so they stay a soft matte rather than burning out into a metallic shine
+  const lum = pal.a[0] * .3 + pal.a[1] * .59 + pal.a[2] * .11, soft = clamp(1.3 - lum * .7, .7, 1);
   for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) {
     const k = j * gw + i, p = k * 4;
     let nx = -(h[k + 1] - h[k - 1]) * 2.5, ny = -(h[k + gw] - h[k - gw]) * 2.5;
@@ -1543,7 +1547,8 @@ function slimeRender(now) {
     const rim = (1 - nzz) * (1 - nzz) * 1.2;
     // soft shading: dents go darker as fingers press in, so the slime feels like it gives way
     let shade = .5 + .58 * dif + h[k] * .03 - cav * .32; if (shade < .2) shade = .2;
-    const sheen = s16 * 70 + s4 * 12;
+    shade = .85 + (shade - .85) * soft;
+    const sheen = (s16 * 70 + s4 * 12) * soft * soft;
     d[p] = cr[k] * 255 * shade + sheen * (.55 + .45 * gl[0]) + rim * gl[0] * 90;
     d[p + 1] = cg[k] * 255 * shade + sheen * (.55 + .45 * gl[1]) + rim * gl[1] * 90;
     d[p + 2] = cb[k] * 255 * shade + sheen * (.55 + .45 * gl[2]) + rim * gl[2] * 90;
