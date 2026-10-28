@@ -782,9 +782,9 @@ html[data-mode="ice"]{background:#0B1626}
     </div>
   </section>
 
-  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick it round to spin it. Rest a finger on the middle to hold it while it spins; tap an arm or the background to stop it.">
+  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick an arm to spin it, and keep flicking to make it go faster. Rest a finger on the middle to hold it while it spins; touch an arm or tap the background to stop it.">
     <div class="spin-hud" aria-live="off"><span class="lbl">RPM</span><span class="total" id="spinRpm">0</span><span class="best" id="spinBest"></span></div>
-    <p class="hint" id="sHint">Flick it to spin · hold the middle · tap the edge to stop</p>
+    <p class="hint" id="sHint">Flick an arm to spin, keep flicking to go faster · hold the middle · touch an arm to stop</p>
     <div class="themes" role="group" aria-label="Spinner design">
       <button class="opt" data-design="classic" aria-pressed="true"><i style="background:linear-gradient(135deg,#7B5CFF 50%,#C9CED6 50%)"></i>Classic</button>
       <button class="opt" data-design="metal" aria-pressed="false"><i style="background:linear-gradient(135deg,#E9ECF1,#8C939E)"></i>Metal</button>
@@ -5050,6 +5050,9 @@ const SP = { W: 0, design: "classic", th: 0, om: 0, grab: null, last: 0, lobe: 0
 try { SP.best = +localStorage.getItem("fidget-spin-best") || 0; } catch (e) {}
 const SPIN_LOBES = { classic: 3, metal: 4, neon: 3 };
 const SPIN_TOP = .16; // height of the spinner's top face
+// a finger on the phone moves far slower round the hub than a fingertip flicking a real 7 cm spinner, so its turning
+// speed is scaled up; one flick reaches about 1,000 RPM at most, and flick after flick can pump it to about 1,900
+const SPIN_PUSH = 3.5, SPIN_FLICK = 110, SPIN_MAX = 200;
 // classic outline: lobe circles joined by concave arcs that just touch them, with holes for the weights and hub
 function spinShape(L, dl, rl, rc) {
   const th = Math.PI / L, dc = dl * Math.cos(th) + Math.sqrt((rl + rc) ** 2 - (dl * Math.sin(th)) ** 2), off = Math.PI / 2;
@@ -5149,10 +5152,14 @@ function ensureSpinBed() {
 function spinFrame(now) {
   const dts = clamp((now - (SP.last || now - 16.7)) / 1000, .004, .05); SP.last = now;
   if (SP.brake && !SP.grab) { SP.om *= Math.exp(-dts * 18); if (Math.abs(SP.om) < .6) { SP.om = 0; SP.brake = false; } }
-  if (!SP.grab) {
+  const g = SP.grab;
+  if (g) { spinContact(g, performance.now()); SP.th += SP.om * dts; }
+  else {
+    // the bearing: an almost steady slowdown (rolling friction), with a little air drag at speed, so a fast spin keeps
+    // its speed and hum for a good while and then winds down in a short run of slowing ticks
     const w = Math.abs(SP.om);
-    if (w > 0) { const nw = Math.max(0, w - (.35 + .045 * w) * dts); SP.om = Math.sign(SP.om) * nw; SP.th += SP.om * dts; }
-  } else if (now - SP.grab.t > 60) SP.grab.vel *= .8; // finger resting: it isn't throwing any more
+    if (w > 0) { const nw = Math.max(0, w - (2.2 + .006 * w) * dts); SP.om = Math.sign(SP.om) * nw; SP.th += SP.om * dts; }
+  }
   const w = Math.abs(SP.om), L = SPIN_LOBES[SP.design];
   // a tick each time a lobe passes the top, while it's slow enough to hear separate ticks
   const lobe = Math.floor(SP.th * L / 6.2832);
@@ -5182,6 +5189,21 @@ function spinFrame(now) {
   const bo = clamp((w - 12) / 70, 0, .45); SP.blur.material.opacity = bo; SP.blur.visible = bo > .01;
   toonRender(GL.r, SP.scene, SP.cam, TOON_INK.spin);
 }
+// a finger on an arm works by friction, like on a real spinner: brushing it faster than it's going pushes it on (so flick
+// after flick pumps it up), against the spin slows it, and a finger resting on it stops it. Run from the touch events as
+// well as the frames, so even a flick quicker than a frame or two is felt in full.
+function spinContact(g, now) {
+  const dt = clamp((now - g.lu) / 1000, 0, .05); g.lu = now; if (!dt) return;
+  const om0 = SP.om, moving = now - g.tm < 60 && Math.abs(g.fom) > 2, f = clamp(g.fom * SPIN_PUSH * g.wr, -SPIN_FLICK, SPIN_FLICK);
+  if (!moving) { if (now - Math.max(g.t0, g.tm) > 60) SP.om *= Math.exp(-dt * 28); } // a resting finger (after a moment to land)
+  else if (Math.sign(f) === Math.sign(SP.om) && Math.abs(f) <= Math.abs(SP.om))
+    SP.om += Math.sign(f) * Math.abs(f) * 4 * dt * Math.max(0, 1 - Math.abs(SP.om) / SPIN_MAX); // already faster: each flick still adds a bit
+  else SP.om += (f - SP.om) * (1 - Math.exp(-dt * 25));
+  SP.om = clamp(SP.om, -SPIN_MAX, SPIN_MAX);
+  if (moving && Math.abs(SP.om) > Math.abs(om0)) g.gain = (g.gain || 0) + Math.abs(SP.om) - Math.abs(om0);
+  // caught a fast spin and stopped it: a knock, once
+  if (!g.knocked && Math.abs(om0) > 3 && Math.abs(SP.om) < Math.abs(om0) * .5) { g.knocked = true; S.knock(.6); buzz(16); }
+}
 // angle of the finger around the hub, measured on the spinner's top face (screen-style: x right, z down)
 const spinPlane = { n: null, v: null };
 function spinHit(e) {
@@ -5199,24 +5221,29 @@ on3D(secSpin, "pointerdown", e => {
   if (h.r < .32) { if (!SP.hold) { SP.hold = { id: e.pointerId }; buzz(6); } return; }
   // an arm: catch it, and flick to spin
   if (SP.grab) return;
-  if (Math.abs(SP.om) > 3) { S.knock(.6); buzz(16); } // caught it mid-spin
-  SP.om = 0; SP.brake = false; SP.grab = { id: e.pointerId, a: h.a, t: performance.now(), vel: 0 };
+  // a flick counts fully out at the tips and less near the hub, like flicking a real arm at its end
+  const now = performance.now(); SP.brake = false;
+  SP.grab = { id: e.pointerId, a: h.a, t: now, t0: now, tm: now, lu: now, fom: 0, wr: clamp((h.r - .25) / .4, .25, 1), moved: false };
 });
 on3D(secSpin, "pointermove", e => {
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
   const h = spinHit(e); if (!h) return;
   const now = performance.now(), dt = Math.max(.008, (now - g.t) / 1000);
+  spinContact(g, now); // the push up to now, at the finger's speed so far
   let d = h.a - g.a; d = Math.atan2(Math.sin(d), Math.cos(d));
-  // a finger near the hub swings the angle wildly, so only count moves from the arms outward
-  if (h.r > .25) { SP.th += d; g.vel = g.vel * .5 + (d / dt) * .5; }
+  // the finger's own turning speed (the same sense as the spin); near the hub the angle swings wildly,
+  // so only moves from the arms outward count
+  if (h.r > .25) { g.fom = g.fom * .4 + (d / dt) * .6; g.tm = now; g.wr = clamp((h.r - .25) / .4, .25, 1); if (Math.abs(d) > .02) g.moved = true; }
   g.a = h.a; g.t = now;
 });
 const spinEnd = e => {
   if (SP.hold && SP.hold.id === e.pointerId) { SP.hold = null; return; }
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
-  SP.grab = null;
-  SP.om = performance.now() - g.t > 90 ? 0 : clamp(g.vel, -90, 90);
-  if (Math.abs(SP.om) < .4) SP.om = 0; else { S.whoosh(); buzz(12); }
+  spinContact(g, performance.now()); SP.grab = null;
+  // a tap on an arm (no flick) stops it; a flick keeps whatever speed it gave, with a whoosh that grows with the push
+  if (!g.moved || performance.now() - g.tm > 60) { if (Math.abs(SP.om) > .6) { SP.brake = true; if (!g.knocked) { S.knock(.5); buzz(12); } } else SP.om = 0; return; }
+  if (Math.abs(SP.om) < .4) SP.om = 0;
+  else if ((g.gain || 0) > 2) { S.whoosh(); buzz(Math.round(clamp(6 + g.gain * .25, 6, 26))); }
 };
 on3D(secSpin, "pointerup", spinEnd); on3D(secSpin, "pointercancel", spinEnd);
 function setSpinDesign(s) {
@@ -7628,6 +7655,17 @@ function rocksFrame(now) {
         const top = r.body.position.y + rkHalfH(r);
         if (top > 1.5 && Math.random() < clamp((top - 1.5) / 6, 0, 1) * .25) { rkUnlock(r); r.body.applyImpulse(new CANNON.Vec3(r.m * 1.2, 0, r.m * .3), r.body.position); }
       }
+    }
+  }
+  // nothing hangs in the air: a few times a second each settled rock checks what's really under it now. If it's been
+  // left with nothing there (what held it up fell away, or it was only partly linked to its supports), it drops too,
+  // and so does everything on it; otherwise it remembers exactly which rocks it rests on.
+  if ((RK.supCheck = (RK.supCheck || 0) - dt) <= 0) {
+    RK.supCheck = .25;
+    for (const r of RK.rocks) {
+      if (!r.locked || r.place || r === (H && H.rk)) continue;
+      const L = rkLanding(r, r.body.position.x, r.body.position.z);
+      if (r.body.position.y - L.y > .08) rkUnlock(r); else r.sup = L.sup;
     }
   }
   RK.world.step(1 / 120, dt, 6);
