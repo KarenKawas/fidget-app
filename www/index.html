@@ -4996,29 +4996,46 @@ function twStartCarry(p, e) {
   const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(n, o), hit = rayAt(e, TW.cam).ray.intersectPlane(plane, new THREE.Vector3()) || o.clone();
   return { kind: "carry", p, plane, off: o.clone().sub(hit) };
 }
-// where a carried piece could join: its socket onto another piece's free peg, or its free peg into another's socket
-function twJoinFor(p) {
+// where a carried piece could join: its socket onto another piece's free peg, or its free peg into another's socket.
+// Judged by what you see: the two ends only have to look close on screen (the carried piece slides on a sheet facing
+// the camera, so in depth it can be well in front of or behind a peg it appears to sit on). Only joins that will fit are
+// offered, so whatever lights up is what you get.
+const TW_CATCH = 64, TW_LETGO = 90; // px: how close on screen a peg catches a socket, and how far it must go to let go
+function twJoinFor(p, held, shift) {
   const myStart = new THREE.Vector3().setFromMatrixPosition(p.root), myEnd = new THREE.Vector3().setFromMatrixPosition(twEndFrame(p));
-  let best = null;
+  // shift: where the finger is really aiming, when the piece itself is held back (it can't go below the mat or too far out)
+  const sStart = twScreen(myStart), sEnd = twScreen(myEnd), c = []; if (shift) { sStart.add(shift); sEnd.add(shift); }
   for (const q of TW.pieces) {
     if (q === p) continue;
     const qEnd = new THREE.Vector3().setFromMatrixPosition(twEndFrame(q)), qStart = new THREE.Vector3().setFromMatrixPosition(q.root);
-    const d1 = myStart.distanceTo(qEnd), d2 = myEnd.distanceTo(qStart);
-    if (d1 < 1.4 && (!best || d1 < best.d)) best = { d: d1, head: q, tail: p };
-    if (d2 < 1.4 && (!best || d2 < best.d)) best = { d: d2, head: p, tail: q };
+    c.push({ px: sStart.distanceTo(twScreen(qEnd)), d: myStart.distanceTo(qEnd), head: q, tail: p, at: qEnd, from: myStart });
+    c.push({ px: sEnd.distanceTo(twScreen(qStart)), d: myEnd.distanceTo(qStart), head: p, tail: q, at: qStart, from: myEnd });
   }
-  return best;
+  // the one already caught holds on a little longer, so it doesn't flicker at the edge
+  const ok = J => J.d < 1.4 || (J.d < 7 && J.px < (held && held.head === J.head && held.tail === J.tail ? TW_LETGO : TW_CATCH));
+  for (const J of c.filter(ok).sort((a, b) => a.px - b.px)) if ((J.k = twJoinFit(J)) != null) return J;
+  return null;
 }
-function twJoin(J) {
-  // the tail hangs off the head's peg at the notch closest to how it was held, as long as it fits without running into
-  // anything; if no notch fits, it doesn't join
+// which quarter turn the tail goes on at: the one closest to how it was held that doesn't run into anything; if every
+// turn touches something, the roomiest one still goes on as long as it is only a graze
+function twJoinFit(J) {
   const E = twEndFrame(J.head), want = new THREE.Vector3(0, 1, 0).transformDirection(J.tail.root);
   const order = [0, 1, 2, 3].map(k => { const M = E.clone().multiply(new THREE.Matrix4().makeRotationX(k * Q)); return { k, d: new THREE.Vector3(0, 1, 0).transformDirection(M).dot(want) }; }).sort((a, b) => b.d - a.d);
   const n0 = J.head.segs.length, others = []; for (const q of TW.pieces) if (q !== J.head && q !== J.tail) twTubePts(q, -1, 0).forEach(l => others.push(...l));
   const trial = { root: J.head.root, segs: [...J.head.segs, ...J.tail.segs.map(s => ({ th: s.tt, tt: s.tt }))] };
-  const fit = order.find(({ k }) => { trial.segs[n0].th = trial.segs[n0].tt = k * Q; return twGap(trial, n0, k * Q, others) >= TW_SOLID; });
-  if (!fit) return false;
-  J.tail.segs[0].th = J.tail.segs[0].tt = fit.k * Q;
+  let roomiest = null;
+  for (const o of order) {
+    trial.segs[n0].th = trial.segs[n0].tt = o.k * Q; const g = twGap(trial, n0, o.k * Q, others);
+    if (g >= TW_SOLID) return o.k;
+    if (!roomiest || g > roomiest.g) roomiest = { k: o.k, g };
+  }
+  return roomiest.g >= TW_SOLID * .6 ? roomiest.k : null;
+}
+function twJoin(J) {
+  // the tail hangs off the head's peg at its chosen notch
+  const k = J.k ?? twJoinFit(J); if (k == null) return false;
+  const E = twEndFrame(J.head);
+  J.tail.segs[0].th = J.tail.segs[0].tt = k * Q;
   J.head.segs.push(...J.tail.segs);
   J.head.segs.forEach((s, i) => s.g.children[0].userData.tw = { p: J.head, i });
   TW.pieces = TW.pieces.filter(q => q !== J.tail); twSettle(J.head); TW.dirty = true;
@@ -5089,11 +5106,17 @@ on3D(secTw, "pointermove", e => {
   }
   if (D.kind === "carry") {
     const hit = rayAt(e, TW.cam).ray.intersectPlane(D.plane, new THREE.Vector3()); if (!hit) return;
-    const pos = hit.add(D.off); pos.y = Math.max(.6, pos.y); const pr = Math.hypot(pos.x, pos.z); if (pr > TW_REACH + 1) { pos.x *= (TW_REACH + 1) / pr; pos.z *= (TW_REACH + 1) / pr; }
+    const pos = hit.add(D.off), aim = pos.clone(); pos.y = Math.max(.6, pos.y); const pr = Math.hypot(pos.x, pos.z); if (pr > TW_REACH + 1) { pos.x *= (TW_REACH + 1) / pr; pos.z *= (TW_REACH + 1) / pr; }
     const now = performance.now(), prev = new THREE.Vector3().setFromMatrixPosition(D.p.root), dtm = Math.max(.008, (now - (D.tm || now)) / 1000); D.tm = now;
     D.vel = pos.clone().sub(prev).divideScalar(dtm).clampLength(0, 14);
     D.p.root.setPosition(pos);
-    const J = twJoinFor(D.p); if (!!J !== !!D.near) { D.near = J; if (J) { twClick(.6); buzz(4); } }
+    // near a peg it catches: the carried piece jumps so its end sits right on the other's, and stays there until you
+    // pull clearly away, so letting go there always joins
+    const J = twJoinFor(D.p, D.near, twScreen(aim).sub(twScreen(pos)));
+    if (J && J.tail === D.p) D.p.root.copy(twEndFrame(J.head)).multiply(new THREE.Matrix4().makeRotationX(J.k * Q)); // shown exactly as it will sit
+    else if (J) D.p.root.setPosition(pos.clone().add(J.at).sub(J.from));
+    const was = D.near; D.near = J;
+    if (J && !(was && was.head === J.head && was.tail === J.tail)) { twClick(.8); buzz(8); }
   }
 });
 // let go of a held link: a twist settles on a free notch (a quick tap turns it one notch), a carried piece snaps on or drops
@@ -5108,8 +5131,8 @@ function twDrop(D, tap) {
     twSettle(D.p); TW.dirty = true; return;
   }
   if (D.kind === "carry") {
-    const J = twJoinFor(D.p);
-    // it snaps on if it fits; otherwise it is let go and drops onto the mat
+    // it snaps on where it caught; otherwise it is let go and drops onto the mat
+    const J = D.near || twJoinFor(D.p);
     if (!(J && twJoin(J))) { twSettle(D.p); S.tick(900, .1, .02); buzz(4); }
     TW.dirty = true;
   }
@@ -7096,7 +7119,7 @@ function rkUnlock(rk, seen = new Set()) {
   for (const r of RK.rocks) if (r.sup.has(rk)) { r.sup.clear(); rkUnlock(r, seen); }
 }
 function rkLockAtRest(rk) {
-  const L = rkLanding(rk, rk.body.position.x, rk.body.position.z);
+  const L = rkLanding(rk, rk.body.position.x, rk.body.position.z, 1, rk.body.position.y);
   rkLock(rk, L.sup); RK.dirty = true;
 }
 
@@ -7160,20 +7183,22 @@ function rkFxStep(dt) {
 
 /* ---- where a rock would land, and whether it would stay ---- */
 const rkTmp = { ray: null, q: null, v: null, down: null };
-function rkSupportHit(x, z, skip) {
+// what is under (x, z): looking down from the sky, or, for a rock already sitting somewhere, from just above its own
+// underside (looking from the sky, a rock low in a stack would find the rocks on top of it and think it was held up)
+function rkSupportHit(x, z, skip, fromY = 40) {
   if (!rkTmp.ray) { rkTmp.ray = new THREE.Raycaster(); rkTmp.down = new THREE.Vector3(0, -1, 0); }
-  rkTmp.ray.set(new THREE.Vector3(x, 40, z), rkTmp.down);
-  const hit = rkTmp.ray.intersectObjects(RK.rocks.filter(r => r !== skip).map(r => r.probe), false)[0];
+  rkTmp.ray.set(new THREE.Vector3(x, fromY, z), rkTmp.down);
+  const held = RK.hold && RK.hold.rk, hit = rkTmp.ray.intersectObjects(RK.rocks.filter(r => r !== skip && r !== held).map(r => r.probe), false)[0];
   return hit ? { y: hit.point.y, rock: hit.object.userData.rock, ny: hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld).y : 1 } : { y: 0, rock: null, ny: 1 };
 }
-function rkLanding(rk, x, z, tolMul = 1) {
+function rkLanding(rk, x, z, tolMul = 1, atY) {
   const q = rkTmp.q || (rkTmp.q = new THREE.Quaternion()), bq = rk.body.quaternion; q.set(bq.x, bq.y, bq.z, bq.w);
   const pts = [];
   let land = -1e9;
   for (const s of rk.samples) {
     const o = (rkTmp.v || (rkTmp.v = new THREE.Vector3())).copy(s).applyQuaternion(q);
     if (o.y > 0) continue;
-    const h = rkSupportHit(x + o.x, z + o.z, rk), cy = h.y - o.y;
+    const h = rkSupportHit(x + o.x, z + o.z, rk, atY == null ? 40 : atY + o.y + .12), cy = h.y - o.y;
     pts.push({ x: x + o.x, z: z + o.z, cy, rock: h.rock, ny: h.ny });
     if (cy > land) land = cy;
   }
@@ -7705,7 +7730,7 @@ function rocksBuild() {
     }
     // lock everything exactly where it was left, then work out who holds up whom
     for (const [rk] of back) rkLock(rk, new Set());
-    for (const [rk] of back) { const L = rkLanding(rk, rk.body.position.x, rk.body.position.z); if (Math.abs(L.y - rk.body.position.y) < .06) rk.sup = L.sup; }
+    for (const [rk] of back) { const L = rkLanding(rk, rk.body.position.x, rk.body.position.z, 1, rk.body.position.y); if (Math.abs(L.y - rk.body.position.y) < .06) rk.sup = L.sup; }
   } else {
     const base = rkMake(rkSpec("boulder", .2, .1)); base.style = "granite"; rkLock(base, new Set());
     rkScatter(22);
@@ -7801,9 +7826,11 @@ function rocksFrame(now) {
   if ((RK.supCheck = (RK.supCheck || 0) - dt) <= 0) {
     RK.supCheck = .25;
     for (const r of RK.rocks) {
-      if (!r.locked || r.place || r === (H && H.rk)) continue;
-      const L = rkLanding(r, r.body.position.x, r.body.position.z);
-      if (r.body.position.y - L.y > .08) rkUnlock(r); else r.sup = L.sup;
+      if (r.place || r.thrown || r === (H && H.rk)) continue;
+      const asleep = !r.locked && r.body.sleepState === CANNON.Body.SLEEPING; if (!r.locked && !asleep) continue;
+      const L = rkLanding(r, r.body.position.x, r.body.position.z, 1, r.body.position.y);
+      // (a rock the physics put to sleep in mid-air, when what it lay on was taken away, is woken to fall)
+      if (r.body.position.y - L.y > .08) { if (asleep) r.body.wakeUp(); else rkUnlock(r); } else if (r.locked) r.sup = L.sup;
     }
   }
   RK.world.step(1 / 120, dt, 6);
