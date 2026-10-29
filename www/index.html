@@ -3692,19 +3692,37 @@ function stDrop(x, z) {
 function stSplash(x, z, n, power) {
   for (let i = 0; i < n; i++) { const a = rnd(0, 6.28), s = ST.splash[ST.splashI++ % ST.splash.length]; Object.assign(s, { x, y: .02, z, vx: Math.cos(a) * rnd(.3, 1.3) * power, vy: rnd(1.5, 3.2) * power, vz: Math.sin(a) * rnd(.3, 1.3) * power }); }
 }
-function stPlip(k, small) {
+// how a sound out on the lake carries back: quieter, and a little more muffled, the further away it is
+function stFar(p) { const d = ST.cam ? ST.cam.position.distanceTo(p) : 8; return { v: 1 / (1 + Math.max(0, d - 11) / 9), air: clamp(1.15 - d / 120, .45, 1) }; }
+// one soft bell-like note: a quick swell, a long gentle fade, and a faint octave that dies first
+function stNote(a, f, vol, t0) {
+  const t = a.currentTime + t0, g = a.createGain(), o = a.createOscillator(), o2 = a.createOscillator(), g2 = a.createGain();
+  o.type = o2.type = "sine"; o.frequency.value = f; o2.frequency.value = f * 2;
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + 1.3);
+  g2.gain.value = .15; o2.connect(g2).connect(g); o.connect(g).connect(out(a)); o.start(t); o2.start(t); o.stop(t + 1.35); o2.stop(t + 1.35);
+}
+// D major pentatonic: any notes from it sound well together. Each skip strums a little three-note chord from it, its
+// root climbing a step per skip and starting over every seven, with a quiet echo off the far shore
+const ST_NOTES = [146.8, 164.8, 185, 220, 246.9, 293.7, 329.6, 370, 440, 493.9, 587.3, 659.3, 740];
+function stPlip(k, small, p) {
   const a = ac(); if (!a || !soundOn) return;
-  const f = 620 * Math.pow(1.12, Math.min(k, 14)) * (small ? 1.25 : 1);
-  tone(a, "sine", f * 1.4, f, small ? .07 : .16, small ? .04 : .07); nz(a, "highpass", 2500, 5000, 1.5, small ? .02 : .05, .05);
+  const { v, air } = stFar(p);
+  // the splash: a soft watery hush with a little "plish" in it, fading out rather than hissing
+  nz(a, "lowpass", 1500 * air, 400, .7, (small ? .05 : .12) * v, small ? .25 : .45, 0, .015);
+  nz(a, "bandpass", 1000 * air, 450, 1.4, (small ? .03 : .06) * v, small ? .12 : .2, 0, .01);
+  const r = 3 + (k - 1) % 7, chord = small ? [r + 5] : [r, r + 2, r + 4];
+  for (const [echo, k2] of [[0, 1], [.26, .2]])
+    chord.forEach((n, i) => stNote(a, ST_NOTES[Math.min(n, ST_NOTES.length - 1)], (small ? .045 : .06) * v * k2 * (i ? .8 : 1), echo + i * .055));
 }
 // every ten skips: a cheer of chimes and a bigger pop
 function stMilestone(n) {
   [784, 988, 1175, 1568].slice(0, 2 + n / 20 | 0).forEach((f, i) => setTimeout(() => S.blip(f), i * 80)); buzz(24);
   stPop.textContent = n + " skips!"; stPop.hidden = false; stPop.classList.remove("on"); void stPop.offsetWidth; stPop.classList.add("on"); clearTimeout(stPop._t); stPop._t = setTimeout(() => { stPop.hidden = true; stPop.textContent = "New best!"; }, 1600);
 }
-function stPlop(big) {
+function stPlop(big, p) {
   const a = ac(); if (!a || !soundOn) return;
-  tone(a, "sine", big ? 240 : 380, big ? 70 : 120, big ? .3 : .2, .22); nz(a, "lowpass", 1400, 300, 1, big ? .18 : .1, .3);
+  const { v, air } = stFar(p);
+  goo(a, big ? 200 : 300, big ? 70 : 110, (big ? .28 : .18) * v, .3); nz(a, "lowpass", 1200 * air, 260, .8, (big ? .18 : .1) * v, .5, 0, .02);
 }
 function stStep(dt) {
   for (const s of ST.stones) {
@@ -3720,11 +3738,11 @@ function stStep(dt) {
         s.skips++; s.p.y = 0;
         const keep = patter ? .86 : .78 + .17 * q * q + (s.flat ? .01 : -.05);
         s.v.y = patter ? .55 + Math.random() * .2 : Math.max(.9, -s.v.y * .55); s.v.x *= keep; s.v.z *= keep; s.spin *= .95;
-        stRipple(s.p.x, s.p.z, patter ? .3 : .55); stSplash(s.p.x, s.p.z, patter ? 2 : 5, patter ? .3 : .5); stPlip(s.skips, patter); buzz(patter ? 4 : Math.min(14, 5 + s.skips * .4));
+        stRipple(s.p.x, s.p.z, patter ? .3 : .55); stSplash(s.p.x, s.p.z, patter ? 2 : 5, patter ? .3 : .5); stPlip(s.skips, patter, s.p); buzz(patter ? 4 : Math.min(14, 5 + s.skips * .4));
         ST.skips = s.skips; stCount.textContent = s.skips; stSkipPop(s.p, s.skips);
         if (s.skips === 10 || s.skips === 20 || s.skips === 30 || s.skips === 40 || s.skips === 50) stMilestone(s.skips);
       } else {
-        s.sink = .001; s.p.y = 0; stRipple(s.p.x, s.p.z, s.drop ? 1.1 : .9); stSplash(s.p.x, s.p.z, 12, s.drop ? .8 : .6); stPlop(s.drop || !s.skips); buzz(s.drop ? 16 : 10);
+        s.sink = .001; s.p.y = 0; stRipple(s.p.x, s.p.z, s.drop ? 1.1 : .9); stSplash(s.p.x, s.p.z, 12, s.drop ? .8 : .6); stPlop(s.drop || !s.skips, s.p); buzz(s.drop ? 16 : 10);
         if (!s.drop && s.skips) stScore(s.skips);
       }
     }
