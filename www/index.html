@@ -782,9 +782,9 @@ html[data-mode="ice"]{background:#0B1626}
     </div>
   </section>
 
-  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick it round to spin it. Rest a finger on the middle to hold it while it spins; tap an arm or the background to stop it.">
+  <section class="mode" id="mode-spin" aria-label="Fidget spinner. Flick an arm to spin it, and keep flicking to make it go faster. Rest a finger on the middle to hold it while it spins; touch an arm or tap the background to stop it.">
     <div class="spin-hud" aria-live="off"><span class="lbl">RPM</span><span class="total" id="spinRpm">0</span><span class="best" id="spinBest"></span></div>
-    <p class="hint" id="sHint">Flick it to spin · hold the middle · tap the edge to stop</p>
+    <p class="hint" id="sHint">Flick an arm to spin, keep flicking to go faster · hold the middle · touch an arm to stop</p>
     <div class="themes" role="group" aria-label="Spinner design">
       <button class="opt" data-design="classic" aria-pressed="true"><i style="background:linear-gradient(135deg,#7B5CFF 50%,#C9CED6 50%)"></i>Classic</button>
       <button class="opt" data-design="metal" aria-pressed="false"><i style="background:linear-gradient(135deg,#E9ECF1,#8C939E)"></i>Metal</button>
@@ -864,7 +864,7 @@ html[data-mode="ice"]{background:#0B1626}
   </section>
 
   <section class="mode" id="mode-twisty" aria-label="Twisty: a chain of clicky links. Drag a link to twist it a quarter turn at a time, or tap it for one notch. Pull a link well away to pop it off, bring a socket to a loose peg to connect, drag the first link of a piece to move it, and drag empty space to look around.">
-    <p class="hint" id="twHint">Drag a link to twist it · pull hard to pop it off</p>
+    <p class="hint" id="twHint">Drag a link to twist it · pull hard to pop it off · tap the remote for the TV</p>
     <div class="tw-btns"><button class="newsheet" id="twAdd">+ Link</button><button class="newsheet" id="twTidy">Tidy</button><button class="newsheet tw-icon" id="twCenter" aria-label="Recenter on your biggest chain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button><button class="newsheet" id="twReset">New</button></div>
     <div class="themes" role="group" aria-label="Twisty colours">
       <button class="theme" data-tw="mint" aria-pressed="true"><i style="background:linear-gradient(135deg,#B9E8C8 50%,#7CC4F0 50%)"></i>Mint</button>
@@ -1124,6 +1124,8 @@ const S = {
   plop() { const a = ac(); if (!a || !soundOn) return; tone(a, "sine", 520, 130, .4, .13); nz(a, "lowpass", 1400, 300, 6, .3, .1); },
   rattle() { for (let i = 0; i < 7; i++) setTimeout(() => S.clack(.25 + Math.random() * .4), i * 30 + Math.random() * 25); },
   rustle(v) { const a = ac(); if (!a || !soundOn) return; const f = 3500 + Math.random() * 3000; nz(a, "bandpass", f, f * .8, 1.2, .18 * v, .09, 0, .02); },
+  // a soft gust through leaves: low and airy, easing in and out rather than snapping
+  gust(v) { const a = ac(); if (!a || !soundOn) return; const f = 700 + Math.random() * 300; nz(a, "bandpass", f, f * 1.7, .6, .1 * v, .8, 0, .18); nz(a, "lowpass", 900, 400, .5, .06 * v, .9, 0, .22); },
   crunch(v) { for (let i = 0; i < 4; i++) setTimeout(() => { const a = ac(); if (!a || !soundOn) return; const f = 1800 + Math.random() * 2600; nz(a, "bandpass", f, f * .7, 3, .35 * v, .03); }, i * 18 + Math.random() * 20); },
   snow(v) { const a = ac(); if (!a || !soundOn) return; const f = 500 + Math.random() * 400; nz(a, "bandpass", f, f * 1.6, 2.5, .3 * v, .12, 0, .015); nz(a, "highpass", 2500, 1800, 1, .08 * v, .05); },
   whoosh() { const a = ac(); if (!a || !soundOn) return; nz(a, "bandpass", 400, 2400, 1.4, .3, .35, 0, .08); },
@@ -1189,13 +1191,15 @@ document.querySelectorAll(".mode-btn").forEach(b => b.addEventListener("click", 
 /* ================= slime ================= */
 const PALETTES = [
   { name: "Hot pink", a: [.91, .12, .36], b: [.96, .2, .44], c: [.84, .08, .3], sw: "#E62A64", glit: 0, sprinkles: true },
-  { name: "Bubblegum", a: [1, .45, .7], b: [1, .85, .93], c: [.85, .3, .62], sw: "#FF7AB6", glit: .35 },
-  { name: "Lagoon", a: [.12, .58, .95], b: [.72, .95, 1], c: [.1, .35, .8], sw: "#2E9EF2", glit: .45 },
-  { name: "Lime", a: [.5, .84, .26], b: [.95, 1, .68], c: [.25, .62, .2], sw: "#85D94D", glit: .25 },
-  { name: "Galaxy", a: [.22, .14, .52], b: [.78, .45, 1], c: [.08, .05, .25], sw: "#3D2A8F", glit: 1 },
-  { name: "Glow", a: [.06, .16, .13], b: [.45, 1, .55], c: [.02, .06, .09], sw: "#1E5C3E", glit: .8 },
-  { name: "Butter", a: [1, .84, .42], b: [1, .96, .78], c: [.92, .66, .28], sw: "#FFD36B", glit: 0 },
-  { name: "Clear", a: [.62, .84, .9], b: [.94, 1, 1], c: [.42, .68, .8], sw: "#A9DCE8", glit: .6 },
+  // matte like the hot pink: the swirls are only a shade lighter and a shade deeper than the slime itself (near-white
+  // swirls read as shiny white streaks), and little or no glitter
+  { name: "Bubblegum", a: [1, .45, .7], b: [1, .53, .77], c: [.9, .36, .62], sw: "#FF7AB6", glit: 0 },
+  { name: "Lagoon", a: [.12, .58, .95], b: [.2, .66, .98], c: [.08, .47, .86], sw: "#2E9EF2", glit: 0 },
+  { name: "Lime", a: [.5, .84, .26], b: [.58, .89, .34], c: [.41, .73, .2], sw: "#85D94D", glit: 0 },
+  { name: "Galaxy", a: [.22, .14, .52], b: [.31, .2, .63], c: [.15, .09, .4], sw: "#3D2A8F", glit: .3 },
+  { name: "Glow", a: [.12, .36, .24], b: [.17, .45, .31], c: [.08, .27, .18], sw: "#1E5C3E", glit: .15 },
+  { name: "Butter", a: [1, .82, .4], b: [1, .87, .5], c: [.94, .72, .3], sw: "#FFD36B", glit: 0 },
+  { name: "Clear", a: [.6, .82, .89], b: [.68, .88, .93], c: [.5, .74, .83], sw: "#A9DCE8", glit: .1 },
 ];
 let pal = PALETTES[0];
 try { pal = PALETTES.find(p => p.name === localStorage.getItem("fidget-slime-color")) || pal; } catch (e) {}
@@ -1531,6 +1535,8 @@ function slimeRender(now) {
   const fdt = now - (TOP_CAP.last || now); TOP_CAP.last = now; if (fdt > 0 && fdt < 100) TOP_CAP.ema += (fdt - TOP_CAP.ema) * .05;
   if (overloadOn && tops.length > 700 && TOP_CAP.ema > 26 && now - TOP_CAP.cutT > 2000) { TOP_CAP.cutT = now; TOP_CAP.max = Math.max(700, Math.round(tops.length * .8)); tops.splice(0, tops.length - TOP_CAP.max); }
   const d = img.data, gl = pal.b;
+  // light colours get gentler light and shade, so they stay a soft matte rather than burning out into a metallic shine
+  const lum = pal.a[0] * .3 + pal.a[1] * .59 + pal.a[2] * .11, soft = clamp(1.3 - lum * .7, .7, 1);
   for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) {
     const k = j * gw + i, p = k * 4;
     let nx = -(h[k + 1] - h[k - 1]) * 2.5, ny = -(h[k + gw] - h[k - gw]) * 2.5;
@@ -1543,7 +1549,8 @@ function slimeRender(now) {
     const rim = (1 - nzz) * (1 - nzz) * 1.2;
     // soft shading: dents go darker as fingers press in, so the slime feels like it gives way
     let shade = .5 + .58 * dif + h[k] * .03 - cav * .32; if (shade < .2) shade = .2;
-    const sheen = s16 * 70 + s4 * 12;
+    shade = .85 + (shade - .85) * soft;
+    const sheen = (s16 * 70 + s4 * 12) * soft * soft;
     d[p] = cr[k] * 255 * shade + sheen * (.55 + .45 * gl[0]) + rim * gl[0] * 90;
     d[p + 1] = cg[k] * 255 * shade + sheen * (.55 + .45 * gl[1]) + rim * gl[1] * 90;
     d[p + 2] = cb[k] * 255 * shade + sheen * (.55 + .45 * gl[2]) + rim * gl[2] * 90;
@@ -2423,7 +2430,7 @@ function bugsStep(ps, dt) {
     if (near && nd < 110) {
       const k = (110 - nd) / 110;
       b.vx += (b.x - near.x) / nd * .7 * k * dt; b.vy += (b.y - near.y) / nd * .7 * k * dt;
-      if (b.rest > 0) { b.rest = 0; S.rustle(.35); }
+      if (b.rest > 0) { b.rest = 0; S.gust(.35); }
       b.wt = 0;
     }
     if (b.rest > 0) { b.rest -= dt; b.vx *= .8; b.vy *= .8; b.ph += .03 * dt; }
@@ -2694,12 +2701,32 @@ function grassFrame(now) {
   c.globalAlpha = 1;
   if (G.bugs.length) { bugsStep(ps, dt); drawBugs(c); }
   if (G.mower) drawMower(c);
-  if (G.mower) { if (G.mower.cut && now - G.bz > 90) { G.bz = now; buzz(3); } return; }
-  if (speed > 2 && now - G.snd > Math.max(50, 140 - speed * 4)) {
-    G.snd = now; const v = Math.min(1, .25 + speed * .03);
-    if (s === "autumn") S.crunch(v * .5); else S.rustle(v);
+  if (G.mower) { if (G.wind) G.wind.g.gain.setTargetAtTime(0, actx.currentTime, .3); if (G.mower.cut && now - G.bz > 90) { G.bz = now; buzz(3); } return; }
+  if (s === "autumn") {
+    if (speed > 2 && now - G.snd > Math.max(50, 140 - speed * 4)) { G.snd = now; S.crunch(Math.min(1, .25 + speed * .03) * .5); }
+  } else {
+    // you're the wind: brushing swells one soft, airy breeze through the leaves, with a gentle flutter that quickens as
+    // you go faster, and it sighs away when you stop
+    const Wd = grassWind();
+    if (Wd) {
+      const t = actx.currentTime, k = clamp((speed - 1) / 24, 0, 1);
+      Wd.g.gain.setTargetAtTime(soundOn ? k * .2 : 0, t, k > Wd.k ? .15 : .6);
+      Wd.bp.frequency.setTargetAtTime(650 + k * 1000, t, .4); Wd.lfo.frequency.setTargetAtTime(3.5 + k * 5, t, .4); Wd.k = k;
+    }
   }
   if (speed > 3 && now - G.bz > 90) { G.bz = now; buzz(Math.min(8, 2 + speed * .1) | 0); }
+}
+// the breeze bed for the grass: looping noise, filtered soft and low, with a slow flutter like leaves moving
+function grassWind() {
+  if (G.wind) return G.wind;
+  const a = ac(); if (!a) return null;
+  const s = a.createBufferSource(); s.buffer = noise(a); s.loop = true; s.playbackRate.value = .7;
+  const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 700; bp.Q.value = .55;
+  const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400;
+  const flutter = a.createGain(), lfo = a.createOscillator(), depth = a.createGain(), g = a.createGain();
+  flutter.gain.value = .85; lfo.frequency.value = 4; depth.gain.value = .15; lfo.connect(depth).connect(flutter.gain); lfo.start();
+  g.gain.value = 0; s.connect(bp).connect(lp).connect(flutter).connect(g).connect(out(a)); s.start();
+  return G.wind = { g, bp, lfo, k: 0 };
 }
 function grassTap(x, y) {
   const s = G.season;
@@ -2717,7 +2744,7 @@ function grassTap(x, y) {
       else kick(p, dx / d * rnd(.5, 1.5), dy / d * rnd(.3, 1), rnd(.9, 1.6) + f);
     }
   }
-  if (s === "autumn") { S.crunch(1); if (flew) S.whoosh(); buzz(flew ? 22 : 12); } else { S.rustle(1); buzz(8); }
+  if (s === "autumn") { S.crunch(1); if (flew) S.whoosh(); buzz(flew ? 22 : 12); } else { S.gust(1); buzz(8); }
 }
 gcv.addEventListener("pointerdown", e => {
   gcv.setPointerCapture(e.pointerId); ac(); gHint.classList.add("gone");
@@ -4386,37 +4413,87 @@ function twRoom(sc) {
   const tbl = new THREE.Group(), top = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, .3, 28), tbT(0xE9D2B4)); top.position.y = 2; tbl.add(top);
   for (let k = 0; k < 3; k++) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 2, 8), tbT(0x8A5A30)); const a = k / 3 * 6.28; leg.position.set(Math.cos(a) * 1.6, 1, Math.sin(a) * 1.6); tbl.add(leg); }
   const mug = new THREE.Mesh(new THREE.CylinderGeometry(.35, .3, .7, 16), tbT(0xF2A5B8)); mug.position.set(.6, 2.5, .3); tbl.add(mug);
-  const remote = new THREE.Mesh(new THREE.BoxGeometry(.4, .15, 1.3), tbT(0x2A2438)); remote.position.set(-.6, 2.22, -.2); remote.rotation.y = .5; tbl.add(remote);
   add(tbl, 15, 0, 6);
+  // the TV remote, lying on the cabinet in front of the screen: tap it to turn the TV (and its soft hush) on or off
+  add(TW.remote = twRemoteBuild(), -3.4, 2.15, -16.25, Math.PI / 2 - .2);
   tbToonify(room, .05);
+  // a roomier, unseen target round it, so it is easy to tap from across the room
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 5.4), new THREE.MeshBasicMaterial()); hit.visible = false; TW.remote.add(hit);
+}
+function twRemoteBuild() {
+  const g = new THREE.Group(), sh = new THREE.Shape(), w = .55, h = 1.7, r = .4;
+  sh.moveTo(-w + r, -h); sh.lineTo(w - r, -h); sh.quadraticCurveTo(w, -h, w, -h + r); sh.lineTo(w, h - r); sh.quadraticCurveTo(w, h, w - r, h); sh.lineTo(-w + r, h); sh.quadraticCurveTo(-w, h, -w, h - r); sh.lineTo(-w, -h + r); sh.quadraticCurveTo(-w, -h, -w + r, -h);
+  const body = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: .16, bevelEnabled: true, bevelThickness: .08, bevelSize: .08, bevelSegments: 3, curveSegments: 8 }), tbT(0x3A3448));
+  body.rotation.x = -Math.PI / 2; body.position.y = .08; body.castShadow = body.receiveShadow = true; g.add(body);
+  const btn = (rad, col, x, z, ht = .1) => { const b = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, ht, 18), tbT(col)); b.position.set(x, .36, z); g.add(b); return b; };
+  // a big round power button at the top, a ring of arrows, and rows of little pastel keys
+  TW.remPow = btn(.24, 0xFF6F86, 0, -1.2, .14);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.26, .07, 8, 24), tbT(0xBFB6D4)); ring.rotation.x = Math.PI / 2; ring.position.set(0, .34, -.35); g.add(ring);
+  btn(.11, 0xFFFFFF, 0, -.35);
+  const keys = [0x9FD8C4, 0xFFE27A, 0x9CC8F5];
+  for (let row = 0; row < 3; row++) for (let c = -1; c <= 1; c++) btn(.1, keys[row], c * .3, .35 + row * .34, .08);
+  // the little window the signal comes out of; it blinks when you press
+  TW.remLed = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), new THREE.MeshBasicMaterial({ color: 0x40303A })); TW.remLed.position.set(0, .2, -1.78); TW.remLed.userData.noInk = true; g.add(TW.remLed);
+  g.scale.setScalar(.75); return g;
+}
+// pressing the remote: the power button dips, the light at the tip blinks, and the TV pops on or winds off
+function twRemote() {
+  TW.tvOn = !TW.tvOn; savePref("fidget-twisty-tv", TW.tvOn ? "1" : "0"); TW.remT = .25;
+  S.tick(TW.tvOn ? 1700 : 1300, .25, .025, "square"); buzz(12);
+  const a = ac(); if (a && soundOn) setTimeout(() => { if (TW.tvOn) tone(a, "sine", 320, 640, .05, .16); else tone(a, "sine", 520, 170, .05, .2); }, 90);
 }
 // the TV picture: soft cartoon colours drifting by
-function twTvStep(t) {
-  if (!TW.tvC || (TW.tvT = (TW.tvT || 0) + 1) % 6) return;
-  const x = TW.tvC.getContext("2d"), w = 64, h = 40, hue = (t * 12) % 360;
+function twTvStep(t, dt) {
+  if (!TW.tvC) return;
+  // the power eases on, or winds off like an old set (the picture squeezes to a bright line and fades)
+  const pw = TW.tvPow ?? (TW.tvPow = TW.tvOn ? 1 : 0), goal = TW.tvOn ? 1 : 0;
+  TW.tvPow = goal > pw ? Math.min(1, pw + dt * 3) : Math.max(0, pw - dt * 4);
+  if (TW.remT > 0) { TW.remT -= dt; const k = Math.max(0, TW.remT) / .25; TW.remPow.position.y = .36 - .07 * k; TW.remLed.material.color.setHex(k > .3 ? 0xFF4A5A : 0x40303A); }
+  const fading = TW.tvPow !== pw || TW.tvPow !== goal;
+  if ((TW.tvT = (TW.tvT || 0) + 1) % (fading ? 2 : 6)) return;
+  const x = TW.tvC.getContext("2d"), w = 64, h = 40, hue = (t * 12) % 360, P = TW.tvPow;
+  TW.tvLight.intensity = .5 * P;
+  if (P <= 0) { x.fillStyle = "#16141C"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(255,255,255,.06)"; x.fillRect(4, 3, 18, 2); TW.tvTex.needsUpdate = true; return; }
   const g = x.createLinearGradient(0, 0, w, h); g.addColorStop(0, `hsl(${hue},55%,55%)`); g.addColorStop(1, `hsl(${(hue + 80) % 360},55%,40%)`); x.fillStyle = g; x.fillRect(0, 0, w, h);
   x.fillStyle = `hsla(${(hue + 180) % 360},70%,75%,.8)`; x.beginPath(); x.arc(20 + Math.sin(t * .7) * 14, 22 + Math.cos(t * 1.1) * 6, 7, 0, 6.3); x.fill();
   x.fillStyle = "rgba(255,255,255,.25)"; x.fillRect(0, (t * 30) % h, w, 2);
+  if (P < 1) {
+    // squeezed toward a bright line across the middle as it switches off (or opens out from one as it comes on)
+    const lh = Math.max(1, h * P * P); x.fillStyle = "#16141C"; x.fillRect(0, 0, w, (h - lh) / 2); x.fillRect(0, (h + lh) / 2, w, h);
+    x.fillStyle = `rgba(255,255,255,${(1 - P) * .8})`; x.fillRect(0, (h - lh) / 2, w, lh);
+  }
   TW.tvTex.needsUpdate = true; TW.tvLight.color.setHSL(hue / 360, .5, .7);
 }
-// the TV's sound: muffled voices from another programme, with the odd swell of a laugh track
+// a soothing hush for the TV: a long stereo loop of warm pink and brown noise (the deep, soft kind, not hissy white),
+// its seam crossfaded so the loop can't be heard
+function twHushBuf(a) {
+  const sr = a.sampleRate, N = sr * 9, F = sr, b = a.createBuffer(2, N, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const x = new Float32Array(N + F); let b0 = 0, b1 = 0, b2 = 0, br = 0, pk = 0;
+    for (let i = 0; i < N + F; i++) {
+      const w = Math.random() * 2 - 1;
+      b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913;
+      br = (br + .02 * w) / 1.02;
+      x[i] = (b0 + b1 + b2 + w * .1848) * .11 + br * 2.2;
+    }
+    const d = b.getChannelData(ch);
+    for (let i = 0; i < N; i++) { const k = i < F ? i / F : 1; d[i] = x[i] * Math.sqrt(k) + (i < F ? x[N + i] * Math.sqrt(1 - k) : 0); pk = Math.max(pk, Math.abs(d[i])); }
+    for (let i = 0; i < N; i++) d[i] *= .9 / pk;
+  }
+  return b;
+}
 function twTvSound(dt) {
   const a = actx; if (!a) return;
   if (!TW.tv) {
-    const s = a.createBufferSource(), f = a.createBiquadFilter(), f2 = a.createBiquadFilter(), g = a.createGain();
-    s.buffer = noise(a); s.loop = true; f.type = "bandpass"; f.frequency.value = 700; f.Q.value = 3; f2.type = "lowpass"; f2.frequency.value = 1400; g.gain.value = 0;
-    s.connect(f).connect(f2).connect(g).connect(out(a)); s.start(); TW.tv = { f, g, t: 0, syl: 0, laugh: 0 };
+    const s = a.createBufferSource(), hp = a.createBiquadFilter(), lp = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = twHushBuf(a); s.loop = true; hp.type = "highpass"; hp.frequency.value = 70; lp.type = "lowpass"; lp.frequency.value = 1500; lp.Q.value = .5; g.gain.value = 0;
+    s.connect(hp).connect(lp).connect(g).connect(out(a)); s.start(); TW.tv = { g, lp, t: 0 };
   }
-  const T = TW.tv, on = mode === "twisty" && soundOn && ambienceOn, now = a.currentTime;
-  T.t += dt; T.syl -= dt;
-  // syllables: little bursts at changing pitches, with pauses between phrases
-  if (T.syl <= 0) {
-    T.syl = Math.random() < .12 ? rnd(.5, 1.2) : rnd(.08, .2);
-    const lvl = on ? (T.syl > .4 ? 0 : rnd(.012, .03)) : 0;
-    T.g.gain.setTargetAtTime(lvl, now, .03); T.f.frequency.setTargetAtTime(rnd(450, 1100), now, .04);
-  }
-  if (on && Math.random() < dt / 25) { T.g.gain.setTargetAtTime(.045, now + .05, .3); T.g.gain.setTargetAtTime(0, now + 1.4, .4); T.syl = 1.8; }
-  if (!on) T.g.gain.setTargetAtTime(0, now, .2);
+  // it breathes: a very slow swell in level and brightness, like distant waves
+  const T = TW.tv, on = mode === "twisty" && soundOn && ambienceOn && TW.tvOn, now = a.currentTime; T.t += dt;
+  const sw = Math.sin(T.t * .45) * .6 + Math.sin(T.t * .17) * .4;
+  T.g.gain.setTargetAtTime(on ? .16 * (1 + .12 * sw) : 0, now, on ? .8 : .25);
+  T.lp.frequency.setTargetAtTime(1500 + 250 * sw, now, .8);
 }
 /* ---- the 3D pop-it on a kitchen table: real silicone domes you press in, and flick (or tap Flip) to turn it over ---- */
 var P3 = { on: false, scene: null, cam: null, board: null, domes: [], ptrs: new Map(), shape: null };
@@ -4650,7 +4727,7 @@ on3D(secPop, "pointerup", pop3End); on3D(secPop, "pointercancel", pop3End);
 // The first link of any piece is its handle: drag it to move the whole piece.
 const secTw = $("#mode-twisty"), twHint = $("#twHint");
 const TW = { W: 0, scene: null, cam: null, pieces: [], ptrs: new Map(), drag: null, orbit: null, pinch: null, yaw: .3, pitch: .5, zoom: 1.05, last: 0,
-  style: pref("fidget-twisty-style", "mint"), lastTap: 0, saveT: 0, dirty: false };
+  style: pref("fidget-twisty-style", "mint"), lastTap: 0, saveT: 0, dirty: false, tvOn: pref("fidget-twisty-tv", "1") === "1" };
 const TW_R = 1, TW_T = .3, Q = Math.PI / 2; // arc radius, tube radius, a quarter turn
 const TW_STYLES = {
   mint: { bg: "#2E2A36", mat: "#3E3850", cols: ["#B9E8C8", "#7CC4F0"], glitter: [false, true] },
@@ -4870,7 +4947,7 @@ function twistyFrame(now) {
   const dt = clamp((now - (TW.last || now - 16.7)) / 1000, .004, .05); TW.last = now;
   // joints that were let go ease into their notch
   for (const p of TW.pieces) for (const s of p.segs) if (s.th !== s.tt && !(TW.drag && TW.drag.p === p && TW.drag.s === s)) { s.th += (s.tt - s.th) * Math.min(1, dt * 14); if (Math.abs(s.tt - s.th) < 1e-3) s.th = s.tt; }
-  twSettleStep(dt); twTvStep(TW.t = (TW.t || 0) + dt); twTvSound(dt);
+  twSettleStep(dt); twTvStep(TW.t = (TW.t || 0) + dt, dt); twTvSound(dt);
   if (TW.tgtGoal) { const k = Math.min(1, dt * 5); TW.tgt.lerp(TW.tgtGoal, k); TW.zoom += (TW.zoomGoal - TW.zoom) * k; twCamera(); if (TW.tgt.distanceTo(TW.tgtGoal) < .01) TW.tgtGoal = null; }
   for (const p of TW.pieces) { const F = twFrames(p); p.segs.forEach((s, i) => { s.g.matrix.copy(F[i]); s.g.matrixWorldNeedsUpdate = true; }); }
   // the snap ring pulses while a carried piece is in range, and bursts when it clicks on
@@ -4951,7 +5028,8 @@ on3D(secTw, "pointerdown", e => {
   if (TW.drag) return;
   const links = []; for (const p of TW.pieces) for (const s of p.segs) links.push(s.g.children[0]);
   const h = rayAt(e, TW.cam).intersectObjects(links, false)[0];
-  if (!h) { TW.orbit = { id: e.pointerId }; return; }
+  // nothing to hold: the touch moves the view, unless it's a tap on the remote
+  if (!h) { TW.orbit = { id: e.pointerId, remote: !!(TW.remote && rayAt(e, TW.cam).intersectObject(TW.remote, true)[0]) }; return; }
   const { p, i } = h.object.userData.tw;
   if (i === 0) { TW.drag = Object.assign(twStartCarry(p, e), { id: e.pointerId }); p.settle = null; S.tick(1400, .12, .02); buzz(5); return; }
   // twisting link i about its joint: work out which way on screen turns it forward
@@ -5024,7 +5102,8 @@ const twEndPtr = e => {
   if (TW.drag && TW.drag.id === e.pointerId) twDrop(TW.drag, e.type === "pointerup" && !TW.drag.moved && performance.now() - pt.t0 < 300);
   if (TW.pinch) { if (TW.ptrs.size < 2) TW.pinch = null; return; }
   if (TW.orbit && TW.orbit.id === e.pointerId) {
-    TW.orbit = null;
+    const O = TW.orbit; TW.orbit = null;
+    if (O.remote && e.type === "pointerup" && Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 12 && performance.now() - pt.t0 < 500) { twRemote(); return; }
     // a double-tap on empty space eases back to the starting view
     if (Math.hypot(e.clientX - pt.x0, e.clientY - pt.y0) < 10) { const now = performance.now(); if (now - TW.lastTap < 330) { TW.yaw = .3; TW.pitch = .5; TW.zoom = 1.05; TW.tgt.set(0, 1, 0); TW.tgtGoal = null; twCamera(); buzz(6); TW.lastTap = 0; } else TW.lastTap = now; }
     return;
@@ -5045,6 +5124,9 @@ const SP = { W: 0, design: "classic", th: 0, om: 0, grab: null, last: 0, lobe: 0
 try { SP.best = +localStorage.getItem("fidget-spin-best") || 0; } catch (e) {}
 const SPIN_LOBES = { classic: 3, metal: 4, neon: 3 };
 const SPIN_TOP = .16; // height of the spinner's top face
+// a finger on the phone moves far slower round the hub than a fingertip flicking a real 7 cm spinner, so its turning
+// speed is scaled up; one flick reaches about 1,000 RPM at most, and flick after flick can pump it to about 1,900
+const SPIN_PUSH = 3.5, SPIN_FLICK = 110, SPIN_MAX = 200;
 // classic outline: lobe circles joined by concave arcs that just touch them, with holes for the weights and hub
 function spinShape(L, dl, rl, rc) {
   const th = Math.PI / L, dc = dl * Math.cos(th) + Math.sqrt((rl + rc) ** 2 - (dl * Math.sin(th)) ** 2), off = Math.PI / 2;
@@ -5144,10 +5226,14 @@ function ensureSpinBed() {
 function spinFrame(now) {
   const dts = clamp((now - (SP.last || now - 16.7)) / 1000, .004, .05); SP.last = now;
   if (SP.brake && !SP.grab) { SP.om *= Math.exp(-dts * 18); if (Math.abs(SP.om) < .6) { SP.om = 0; SP.brake = false; } }
-  if (!SP.grab) {
+  const g = SP.grab;
+  if (g) { spinContact(g, performance.now()); SP.th += SP.om * dts; }
+  else {
+    // the bearing: an almost steady slowdown (rolling friction), with a little air drag at speed, so a fast spin keeps
+    // its speed and hum for a good while and then winds down in a short run of slowing ticks
     const w = Math.abs(SP.om);
-    if (w > 0) { const nw = Math.max(0, w - (.35 + .045 * w) * dts); SP.om = Math.sign(SP.om) * nw; SP.th += SP.om * dts; }
-  } else if (now - SP.grab.t > 60) SP.grab.vel *= .8; // finger resting: it isn't throwing any more
+    if (w > 0) { const nw = Math.max(0, w - (2.2 + .006 * w) * dts); SP.om = Math.sign(SP.om) * nw; SP.th += SP.om * dts; }
+  }
   const w = Math.abs(SP.om), L = SPIN_LOBES[SP.design];
   // a tick each time a lobe passes the top, while it's slow enough to hear separate ticks
   const lobe = Math.floor(SP.th * L / 6.2832);
@@ -5177,6 +5263,21 @@ function spinFrame(now) {
   const bo = clamp((w - 12) / 70, 0, .45); SP.blur.material.opacity = bo; SP.blur.visible = bo > .01;
   toonRender(GL.r, SP.scene, SP.cam, TOON_INK.spin);
 }
+// a finger on an arm works by friction, like on a real spinner: brushing it faster than it's going pushes it on (so flick
+// after flick pumps it up), against the spin slows it, and a finger resting on it stops it. Run from the touch events as
+// well as the frames, so even a flick quicker than a frame or two is felt in full.
+function spinContact(g, now) {
+  const dt = clamp((now - g.lu) / 1000, 0, .05); g.lu = now; if (!dt) return;
+  const om0 = SP.om, moving = now - g.tm < 60 && Math.abs(g.fom) > 2, f = clamp(g.fom * SPIN_PUSH * g.wr, -SPIN_FLICK, SPIN_FLICK);
+  if (!moving) { if (now - Math.max(g.t0, g.tm) > 60) SP.om *= Math.exp(-dt * 28); } // a resting finger (after a moment to land)
+  else if (Math.sign(f) === Math.sign(SP.om) && Math.abs(f) <= Math.abs(SP.om))
+    SP.om += Math.sign(f) * Math.abs(f) * 4 * dt * Math.max(0, 1 - Math.abs(SP.om) / SPIN_MAX); // already faster: each flick still adds a bit
+  else SP.om += (f - SP.om) * (1 - Math.exp(-dt * 25));
+  SP.om = clamp(SP.om, -SPIN_MAX, SPIN_MAX);
+  if (moving && Math.abs(SP.om) > Math.abs(om0)) g.gain = (g.gain || 0) + Math.abs(SP.om) - Math.abs(om0);
+  // caught a fast spin and stopped it: a knock, once
+  if (!g.knocked && Math.abs(om0) > 3 && Math.abs(SP.om) < Math.abs(om0) * .5) { g.knocked = true; S.knock(.6); buzz(16); }
+}
 // angle of the finger around the hub, measured on the spinner's top face (screen-style: x right, z down)
 const spinPlane = { n: null, v: null };
 function spinHit(e) {
@@ -5194,24 +5295,29 @@ on3D(secSpin, "pointerdown", e => {
   if (h.r < .32) { if (!SP.hold) { SP.hold = { id: e.pointerId }; buzz(6); } return; }
   // an arm: catch it, and flick to spin
   if (SP.grab) return;
-  if (Math.abs(SP.om) > 3) { S.knock(.6); buzz(16); } // caught it mid-spin
-  SP.om = 0; SP.brake = false; SP.grab = { id: e.pointerId, a: h.a, t: performance.now(), vel: 0 };
+  // a flick counts fully out at the tips and less near the hub, like flicking a real arm at its end
+  const now = performance.now(); SP.brake = false;
+  SP.grab = { id: e.pointerId, a: h.a, t: now, t0: now, tm: now, lu: now, fom: 0, wr: clamp((h.r - .25) / .4, .25, 1), moved: false };
 });
 on3D(secSpin, "pointermove", e => {
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
   const h = spinHit(e); if (!h) return;
   const now = performance.now(), dt = Math.max(.008, (now - g.t) / 1000);
+  spinContact(g, now); // the push up to now, at the finger's speed so far
   let d = h.a - g.a; d = Math.atan2(Math.sin(d), Math.cos(d));
-  // a finger near the hub swings the angle wildly, so only count moves from the arms outward
-  if (h.r > .25) { SP.th += d; g.vel = g.vel * .5 + (d / dt) * .5; }
+  // the finger's own turning speed (the same sense as the spin); near the hub the angle swings wildly,
+  // so only moves from the arms outward count
+  if (h.r > .25) { g.fom = g.fom * .4 + (d / dt) * .6; g.tm = now; g.wr = clamp((h.r - .25) / .4, .25, 1); if (Math.abs(d) > .02) g.moved = true; }
   g.a = h.a; g.t = now;
 });
 const spinEnd = e => {
   if (SP.hold && SP.hold.id === e.pointerId) { SP.hold = null; return; }
   const g = SP.grab; if (!g || g.id !== e.pointerId) return;
-  SP.grab = null;
-  SP.om = performance.now() - g.t > 90 ? 0 : clamp(g.vel, -90, 90);
-  if (Math.abs(SP.om) < .4) SP.om = 0; else { S.whoosh(); buzz(12); }
+  spinContact(g, performance.now()); SP.grab = null;
+  // a tap on an arm (no flick) stops it; a flick keeps whatever speed it gave, with a whoosh that grows with the push
+  if (!g.moved || performance.now() - g.tm > 60) { if (Math.abs(SP.om) > .6) { SP.brake = true; if (!g.knocked) { S.knock(.5); buzz(12); } } else SP.om = 0; return; }
+  if (Math.abs(SP.om) < .4) SP.om = 0;
+  else if ((g.gain || 0) > 2) { S.whoosh(); buzz(Math.round(clamp(6 + g.gain * .25, 6, 26))); }
 };
 on3D(secSpin, "pointerup", spinEnd); on3D(secSpin, "pointercancel", spinEnd);
 function setSpinDesign(s) {
@@ -5352,8 +5458,9 @@ function zStoneMat(R) {
   const k = R();
   if (k < .4) return new THREE.MeshStandardMaterial({ map: rkGranite(), color: new THREE.Color().setHSL(.08, .05, .55 + R() * .12), roughness: .9 });
   if (k < .75) return new THREE.MeshStandardMaterial({ roughness: .75, color: 0xFFFFFF, map: zCanvasTex("basalt", x => {
-    x.fillStyle = "#3A3C40"; x.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 9000; i++) { const l = 18 + Math.random() * 16; x.fillStyle = `hsla(220,5%,${l}%,.6)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.4, 1.4); }
+    // a dark slate grey, not black: it still has to read as stone at night
+    x.fillStyle = "#6A6E75"; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 9000; i++) { const l = 34 + Math.random() * 22; x.fillStyle = `hsla(220,6%,${l}%,.6)`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.4, 1.4); }
   }) });
   return new THREE.MeshStandardMaterial({ roughness: .95, color: 0xFFFFFF, map: zCanvasTex("mossy", x => {
     x.fillStyle = "#8D8E88"; x.fillRect(0, 0, 256, 256);
@@ -5432,15 +5539,28 @@ function zMakeItem(kind, seed) {
       add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, .02, 6), rail);
     }
   } else if (kind === "tree") {
-    const rock = add(lumpy(new THREE.DodecahedronGeometry(.32, 1), R, .15), zMat(0x5A3F2E, .9), 0, .1); rock.scale.set(1.2, .5, .9);
-    const bark = zMat(0x4A3426, .9); let x = 0, y = .22, z = 0;
-    for (let k = 0; k < 4; k++) { const nx = x + (R() - .5) * .1, ny = y + .16, nz = z + (R() - .5) * .1, seg = add(new THREE.CylinderGeometry(.03 - k * .005, .04 - k * .005, .17, 8), bark, (x + nx) / 2, (y + ny) / 2, (z + nz) / 2); seg.lookAt(nx, ny, nz); seg.rotateX(Math.PI / 2); x = nx; y = ny; z = nz; }
-    g.userData.canopy = new THREE.Vector3(x, y, z);
-    const pinks = [0xF7A8C4, 0xFFD1E0, 0xE97FA6, 0xFFC0D6], geo = new THREE.IcosahedronGeometry(1, 1);
-    const blos = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: .9 }), 70), m4 = new THREE.Matrix4(), col = new THREE.Color();
-    for (let i = 0; i < 70; i++) {
-      const a = R() * 6.3, d = Math.sqrt(R()) * .26, s = .04 + R() * .04;
-      m4.makeScale(s, s, s).setPosition(x + Math.cos(a) * d, y + (R() - .3) * .2, z + Math.sin(a) * d); blos.setMatrixAt(i, m4); blos.setColorAt(i, col.setHex(pinks[i % 4]));
+    // a cherry tree like a bonsai in the sand: a low mossy mound at its foot, a short sturdy trunk with a gentle lean,
+    // branches reaching out, and a wide, airy crown of blossom clusters at their ends
+    const mound = add(lumpy(new THREE.SphereGeometry(.2, 18, 8, 0, 6.2832, 0, Math.PI / 2), R, .1), zMat(0x7A8A52, .95)); mound.scale.set(1, .22, .85);
+    const bark = zMat(0x5A4032, .9), up = new THREE.Vector3(0, 1, 0);
+    const limb = (a, b, r0, r1) => { const s = add(new THREE.CylinderGeometry(r1, r0, a.distanceTo(b), 8), bark); s.position.copy(a).add(b).multiplyScalar(.5); s.quaternion.setFromUnitVectors(up, b.clone().sub(a).normalize()); return s; };
+    const lean = R() * 6.28, lx = Math.cos(lean), lz = Math.sin(lean);
+    const foot = new THREE.Vector3(0, .02, 0), mid = new THREE.Vector3(lx * .04, .25, lz * .04), top = new THREE.Vector3(lx * .09, .42, lz * .09);
+    limb(foot, mid, .06, .045); limb(mid, top, .045, .032);
+    const tips = [top.clone().setY(top.y + .06)];
+    for (let k = 0; k < 4; k++) {
+      const a = lean + k * 1.571 + (R() - .5) * .7, from = k % 2 ? mid.clone().lerp(top, .55) : top, reach = .2 + R() * .1;
+      const to = new THREE.Vector3(from.x + Math.cos(a) * reach, from.y + .07 + R() * .07, from.z + Math.sin(a) * reach);
+      limb(from, to, .026, .013); tips.push(to);
+    }
+    const c = new THREE.Vector3(); tips.forEach(t => c.add(t)); c.divideScalar(tips.length); c.y += .05;
+    g.userData.canopy = c;
+    const pinks = [0xF7A8C4, 0xFFD1E0, 0xE97FA6, 0xFFC0D6], geo = new THREE.IcosahedronGeometry(1, 1), N = 130;
+    const blos = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: .9 }), N), m4 = new THREE.Matrix4(), col = new THREE.Color();
+    for (let i = 0; i < N; i++) {
+      // most blossom clusters gather round the branch ends, flattened into a broad umbrella; a few fill the middle
+      const t = i % 6 === 5 ? c : tips[i % tips.length], a = R() * 6.3, d = Math.sqrt(R()) * (t === c ? .22 : .15), s = .045 + R() * .04;
+      m4.makeScale(s, s * .85, s).setPosition(t.x + Math.cos(a) * d, t.y + (R() - .4) * .09, t.z + Math.sin(a) * d); blos.setMatrixAt(i, m4); blos.setColorAt(i, col.setHex(pinks[i % 4]));
     }
     blos.castShadow = true; g.add(blos);
   } else if (kind === "incense") {
@@ -5521,11 +5641,15 @@ function zPetalsInit() {
   const geo = new THREE.CircleGeometry(.055, 8), p = geo.attributes.position;
   for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i) * .62; p.setXYZ(i, x, y, (x * x + y * y) * 3.5); } // a little cupped
   geo.computeVertexNormals();
-  ZP.mat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: .7, emissive: 0xFF6FA5, emissiveIntensity: .12 });
+  // unlit: two-sided lit petals turn black on some phone graphics chips (their back faces get lit from inside); these just
+  // keep their soft pinks, dimmed a little at night
+  ZP.mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: 0xFFFFFF });
   ZP.mesh = new THREE.InstancedMesh(geo, ZP.mat, ZP.max);
-  ZP.mesh.count = 0; ZP.mesh.castShadow = true; ZP.mesh.frustumCulled = false; Z.scene.add(ZP.mesh);
+  // the colours first: three.js sizes the colour list by the current count, so setting count to 0 beforehand left it empty
+  // and every petal drew black
   const col = new THREE.Color(), pinks = [0xFF8FB8, 0xFFB3CF, 0xFF6FA5, 0xFFC9DC];
   for (let i = 0; i < ZP.max; i++) ZP.mesh.setColorAt(i, col.setHex(pinks[i % 4]));
+  ZP.mesh.count = 0; ZP.mesh.castShadow = true; ZP.mesh.frustumCulled = false; Z.scene.add(ZP.mesh);
   ZP.dummy = new THREE.Object3D();
 }
 function zPetalAt(x, y, z, vx = 0) {
@@ -5659,7 +5783,7 @@ function zNightStep(dt) {
   const v = Z.nv, t = performance.now() / 1000;
   Z.hemi.intensity = .55 - .43 * v; Z.hemi.color.setRGB(1 - .65 * v, 1 - .6 * v, 1 - .33 * v);
   Z.sun.intensity = 1 - .65 * v; Z.sun.color.setRGB(1 - .38 * v, .965 - .26 * v, .918 + .08 * v);
-  ZP.mat.emissiveIntensity = .12 + v * .3;
+  ZP.mat.color.setRGB(1 - .42 * v, 1 - .45 * v, 1 - .3 * v); // the petals dim to a moonlit pink
   let lamps = 0;
   for (const it of Z.items) {
     const gl = it.obj.userData.glow, tip = it.obj.userData.tip;
@@ -6280,10 +6404,16 @@ function cubeRoom(sc) {
   }) })); pic.position.set(-2.3, top + 4.1, wz); sc.add(pic);
   // fairy lights along the top of the wall: they glow at night
   CB.fairy = [];
+  const wirePts = [new THREE.Vector3(-5.6, top + 5.95, wz + .05)];
   for (let i = 0; i < 14; i++) {
     const x = -5 + i * .78, y = top + 5.75 - Math.sin(i / 13 * Math.PI) * .6;
     const b = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: [0xFFD86B, 0xFF9EC4, 0x9FE3C4][i % 3] })); b.position.set(x, y, wz + .08); b.userData.noInk = true; sc.add(b); CB.fairy.push(b);
+    // each bulb hangs from the wire on a little dark cap, so the string reads as lights and not loose dots
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(.06, .07, .12, 8), new THREE.MeshBasicMaterial({ color: 0x2A2438 })); cap.position.set(x, y + .15, wz + .08); cap.userData.noInk = true; sc.add(cap);
+    wirePts.push(new THREE.Vector3(x, y + .22, wz + .06));
   }
+  wirePts.push(new THREE.Vector3(5.6, top + 5.95, wz + .05));
+  const wire = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wirePts), 80, .022, 4), new THREE.MeshBasicMaterial({ color: 0x2A2438 })); wire.userData.noInk = true; sc.add(wire);
   // a soft glow halo for the fairy lights at night
   tbToonify(room, .03);
   // the room's own colours, kept so night can dim them
@@ -6873,16 +7003,24 @@ function rkThrow(rk, fl) {
   const b = rk.body, s = Math.hypot(fl.vx, fl.vy);
   // throw along the camera's view across the sand, a little to the side if the flick leaned
   const fwd = RK.cam.getWorldDirection(new THREE.Vector3()).setY(0).normalize(), side = new THREE.Vector3(-fwd.z, 0, fwd.x);
-  const v = fwd.multiplyScalar(clamp(s / 220, 6, 15)).addScaledVector(side, clamp(fl.vx / 260, -4, 4));
+  const v = fwd.multiplyScalar(clamp(s / 180, 8, 18)).addScaledVector(side, clamp(fl.vx / 260, -4, 4));
   b.type = CANNON.Body.DYNAMIC; b.mass = rk.m; b.updateMassProperties(); b.collisionResponse = true; b.wakeUp();
-  b.velocity.set(v.x, clamp(s / 380, 3.5, 7), v.z); b.angularVelocity.set(rnd(-8, 8), rnd(-4, 4), rnd(-8, 8));
+  b.velocity.set(v.x, clamp(s / 300, 4.5, 8), v.z); b.angularVelocity.set(rnd(-8, 8), rnd(-4, 4), rnd(-8, 8));
   rk.thrown = true; rk.locked = false; rk.place = null; RK.dirty = true;
   S.whoosh(); buzz(10);
 }
 function rkThrownStep(r) {
-  const p = r.body.position;
-  // past the waterline it no longer touches the (flat) physics ground, so it can fall into the sea
-  if (p.z < RK_WATER_Z + 1) r.body.collisionResponse = false;
+  const p = r.body.position, v = r.body.velocity;
+  // where the beach slopes down to the water the flat physics ground would hold it up in mid-air above the sand, so from
+  // there it leaves the physics ground and skids down the real slope, bouncing lower each time, and on into the sea
+  if (p.z < RK_SHORE_Z) {
+    r.body.collisionResponse = false;
+    const gy = rkGroundH(p.x, p.z) + r.b;
+    if (p.y < gy && p.z > RK_WATER_Z) {
+      p.y = gy; if (v.y < 0) v.y = -v.y * .3; v.x *= .92; v.z = Math.min(v.z * .92, -2.2);
+      if (!r.skid) { r.skid = true; rkStone(.25, r.a); }
+    }
+  }
   if (p.z < RK_WATER_Z && p.y < RK_SEA + .1) { rkSplash(p.x, p.z, Math.max(r.a, r.c)); rkRemove(r); }
   else if (p.y < -6 || Math.hypot(p.x - RK.tx, p.z - RK.tz) > 60) rkRemove(r);
 }
@@ -7187,10 +7325,13 @@ const smooth01 = (e0, e1, v) => { const t = clamp((v - e0) / (e1 - e0), 0, 1); r
 function rkGroundH(x, z) {
   const r = Math.hypot(x, z - 1);
   const dune = smooth01(8, 14, r) * smooth01(RK_SHORE_Z, RK_SHORE_Z + 4, z) * (Math.sin(x * .35 + 1.3) * .5 + Math.sin(z * .28 + x * .12) * .45 + Math.sin(x * .9 - z * .6) * .15 + .6);
-  const slope = z < RK_SHORE_Z ? (z - RK_SHORE_Z) * .11 - Math.pow(Math.max(0, RK_SHORE_Z - z - 4), 1.4) * .04 : 0;
+  // the beach rolls gently over into its slope (a sharp fold there caught the light as a dark ledge along the water)
+  const s = RK_SHORE_Z - z, roll = s <= 0 ? 0 : s < 1.6 ? s * s / 3.2 : s - .8;
+  const slope = -roll * .11 - Math.pow(Math.max(0, s - 4), 1.4) * .04;
   return dune * 1.1 + slope;
 }
-const RK_WATER_Z = RK_SHORE_Z + RK_SEA / .11; // where the slope meets the still water line
+// where the slope meets the still water line
+const RK_WATER_Z = (() => { let a = RK_SHORE_Z - 20, b = RK_SHORE_Z; for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if (rkGroundH(0, m) < RK_SEA) a = m; else b = m; } return (a + b) / 2; })();
 function rkBeachBuild(sc) {
   // sand: warm grain for colour, wind ripples for relief
   const st = rkCanvasTex("sand", x => {
@@ -7204,15 +7345,20 @@ function rkBeachBuild(sc) {
     for (let i = 0; i < 6000; i++) { x.fillStyle = Math.random() < .5 ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.25)"; x.fillRect(Math.random() * 256, Math.random() * 256, 1, 1); }
   }, false);
   rip.repeat.set(26, 26);
-  const g = new THREE.PlaneGeometry(110, 110, 220, 220); g.rotateX(-Math.PI / 2); g.translate(0, 0, 15);
+  // wide enough that the sand runs on into the haze whichever way you turn, never stopping at an edge
+  const g = new THREE.PlaneGeometry(260, 110, 330, 220); g.rotateX(-Math.PI / 2); g.translate(0, 0, 15);
   const p = g.attributes.position, col = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), z = p.getZ(i), y = rkGroundH(x, z); p.setY(i, y);
     // damp, darker sand toward the water; dune crests a touch lighter
-    const wet = smooth01(-.05, -.42, y), v = (1 - .2 * wet) * (1 + Math.max(0, y) * .04);
+    const wet = smooth01(-.28, -.5, y), v = (1 - .12 * wet) * (1 + Math.max(0, y) * .04); // only a narrow damp edge at the water
     col[i * 3] = v; col[i * 3 + 1] = v * (1 - .03 * wet); col[i * 3 + 2] = v * (1 - .05 * wet);
   }
   g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
+  // the slope down to the water faces away from the sun, and seen low along the shore it read as a dark ledge; light it
+  // almost as if it were level, so the sand runs on into the water in one colour
+  const nrm = g.attributes.normal;
+  for (let i = 0; i < p.count; i++) if (p.getZ(i) < RK_SHORE_Z + .5) { const k = .85 * smooth01(RK_SHORE_Z + .5, RK_SHORE_Z - 1, p.getZ(i)), nx = nrm.getX(i) * (1 - k), ny = nrm.getY(i) * (1 - k) + k, nz = nrm.getZ(i) * (1 - k), l = Math.hypot(nx, ny, nz); nrm.setXYZ(i, nx / l, ny / l, nz / l); }
   RK.sand = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: st, bumpMap: rip, bumpScale: .035, vertexColors: true, roughness: 1 }));
   RK.sand.receiveShadow = true; sc.add(RK.sand);
   // the sea: shallow turquoise at the shore deepening offshore, with ripples from a scrolling normal map
@@ -7228,7 +7374,7 @@ function rkBeachBuild(sc) {
     x.putImageData(img, 0, 0);
   }, false);
   nm.repeat.set(36, 18); RK.waterNormal = nm;
-  const wg = new THREE.PlaneGeometry(240, 112, 120, 56); wg.rotateX(-Math.PI / 2); wg.translate(0, RK_SEA, RK_WATER_Z - 54);
+  const wg = new THREE.PlaneGeometry(400, 112, 200, 56); wg.rotateX(-Math.PI / 2); wg.translate(0, RK_SEA, RK_WATER_Z - 54);
   wg.setAttribute("color", new THREE.BufferAttribute(new Float32Array(wg.attributes.position.count * 3), 3));
   RK.sea = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ vertexColors: true, normalMap: nm, normalScale: new THREE.Vector2(.45, .45), roughness: .3, metalness: 0, envMap: GL.env, envMapIntensity: .15, transparent: true, opacity: .97, fog: false }));
   // two ripple layers at different scales and directions, and slow swells offshore, so the water never looks tiled
@@ -7244,7 +7390,10 @@ function rkBeachBuild(sc) {
   // the wash: a thin sheet of water and a foam edge that run up the slope and slide back, and the wet shine they leave
   const NX = 96, strip = rows => { const geo = new THREE.BufferGeometry(), pos = new Float32Array(NX * rows * 3), uv = new Float32Array(NX * rows * 2), idx = [];
     for (let r = 0; r < rows; r++) for (let i = 0; i < NX; i++) { uv[(r * NX + i) * 2] = i / (NX - 1) * 10; uv[(r * NX + i) * 2 + 1] = r / (rows - 1); if (r < rows - 1 && i < NX - 1) { const k = r * NX + i; idx.push(k, k + NX, k + 1, k + 1, k + NX, k + NX + 1); } }
-    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx); return geo; };
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx);
+    // facing up: without normals the lit sheets (the wash and the wet shine) came out almost black, a dark band at the water
+    const nrm = new Float32Array(NX * rows * 3); for (let i = 1; i < nrm.length; i += 3) nrm[i] = 1; geo.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+    return geo; };
   // the wash fades in from clear at the waterline to a sheen at its leading edge, so it never lies over the open sea like a slab
   const fade = rkCanvasTex("washfade", x => { const g = x.createLinearGradient(0, 256, 0, 0); g.addColorStop(0, "#000"); g.addColorStop(.55, "#777"); g.addColorStop(1, "#FFF"); x.fillStyle = g; x.fillRect(0, 0, 256, 256); }, false);
   RK.swash = new THREE.Mesh(strip(2), new THREE.MeshStandardMaterial({ color: 0x58C3C0, alphaMap: fade, transparent: true, opacity: .6, roughness: .3, envMapIntensity: .2, depthWrite: false }));
@@ -7280,7 +7429,10 @@ function rkBeachBuild(sc) {
 // the sea and the wash reflect this beach's own sky (not the studio light the rocks use), so the water reads as ocean
 function rkSkyEnv(T) {
   const c = document.createElement("canvas"); c.width = 256; c.height = 128; const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 128);
-  g.addColorStop(0, T.sky[0]); g.addColorStop(.3, T.sky[1]); g.addColorStop(.49, T.sky[2]); g.addColorStop(.51, "#" + new THREE.Color(T.deep).getHexString()); g.addColorStop(1, "#" + new THREE.Color(T.deep).multiplyScalar(.5).getHexString());
+  // below the horizon: the sea's own colour, kept light. Ripples tip the water's reflection down into this half, and a
+  // dark lower half turned the shallows near the shore (and whole patches at grazing angles) nearly black
+  const below = new THREE.Color(T.sky[2]).lerp(new THREE.Color(T.shallow), .55);
+  g.addColorStop(0, T.sky[0]); g.addColorStop(.3, T.sky[1]); g.addColorStop(.49, T.sky[2]); g.addColorStop(.51, "#" + below.getHexString()); g.addColorStop(1, "#" + below.clone().lerp(new THREE.Color(T.deep), .35).getHexString());
   x.fillStyle = g; x.fillRect(0, 0, 256, 128);
   const tex = new THREE.CanvasTexture(c); tex.mapping = THREE.EquirectangularReflectionMapping; tex.encoding = THREE.sRGBEncoding;
   const pm = new THREE.PMREMGenerator(GL.r), env = pm.fromEquirectangular(tex).texture; pm.dispose(); tex.dispose();
@@ -7623,6 +7775,17 @@ function rocksFrame(now) {
         const top = r.body.position.y + rkHalfH(r);
         if (top > 1.5 && Math.random() < clamp((top - 1.5) / 6, 0, 1) * .25) { rkUnlock(r); r.body.applyImpulse(new CANNON.Vec3(r.m * 1.2, 0, r.m * .3), r.body.position); }
       }
+    }
+  }
+  // nothing hangs in the air: a few times a second each settled rock checks what's really under it now. If it's been
+  // left with nothing there (what held it up fell away, or it was only partly linked to its supports), it drops too,
+  // and so does everything on it; otherwise it remembers exactly which rocks it rests on.
+  if ((RK.supCheck = (RK.supCheck || 0) - dt) <= 0) {
+    RK.supCheck = .25;
+    for (const r of RK.rocks) {
+      if (!r.locked || r.place || r === (H && H.rk)) continue;
+      const L = rkLanding(r, r.body.position.x, r.body.position.z);
+      if (r.body.position.y - L.y > .08) rkUnlock(r); else r.sup = L.sup;
     }
   }
   RK.world.step(1 / 120, dt, 6);
@@ -8912,6 +9075,7 @@ if (location.hash) window.__fidget = { P3, pop3Night, IC, iceFrame, icBrush, icH
   if (mode === "ice" && IC.W) iceFrame(now || 0);
   else if (IC.bed) IC.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
   if (mode !== "stones" && ST.bed) ST.bed.g.gain.setTargetAtTime(0, actx.currentTime, .2);
+  if (mode !== "grass" && G.wind) G.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2);
   if (mode === "home" && TB.W && !secHome.classList.contains("list")) tbFrame(now || 0);
   if (mode === "rocks" && RK.W) rocksFrame(now || 0);
   else if (RK.bed) { RK.bed.sea.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.wind.g.gain.setTargetAtTime(0, actx.currentTime, .2); RK.bed.rain.g.gain.setTargetAtTime(0, actx.currentTime, .2); }
